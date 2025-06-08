@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tsumego Board</title>
+  <!-- 常にライトテーマ -->
+  <meta name="color-scheme" content="light" />
+  <style>
+    :root {
+      /* 色設定 */
+      --bg: #f7f7f7;
+      --board: #f1d49c;
+      --line: #000;
+      --star: #000;
+      --coord: #333;
+      --accent: #0066cc;
+      --black: #000;
+      --white: #fff;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0;
+      font-family:system-ui,sans-serif;
+      background:var(--bg);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:16px;
+      padding:16px 8px;
+      min-height:100vh;
+    }
+
+    /* ===== 操作ボタン 3×3 グリッド ===== */
+    #controls{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      width:100%;
+      max-width:480px;
+      grid-auto-rows:minmax(48px,auto); /* 1 行目と 2 行目を標準高さ、3 行目は play-btn が拡張 */
+    }
+    .ctrl-btn{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:0 4px;
+      border:2px solid var(--accent);
+      border-radius:8px;
+      background:#fff;
+      color:var(--accent);
+      font-weight:600;
+      font-size:15px;
+      cursor:pointer;
+      user-select:none;
+      transition:background .15s ease,color .15s ease;
+    }
+    .ctrl-btn:hover{background:var(--accent);color:#fff;}
+    .ctrl-btn.active{background:var(--accent);color:#fff;}
+    /* 3 行目（プレイモード）は縦幅を少し大きく */
+    .play-btn{padding-block:22px;font-size:16px;}
+    @media(max-width:480px){.ctrl-btn{font-size:14px;}}
+
+    /* ===== 碁盤ラッパー ===== */
+    #board-wrapper{width:100%;max-width:95vmin;background:var(--board);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+    svg{width:100%;height:auto;display:block;background:var(--board);touch-action:manipulation;}
+    text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-anchor:middle;user-select:none;}
+    .star{fill:var(--star);}    
+
+    /* ===== 情報表示 ===== */
+    .info{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;}
+    .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
+  </style>
+</head>
+<body>
+  <!-- ===== 操作ボタン ===== -->
+  <div id="controls">
+    <!-- 1 行目: 盤サイズ -->
+    <button class="ctrl-btn size-btn" data-size="9">9路</button>
+    <button class="ctrl-btn size-btn" data-size="13">13路</button>
+    <button class="ctrl-btn size-btn" data-size="19">19路</button>
+    <!-- 2 行目: 編集系 -->
+    <button class="ctrl-btn" id="btn-clear">全消去</button>
+    <button class="ctrl-btn" id="btn-undo">戻る</button>
+    <button class="ctrl-btn" id="btn-erase">消去</button>
+    <!-- 3 行目: プレイモード -->
+    <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
+    <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
+    <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
+  </div>
+
+  <!-- ===== 碁盤 ===== -->
+  <div id="board-wrapper"><svg id="goban"></svg></div>
+
+  <!-- ===== 情報表示 ===== -->
+  <div class="info" id="info"></div>
+  <div class="msg" id="msg"></div>
+
+<script>
+// === 定数 ===
+const CELL   = 60; // 論理セル幅
+const MARGIN = 30; // 盤外余白
+
+// === 盤面状態 ===
+const state = {
+  boardSize: 9,
+  board: [],        // 0:空 1:黒 2:白
+  mode: 'alt',      // 'black' | 'white' | 'alt'
+  eraseMode: false,
+  history: [],
+  turn: 0           // 着手番号
+};
+
+const svg = document.getElementById('goban');
+const infoEl = document.getElementById('info');
+const msgEl  = document.getElementById('msg');
+
+// ============ 初期化 ============
+if(!loadState()) initBoard(9); // 初期は 9 路・石なし
+
+// === 盤を初期化 ===
+function initBoard(size){
+  state.boardSize = size;
+  state.board = Array.from({length:size},()=>Array(size).fill(0));
+  state.history = [];
+  state.turn = 0;
+  state.eraseMode = false;
+  msg('');
+  render();
+  updateInfo();
+  // ボタン状態
+  setActive(document.querySelector(`.size-btn[data-size="${size}"]`),'size-btn');
+  setActive(document.getElementById('btn-alt'),'play-btn');
+  saveState();
+  document.getElementById('btn-erase').classList.remove('active');
+}
+
+// ============ ユーティリティ ============
+function msg(text){msgEl.textContent=text;}
+function cloneBoard(b){return b.map(r=>r.slice());}
+function inRange(v){return v>=0 && v<state.boardSize;}
+function neighbours([x,y]){
+  return [[x-1,y],[x+1,y],[x,y-1],[x,y+1]].filter(([i,j])=>inRange(i)&&inRange(j));
+}
+function setActive(el,groupClass){
+  document.querySelectorAll(`.${groupClass}`).forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// === ローカルストレージ ===
+function saveState(){
+  localStorage.setItem('tsumego_state', JSON.stringify({
+    size: state.boardSize,
+    board: state.board,
+    mode: state.mode,
+    turn: state.turn
+  }));
+}
+
+function loadState(){
+  const data = localStorage.getItem('tsumego_state');
+  if(!data) return false;
+  try{
+    const obj = JSON.parse(data);
+    if(obj && Array.isArray(obj.board)){
+      state.boardSize = obj.size || obj.board.length;
+      state.board = obj.board;
+      state.mode = obj.mode || 'alt';
+      state.turn = obj.turn || 0;
+      render();
+      updateInfo();
+      setActive(document.querySelector(`.size-btn[data-size="${state.boardSize}"]`),'size-btn');
+      const btnId = state.mode === 'alt' ? 'btn-alt' : state.mode === 'black' ? 'btn-black' : 'btn-white';
+      setActive(document.getElementById(btnId),'play-btn');
+      return true;
+    }
+  }catch(e){
+    console.error(e);
+  }
+  return false;
+}
+
+
+// === グループ探索と呼吸点 ===
+function groupLib(x,y,board){
+  const color=board[y][x];
+  const visited=new Set();
+  const stones=[];
+  let libs=0;
+  const stack=[[x,y]];
+  while(stack.length){
+    const [cx,cy]=stack.pop();
+    const key=`${cx},${cy}`;
+    if(visited.has(key))continue;
+    visited.add(key);
+    stones.push([cx,cy]);
+    for(const [nx,ny] of neighbours([cx,cy])){
+      if(board[ny][nx]===0) libs++;
+      else if(board[ny][nx]===color) stack.push([nx,ny]);
+    }
+  }
+  return {stones,libs};
+}
+function removeStones(stones,board){stones.forEach(([x,y])=>{board[y][x]=0;});}
+
+// === 着手試行 ===
+function tryMove(col,row,color){
+  if(!inRange(col)||!inRange(row)) return false;
+  if(state.board[row][col]!==0) return false;
+
+  const newBoard=cloneBoard(state.board);
+  newBoard[row][col]=color;
+  const opp=3-color;
+  for(const [nx,ny] of neighbours([col,row])){
+    if(newBoard[ny][nx]===opp){
+      const info=groupLib(nx,ny,newBoard);
+      if(info.libs===0) removeStones(info.stones,newBoard);
+    }
+  }
+  const self=groupLib(col,row,newBoard);
+  if(self.libs===0) return false; // 自殺手
+
+  state.history.push(cloneBoard(state.board));
+  state.board=newBoard;
+  state.turn++;
+  saveState();
+  return true;
+}
+
+function render(){
+  const N=state.boardSize;
+  const size=CELL*(N-1)+MARGIN*2;
+  svg.setAttribute('viewBox',`0 0 ${size} ${size}`);
+  svg.innerHTML='';
+
+  // 碁盤線
+  for(let i=0;i<N;i++){
+    const pos=MARGIN+i*CELL;
+    svg.appendChild(svgtag('line',{x1:pos,y1:MARGIN,x2:pos,y2:size-MARGIN,stroke:'var(--line)','stroke-width':2}));
+    svg.appendChild(svgtag('line',{x1:MARGIN,y1:pos,x2:size-MARGIN,y2:pos,stroke:'var(--line)','stroke-width':2}));
+  }
+
+  // 星
+  const starIdx={9:[2,4,6],13:[3,6,9],19:[3,9,15]};
+  (starIdx[N]||[]).forEach(ix=>{(starIdx[N]||[]).forEach(iy=>{const cx=MARGIN+ix*CELL;const cy=MARGIN+iy*CELL;svg.appendChild(svgtag('circle',{cx,cy,r:4,class:'star'}));});});
+
+  // 座標
+  const letters='ABCDEFGHJKLMNOPQRSTUV'.slice(0,N).split('');
+  const fsize=CELL*0.28;
+  for(let i=0;i<N;i++){
+    const pos=MARGIN+i*CELL;
+    const col=letters[i];
+    const row=N-i;
+    svg.appendChild(svgtag('text',{x:pos,y:MARGIN-15,class:'coord','font-size':fsize})).textContent=col;
+    svg.appendChild(svgtag('text',{x:pos,y:size-MARGIN+15,class:'coord','font-size':fsize})).textContent=col;
+    svg.appendChild(svgtag('text',{x:MARGIN-20,y:pos,class:'coord','font-size':fsize})).textContent=row;
+    svg.appendChild(svgtag('text',{x:size-MARGIN+20,y:pos,class:'coord','font-size':fsize})).textContent=row;
+  }
+
+  drawStones();
+}
+
+function drawStones(){
+  const N=state.boardSize;
+  const size=CELL*(N-1)+MARGIN*2;
+  // Remove existing stones (if any remain)
+  [...svg.querySelectorAll('.stone')].forEach(e=>e.remove());
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      const val=state.board[y][x];
+      if(val===0) continue;
+      const cx=MARGIN+x*CELL;
+      const cy=MARGIN+y*CELL;
+      svg.appendChild(svgtag('circle',{
+        cx,cy,r:26,class:'stone',fill:val===1?'var(--black)':'var(--white)',stroke:'#000','stroke-width':val===1?0:2
+      }));
+    }
+  }
+}
+
+// === 情報更新 ===
+function updateInfo(){
+  const colorText={1:'黒',2:'白'};
+  let turnColor;
+  if(state.mode==='alt') turnColor=state.turn%2===0?1:2;
+  else if(state.mode==='black') turnColor=1;
+  else if(state.mode==='white') turnColor=2;
+  infoEl.textContent=`盤サイズ: ${state.boardSize}路　次の手番: ${colorText[turnColor]}`;
+}
+
+// === 盤クリック ===
+// === 盤クリック ===
+svg.addEventListener('click',e=>{
+  if(state.eraseMode){ // 消去モード
+    const {col,row}=pointToCoord(e);
+    if(!inRange(col)||!inRange(row)) return;
+    if(state.board[row][col]!==0){
+      state.history.push(cloneBoard(state.board));
+      state.board[row][col]=0;
+      render();updateInfo();saveState();
+    }
+    return;
+  }
+  const {col,row}=pointToCoord(e);
+  if(!inRange(col)||!inRange(row)) return;
+  let color;
+  if(state.mode==='alt') color=state.turn%2===0?1:2;
+  else if(state.mode==='black') color=1;
+  else color=2;
+  const ok=tryMove(col,row,color);
+  if(ok){render();updateInfo();}
+});
+
+function pointToCoord(evt){
+  const pt=svg.createSVGPoint();
+  pt.x=evt.clientX; pt.y=evt.clientY;
+  const svgP=pt.matrixTransform(svg.getScreenCTM().inverse());
+  const col=Math.round((svgP.x-MARGIN)/CELL);
+  const row=Math.round((svgP.y-MARGIN)/CELL);
+  return {col,row};
+}
+
+// === ボタンイベント ===
+// 盤サイズ
+ document.querySelectorAll('.size-btn').forEach(btn=>btn.addEventListener('click',()=>{
+   const size=parseInt(btn.dataset.size,10);
+   initBoard(size);
+ }));
+// 全消去
+ document.getElementById('btn-clear').addEventListener('click',()=>{initBoard(state.boardSize);});
+// 戻る
+ document.getElementById('btn-undo').addEventListener('click',()=>{
+   if(state.history.length){state.board=state.history.pop();state.turn=Math.max(0,state.turn-1);render();updateInfo();saveState();}
+ });
+// 消去モード
+ document.getElementById('btn-erase').addEventListener('click',()=>{
+   state.eraseMode=!state.eraseMode;
+   const el=document.getElementById('btn-erase');
+   if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
+   saveState();
+ });
+// 配置モード
+ function setMode(mode,btn){state.mode=mode;setActive(btn,'play-btn');updateInfo();saveState();}
+ document.getElementById('btn-black' ).addEventListener('click',e=>setMode('black',e.currentTarget));
+ document.getElementById('btn-white' ).addEventListener('click',e=>setMode('white',e.currentTarget));
+ document.getElementById('btn-alt'   ).addEventListener('click',e=>setMode('alt',  e.currentTarget));
+window.addEventListener('orientationchange',()=>setTimeout(render,200));
+window.addEventListener('resize',()=>setTimeout(render,200));
+</script>
+</body>
+</html>
