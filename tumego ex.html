@@ -40,6 +40,15 @@
       max-width:480px;
       grid-auto-rows:minmax(48px,auto); /* 1 行目と 2 行目を標準高さ、3 行目は play-btn が拡張 */
     }
+    /* SGF 操作用ボタン群 */
+    #sgf-controls{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:8px;
+      width:100%;
+      max-width:480px;
+      grid-auto-rows:minmax(48px,auto);
+    }
     .ctrl-btn{
       display:flex;
       justify-content:center;
@@ -89,6 +98,15 @@
     <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
   </div>
 
+  <!-- ===== SGF 読み込みと操作 ===== -->
+  <div id="sgf-controls">
+    <input type="file" id="sgf-input" accept=".sgf" />
+    <button class="ctrl-btn" id="btn-prev10">-10手</button>
+    <button class="ctrl-btn" id="btn-prev">-1手</button>
+    <button class="ctrl-btn" id="btn-next">+1手</button>
+    <button class="ctrl-btn" id="btn-next10">+10手</button>
+  </div>
+
   <!-- ===== 碁盤 ===== -->
   <div id="board-wrapper"><svg id="goban"></svg></div>
 
@@ -108,7 +126,9 @@ const state = {
   mode: 'alt',      // 'black' | 'white' | 'alt'
   eraseMode: false,
   history: [],
-  turn: 0           // 着手番号
+  turn: 0,          // 着手番号
+  sgfMoves: [],     // SGF から読み込んだ着手
+  sgfIndex: 0
 };
 
 const svg = document.getElementById('goban');
@@ -191,6 +211,46 @@ function tryMove(col,row,color){
   state.board=newBoard;
   state.turn++;
   return true;
+}
+
+// === SGF 読み込み ===
+function parseSGF(text){
+  const moves=[];
+  const sizeMatch=text.match(/SZ\[(\d+)\]/i);
+  if(sizeMatch) initBoard(parseInt(sizeMatch[1],10));
+  const tokens=text.match(/;[BW]\[[a-z]{2}\]/ig)||[];
+  tokens.forEach(tok=>{
+    const color=tok[1]==='B'?1:2;
+    const x=tok.charCodeAt(3)-97;
+    const y=tok.charCodeAt(4)-97;
+    moves.push({col:x,row:y,color});
+  });
+  return moves;
+}
+
+function setMoveIndex(idx){
+  idx=Math.max(0,Math.min(idx,state.sgfMoves.length));
+  state.board=Array.from({length:state.boardSize},()=>Array(state.boardSize).fill(0));
+  state.history=[];
+  state.turn=0;
+  for(let i=0;i<idx;i++){
+    const m=state.sgfMoves[i];
+    tryMove(m.col,m.row,m.color);
+  }
+  state.history=[];
+  state.sgfIndex=idx;
+  render();updateInfo();
+}
+
+function loadSGF(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    state.sgfMoves=parseSGF(reader.result);
+    state.sgfIndex=0;
+    setMoveIndex(0);
+    msg(`SGF 読み込み完了 (${state.sgfMoves.length}手)`);
+  };
+  reader.readAsText(file);
 }
 
 // === SVG ヘルパ ===
@@ -311,7 +371,17 @@ function pointToCoord(evt){
  function setMode(mode,btn){state.mode=mode;setActive(btn,'play-btn');updateInfo();}
  document.getElementById('btn-black' ).addEventListener('click',e=>setMode('black',e.currentTarget));
  document.getElementById('btn-white' ).addEventListener('click',e=>setMode('white',e.currentTarget));
- document.getElementById('btn-alt'   ).addEventListener('click',e=>setMode('alt',  e.currentTarget));
+  document.getElementById('btn-alt'   ).addEventListener('click',e=>setMode('alt',  e.currentTarget));
+
+// SGF 読み込み
+  document.getElementById('sgf-input').addEventListener('change',e=>{
+    const file=e.target.files[0];
+    if(file) loadSGF(file);
+  });
+  document.getElementById('btn-prev').addEventListener('click',()=>{setMoveIndex(state.sgfIndex-1);});
+  document.getElementById('btn-next').addEventListener('click',()=>{setMoveIndex(state.sgfIndex+1);});
+  document.getElementById('btn-prev10').addEventListener('click',()=>{setMoveIndex(state.sgfIndex-10);});
+  document.getElementById('btn-next10').addEventListener('click',()=>{setMoveIndex(state.sgfIndex+10);});
 
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>setTimeout(render,200));
