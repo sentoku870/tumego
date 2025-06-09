@@ -80,8 +80,28 @@
     .move-num{font-weight:600;pointer-events:none;text-anchor:middle;dominant-baseline:middle;}
 
     /* ===== 情報表示 ===== */
-    .info{position:absolute;top:4px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.8);padding:2px 4px;border-radius:4px;font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;}
-    #move-slider{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:80%;}
+    .info{
+      margin-top:4px;
+      margin-bottom:4px;
+      background:rgba(255,255,255,.8);
+      padding:2px 4px;
+      border-radius:4px;
+      font-size:15px;
+      font-weight:600;
+      color:#333;
+      min-height:1.4em;
+      text-align:center;
+      width:100%;
+      max-width:95vmin;
+    }
+    #move-slider{
+      display:block;
+      margin-bottom:8px;
+      width:80%;
+      max-width:95vmin;
+      margin-left:auto;
+      margin-right:auto;
+    }
     .moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
     .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
   </style>
@@ -105,11 +125,14 @@
 
 
   <!-- ===== 碁盤 ===== -->
-  <div id="board-wrapper">
+    <!-- 情報表示とスライダー -->
     <div class="info" id="info"></div>
-    <svg id="goban"></svg>
     <input id="move-slider" type="range" min="0" value="0" />
-  </div>
+
+    <!-- ===== 碁盤 ===== -->
+    <div id="board-wrapper">
+      <svg id="goban"></svg>
+    </div>
 
   <div class="moves" id="moves"></div>
   <!-- ===== SGF 読み込みと操作 ===== -->
