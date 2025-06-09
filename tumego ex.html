@@ -76,7 +76,8 @@
     #board-wrapper{width:100%;max-width:95vmin;background:var(--board);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25);}
     svg{width:100%;height:auto;display:block;background:var(--board);touch-action:manipulation;}
     text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-anchor:middle;user-select:none;}
-    .star{fill:var(--star);}    
+    .star{fill:var(--star);}
+    .move-num{font-weight:600;pointer-events:none;text-anchor:middle;dominant-baseline:middle;}
 
     /* ===== 情報表示 ===== */
     .info{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;}
@@ -108,6 +109,8 @@
   <div class="info" id="info"></div>
   <!-- ===== SGF 読み込みと操作 ===== -->
   <div id="sgf-controls">
+    <button class="ctrl-btn" id="btn-play-black">黒先</button>
+    <button class="ctrl-btn" id="btn-play-white">白先</button>
     <button class="ctrl-btn" id="btn-first">最初</button>
     <button class="ctrl-btn" id="btn-prev10">-10手</button>
     <button class="ctrl-btn" id="btn-prev">-1手</button>
@@ -137,6 +140,8 @@ const state = {
   history: [],
   turn: 0,          // 着手番号
   sgfMoves: [],     // SGF から読み込んだ着手
+  numberMode: false,
+  startColor: 1,
   sgfIndex: 0
 };
 
@@ -176,6 +181,15 @@ function neighbours([x,y]){
 function setActive(el,groupClass){
   document.querySelectorAll(`.${groupClass}`).forEach(b=>b.classList.remove('active'));
   if(el) el.classList.add('active');
+}
+
+function getTurnColor(){
+  if(state.numberMode){
+    return state.turn%2===0?state.startColor:3-state.startColor;
+  }
+  if(state.mode==='alt') return state.turn%2===0?1:2;
+  if(state.mode==='black') return 1;
+  return 2;
 }
 
 // === グループ探索と呼吸点 ===
@@ -274,8 +288,26 @@ async function copyBoardImage(){
   const img=new Image();
   img.onload=async()=>{
     const canvas=document.createElement('canvas');
-    canvas.width=img.width;canvas.height=img.height;
-    canvas.getContext('2d').drawImage(img,0,0);
+    let extra=0;
+    let seq='';
+    if(state.numberMode && state.sgfMoves.length){
+      const letters='ABCDEFGHJKLMNOPQRSTUV'.slice(0,state.boardSize).split('');
+      seq=state.sgfMoves.map((m,i)=>{
+        const c=letters[m.col];
+        const r=state.boardSize-m.row;
+        return (i+1)+'.'+c+r;
+      }).join(' ');
+      extra=40;
+    }
+    canvas.width=img.width;canvas.height=img.height+extra;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    if(extra){
+      ctx.fillStyle='#000';
+      ctx.font='16px sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText(seq,canvas.width/2,img.height+30);
+    }
     URL.revokeObjectURL(url);
     canvas.toBlob(async b=>{
       try{
@@ -328,6 +360,17 @@ function loadSGF(file){
   reader.readAsText(file);
 }
 
+function startNumberMode(color){
+  state.numberMode=true;
+  state.startColor=color;
+  state.sgfMoves=[];
+  state.sgfIndex=0;
+  state.turn=0;
+  state.history=[];
+  render();
+  updateInfo();
+}
+
 // === SVG ヘルパ ===
 function svgtag(tag,attrs){const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v]of Object.entries(attrs))el.setAttribute(k,v);return el;}
 
@@ -363,6 +406,7 @@ function render(){
   }
 
   drawStones();
+  if(state.numberMode) drawMoveNumbers();
 }
 
 function drawStones(){
@@ -383,13 +427,31 @@ function drawStones(){
   }
 }
 
+function drawMoveNumbers(){
+  const map={};
+  for(let i=0;i<state.sgfMoves.length;i++){
+    const m=state.sgfMoves[i];
+    const key=`${m.col},${m.row}`;
+    if(!map[key]) map[key]=[];
+    map[key].push(i+1);
+  }
+  for(const key in map){
+    const [x,y]=key.split(',').map(Number);
+    const nums=map[key].join('/');
+    const cx=MARGIN+x*CELL;
+    const cy=MARGIN+y*CELL;
+    let fill='#000';
+    if(state.board[y][x]===1) fill='#fff';
+    svg.appendChild(svgtag('text',{
+      x:cx,y:cy,'font-size':CELL*0.4,fill,class:'move-num'
+    })).textContent=nums;
+  }
+}
+
 // === 情報更新 ===
 function updateInfo(){
   const colorText={1:'黒',2:'白'};
-  let turnColor;
-  if(state.mode==='alt') turnColor=state.turn%2===0?1:2;
-  else if(state.mode==='black') turnColor=1;
-  else if(state.mode==='white') turnColor=2;
+  let turnColor=getTurnColor();
   infoEl.textContent=`盤サイズ: ${state.boardSize}路　次の手番: ${colorText[turnColor]}`;
 }
 
@@ -407,10 +469,7 @@ svg.addEventListener('click',e=>{
   }
   const {col,row}=pointToCoord(e);
   if(!inRange(col)||!inRange(row)) return;
-  let color;
-  if(state.mode==='alt') color=state.turn%2===0?1:2;
-  else if(state.mode==='black') color=1;
-  else color=2;
+  const color=getTurnColor();
   const ok=tryMove(col,row,color);
   if(ok){render();updateInfo();}
 });
@@ -445,11 +504,13 @@ function pointToCoord(evt){
    }
  });
 // 消去モード
- document.getElementById('btn-erase').addEventListener('click',()=>{
-   state.eraseMode=!state.eraseMode;
-   const el=document.getElementById('btn-erase');
-   if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
- });
+  document.getElementById('btn-erase').addEventListener('click',()=>{
+    state.eraseMode=!state.eraseMode;
+    const el=document.getElementById('btn-erase');
+    if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
+  });
+ document.getElementById('btn-play-black').addEventListener('click',()=>startNumberMode(1));
+ document.getElementById('btn-play-white').addEventListener('click',()=>startNumberMode(2));
 // 配置モード
  function setMode(mode,btn){state.mode=mode;setActive(btn,'play-btn');updateInfo();}
  document.getElementById('btn-black' ).addEventListener('click',e=>setMode('black',e.currentTarget));
