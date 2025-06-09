@@ -81,6 +81,7 @@
 
     /* ===== 情報表示 ===== */
     .info{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;}
+    .moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
     .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
   </style>
 </head>
@@ -107,6 +108,7 @@
 
   <!-- ===== 情報表示 ===== -->
   <div class="info" id="info"></div>
+  <div class="moves" id="moves"></div>
   <!-- ===== SGF 読み込みと操作 ===== -->
   <div id="sgf-controls">
     <button class="ctrl-btn" id="btn-play-black">黒先</button>
@@ -147,6 +149,7 @@ const state = {
 
 const svg = document.getElementById('goban');
 const infoEl = document.getElementById('info');
+const movesEl = document.getElementById('moves');
 const msgEl  = document.getElementById('msg');
 
 // ============ 初期化 ============
@@ -162,6 +165,7 @@ function initBoard(size){
   state.sgfIndex = 0;
   state.eraseMode = false;
   msg('');
+  movesEl.textContent='';
   render();
   updateInfo();
   document.getElementById('sgf-text').value='';
@@ -292,21 +296,22 @@ async function copyBoardImage(){
     let seq='';
     if(state.numberMode && state.sgfMoves.length){
       const letters='ABCDEFGHJKLMNOPQRSTUV'.slice(0,state.boardSize).split('');
+      const colorText={1:'黒',2:'白'};
       seq=state.sgfMoves.map((m,i)=>{
         const c=letters[m.col];
         const r=state.boardSize-m.row;
-        return (i+1)+'.'+c+r;
+        return `${i+1}(${colorText[m.color]}) ${c}${r}`;
       }).join(' ');
-      extra=40;
+      extra=50;
     }
     canvas.width=img.width;canvas.height=img.height+extra;
     const ctx=canvas.getContext('2d');
     ctx.drawImage(img,0,0);
     if(extra){
       ctx.fillStyle='#000';
-      ctx.font='16px sans-serif';
+      ctx.font='24px sans-serif';
       ctx.textAlign='center';
-      ctx.fillText(seq,canvas.width/2,img.height+30);
+      ctx.fillText(seq,canvas.width/2,img.height+35);
     }
     URL.revokeObjectURL(url);
     canvas.toBlob(async b=>{
@@ -428,23 +433,19 @@ function drawStones(){
 }
 
 function drawMoveNumbers(){
-  const map={};
+  const placed=new Set();
   for(let i=0;i<state.sgfMoves.length;i++){
     const m=state.sgfMoves[i];
     const key=`${m.col},${m.row}`;
-    if(!map[key]) map[key]=[];
-    map[key].push(i+1);
-  }
-  for(const key in map){
-    const [x,y]=key.split(',').map(Number);
-    const nums=map[key].join('/');
-    const cx=MARGIN+x*CELL;
-    const cy=MARGIN+y*CELL;
+    if(placed.has(key)) continue;
+    placed.add(key);
+    const cx=MARGIN+m.col*CELL;
+    const cy=MARGIN+m.row*CELL;
     let fill='#000';
-    if(state.board[y][x]===1) fill='#fff';
+    if(state.board[m.row][m.col]===1) fill='#fff';
     svg.appendChild(svgtag('text',{
       x:cx,y:cy,'font-size':CELL*0.4,fill,class:'move-num'
-    })).textContent=nums;
+    })).textContent=i+1;
   }
 }
 
@@ -460,6 +461,17 @@ function updateInfo(){
     modeText=modeMap[state.mode];
   }
   infoEl.textContent=`盤サイズ: ${state.boardSize}路　モード: ${modeText}　次の手番: ${colorText[turnColor]}`;
+  if(state.numberMode && state.sgfMoves.length){
+    const letters='ABCDEFGHJKLMNOPQRSTUV'.slice(0,state.boardSize).split('');
+    const seq=state.sgfMoves.map((m,i)=>{
+      const c=letters[m.col];
+      const r=state.boardSize-m.row;
+      return `${i+1}(${colorText[m.color]}) ${c}${r}`;
+    }).join(' ');
+    movesEl.textContent=seq;
+  }else{
+    movesEl.textContent='';
+  }
 }
 
 // === 盤クリック ===
