@@ -101,6 +101,8 @@
       max-width:95vmin;
       margin-left:auto;
       margin-right:auto;
+      height:12px;
+      padding:0;
     }
     .moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
     .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
@@ -139,6 +141,8 @@
   <div id="sgf-controls">
     <button class="ctrl-btn" id="btn-play-black">黒先</button>
     <button class="ctrl-btn" id="btn-play-white">白先</button>
+    <button class="ctrl-btn" id="btn-temp-save">一時保存</button>
+    <button class="ctrl-btn" id="btn-temp-load">一時読込</button>
     <input type="file" id="sgf-input" accept=".sgf" hidden />
     <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
     <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
@@ -171,6 +175,7 @@ const infoEl = document.getElementById('info');
 const sliderEl = document.getElementById('move-slider');
 const movesEl = document.getElementById('moves');
 const msgEl  = document.getElementById('msg');
+let tempSave = null;
 
 // ============ 初期化 ============
 initBoard(9); // 初期は 9 路・石なし
@@ -206,6 +211,41 @@ function neighbours([x,y]){
 function setActive(el,groupClass){
   document.querySelectorAll(`.${groupClass}`).forEach(b=>b.classList.remove('active'));
   if(el) el.classList.add('active');
+}
+
+// === 一時保存・読込 ===
+function saveTemp(){
+  tempSave={
+    boardSize:state.boardSize,
+    board:cloneBoard(state.board),
+    mode:state.mode,
+    eraseMode:state.eraseMode,
+    history:state.history.map(cloneBoard),
+    turn:state.turn,
+    sgfMoves:state.sgfMoves.slice(),
+    numberMode:state.numberMode,
+    startColor:state.startColor,
+    sgfIndex:state.sgfIndex
+  };
+  msg('一時保存しました');
+}
+
+function loadTemp(){
+  if(!tempSave){msg('一時保存がありません');return;}
+  state.boardSize=tempSave.boardSize;
+  state.board=cloneBoard(tempSave.board);
+  state.mode=tempSave.mode;
+  state.eraseMode=tempSave.eraseMode;
+  state.history=tempSave.history.map(cloneBoard);
+  state.turn=tempSave.turn;
+  state.sgfMoves=tempSave.sgfMoves.slice();
+  state.numberMode=tempSave.numberMode;
+  state.startColor=tempSave.startColor;
+  state.sgfIndex=tempSave.sgfIndex;
+  render();
+  updateInfo();
+  updateSlider();
+  msg('一時読込しました');
 }
 
 function getTurnColor(){
@@ -600,6 +640,8 @@ function toggleNumberMode(color){
 }
 document.getElementById('btn-play-black').addEventListener('click',()=>toggleNumberMode(1));
 document.getElementById('btn-play-white').addEventListener('click',()=>toggleNumberMode(2));
+document.getElementById('btn-temp-save').addEventListener('click',saveTemp);
+document.getElementById('btn-temp-load').addEventListener('click',loadTemp);
 // 配置モード
 function setMode(mode,btn){
   state.mode=mode;
