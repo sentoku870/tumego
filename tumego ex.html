@@ -49,6 +49,7 @@
       max-width:480px;
       grid-auto-rows:minmax(48px,auto);
     }
+    #sgf-input{display:none;}
     #sgf-text{width:100%;max-width:480px;padding:4px;}
     .ctrl-btn{
       display:flex;
@@ -105,18 +106,21 @@
 
   <!-- ===== 情報表示 ===== -->
   <div class="info" id="info"></div>
-  <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
   <!-- ===== SGF 読み込みと操作 ===== -->
   <div id="sgf-controls">
-    <input type="file" id="sgf-input" accept=".sgf" />
+    <button class="ctrl-btn" id="btn-first">最初</button>
     <button class="ctrl-btn" id="btn-prev10">-10手</button>
     <button class="ctrl-btn" id="btn-prev">-1手</button>
     <button class="ctrl-btn" id="btn-next">+1手</button>
     <button class="ctrl-btn" id="btn-next10">+10手</button>
+    <button class="ctrl-btn" id="btn-last">最終</button>
+    <input type="file" id="sgf-input" accept=".sgf" hidden />
+    <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
     <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
     <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
     <button class="ctrl-btn" id="btn-save-img">画像保存</button>
   </div>
+  <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
   <div class="msg" id="msg"></div>
 
 <script>
@@ -253,24 +257,46 @@ function exportSGF(){
   return sgf;
 }
 
-function copyBoardImage(){
-  const data=new XMLSerializer().serializeToString(svg);
+async function copyBoardImage(){
+  const vars=['--line','--star','--board','--coord','--black','--white'];
+  const style=getComputedStyle(document.documentElement);
+  let data=new XMLSerializer().serializeToString(svg);
+  for(const v of vars){
+    const val=style.getPropertyValue(v).trim();
+    const reg=new RegExp(`var\\(${v.replace(/[-]/g,'\\$&')}\\)`,'g');
+    data=data.replace(reg,val);
+  }
+  const bg=style.getPropertyValue('--board').trim();
+  data=data.replace('<svg','<svg style="background:'+bg+'"');
+
   const blob=new Blob([data],{type:'image/svg+xml'});
   const url=URL.createObjectURL(blob);
   const img=new Image();
-  img.onload=()=>{
+  img.onload=async()=>{
     const canvas=document.createElement('canvas');
     canvas.width=img.width;canvas.height=img.height;
     canvas.getContext('2d').drawImage(img,0,0);
     URL.revokeObjectURL(url);
-    canvas.toBlob(b=>{
-      if(navigator.clipboard&&navigator.clipboard.write){
-        const item=new ClipboardItem({[b.type]:b});
-        navigator.clipboard.write([item]).then(()=>msg('画像をコピーしました'));
-      }
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(b);a.download='board.png';a.click();
-      URL.revokeObjectURL(a.href);
+    canvas.toBlob(async b=>{
+      try{
+        if(window.showSaveFilePicker){
+          const handle=await window.showSaveFilePicker({
+            suggestedName:'board.png',
+            types:[{description:'PNG image',accept:{'image/png':['.png']}}]
+          });
+          const w=await handle.createWritable();
+          await w.write(b);await w.close();
+        }else{
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(b);a.download='board.png';a.click();
+          URL.revokeObjectURL(a.href);
+        }
+        if(navigator.clipboard&&navigator.clipboard.write){
+          const item=new ClipboardItem({[b.type]:b});
+          navigator.clipboard.write([item]);
+          msg('画像をコピーしました');
+        }
+      }catch(e){console.error(e);}
     });
   };
   img.src=url;
@@ -435,6 +461,8 @@ function pointToCoord(evt){
     const file=e.target.files[0];
     if(file) loadSGF(file);
   });
+  document.getElementById('btn-first').addEventListener('click',()=>{setMoveIndex(0);});
+  document.getElementById('btn-last').addEventListener('click',()=>{setMoveIndex(state.sgfMoves.length);});
   document.getElementById('btn-prev').addEventListener('click',()=>{setMoveIndex(state.sgfIndex-1);});
   document.getElementById('btn-next').addEventListener('click',()=>{setMoveIndex(state.sgfIndex+1);});
   document.getElementById('btn-prev10').addEventListener('click',()=>{setMoveIndex(state.sgfIndex-10);});
