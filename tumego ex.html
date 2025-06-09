@@ -43,12 +43,13 @@
     /* SGF 操作用ボタン群 */
     #sgf-controls{
       display:grid;
-      grid-template-columns:repeat(5,1fr);
+      grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
       gap:8px;
       width:100%;
       max-width:480px;
       grid-auto-rows:minmax(48px,auto);
     }
+    #sgf-text{width:100%;max-width:480px;padding:4px;}
     .ctrl-btn{
       display:flex;
       justify-content:center;
@@ -98,6 +99,13 @@
     <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
   </div>
 
+
+  <!-- ===== 碁盤 ===== -->
+  <div id="board-wrapper"><svg id="goban"></svg></div>
+
+  <!-- ===== 情報表示 ===== -->
+  <div class="info" id="info"></div>
+  <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
   <!-- ===== SGF 読み込みと操作 ===== -->
   <div id="sgf-controls">
     <input type="file" id="sgf-input" accept=".sgf" />
@@ -105,13 +113,10 @@
     <button class="ctrl-btn" id="btn-prev">-1手</button>
     <button class="ctrl-btn" id="btn-next">+1手</button>
     <button class="ctrl-btn" id="btn-next10">+10手</button>
+    <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
+    <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
+    <button class="ctrl-btn" id="btn-save-img">画像保存</button>
   </div>
-
-  <!-- ===== 碁盤 ===== -->
-  <div id="board-wrapper"><svg id="goban"></svg></div>
-
-  <!-- ===== 情報表示 ===== -->
-  <div class="info" id="info"></div>
   <div class="msg" id="msg"></div>
 
 <script>
@@ -144,10 +149,13 @@ function initBoard(size){
   state.board = Array.from({length:size},()=>Array(size).fill(0));
   state.history = [];
   state.turn = 0;
+  state.sgfMoves = [];
+  state.sgfIndex = 0;
   state.eraseMode = false;
   msg('');
   render();
   updateInfo();
+  document.getElementById('sgf-text').value='';
   // ボタン状態
   setActive(document.querySelector(`.size-btn[data-size="${size}"]`),'size-btn');
   setActive(document.getElementById('btn-alt'),'play-btn');
@@ -189,7 +197,7 @@ function groupLib(x,y,board){
 function removeStones(stones,board){stones.forEach(([x,y])=>{board[y][x]=0;});}
 
 // === 着手試行 ===
-function tryMove(col,row,color){
+function tryMove(col,row,color,record=true){
   if(!inRange(col)||!inRange(row)) return false;
   if(state.board[row][col]!==0) return false;
 
@@ -210,6 +218,11 @@ function tryMove(col,row,color){
   state.history.push(cloneBoard(state.board));
   state.board=newBoard;
   state.turn++;
+  if(record){
+    state.sgfMoves=state.sgfMoves.slice(0,state.sgfIndex);
+    state.sgfMoves.push({col,row,color});
+    state.sgfIndex=state.sgfMoves.length;
+  }
   return true;
 }
 
@@ -228,6 +241,41 @@ function parseSGF(text){
   return moves;
 }
 
+function exportSGF(){
+  let sgf=`(;GM[1]FF[4]SZ[${state.boardSize}]`;
+  for(const m of state.sgfMoves){
+    const c=m.color===1?'B':'W';
+    const x=String.fromCharCode(97+m.col);
+    const y=String.fromCharCode(97+m.row);
+    sgf+=`;${c}[${x}${y}]`;
+  }
+  sgf+=')';
+  return sgf;
+}
+
+function copyBoardImage(){
+  const data=new XMLSerializer().serializeToString(svg);
+  const blob=new Blob([data],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  img.onload=()=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=img.width;canvas.height=img.height;
+    canvas.getContext('2d').drawImage(img,0,0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(b=>{
+      if(navigator.clipboard&&navigator.clipboard.write){
+        const item=new ClipboardItem({[b.type]:b});
+        navigator.clipboard.write([item]).then(()=>msg('画像をコピーしました'));
+      }
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(b);a.download='board.png';a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  };
+  img.src=url;
+}
+
 function setMoveIndex(idx){
   idx=Math.max(0,Math.min(idx,state.sgfMoves.length));
   state.board=Array.from({length:state.boardSize},()=>Array(state.boardSize).fill(0));
@@ -235,7 +283,7 @@ function setMoveIndex(idx){
   state.turn=0;
   for(let i=0;i<idx;i++){
     const m=state.sgfMoves[i];
-    tryMove(m.col,m.row,m.color);
+    tryMove(m.col,m.row,m.color,false);
   }
   state.history=[];
   state.sgfIndex=idx;
@@ -249,6 +297,7 @@ function loadSGF(file){
     state.sgfIndex=0;
     setMoveIndex(0);
     msg(`SGF 読み込み完了 (${state.sgfMoves.length}手)`);
+    document.getElementById('sgf-text').value=reader.result;
   };
   reader.readAsText(file);
 }
@@ -359,7 +408,15 @@ function pointToCoord(evt){
  document.getElementById('btn-clear').addEventListener('click',()=>{initBoard(state.boardSize);});
 // 戻る
  document.getElementById('btn-undo').addEventListener('click',()=>{
-   if(state.history.length){state.board=state.history.pop();state.turn=Math.max(0,state.turn-1);render();updateInfo();}
+   if(state.history.length){
+     state.board=state.history.pop();
+     state.turn=Math.max(0,state.turn-1);
+     if(state.sgfIndex>0){
+       state.sgfIndex--; 
+       state.sgfMoves=state.sgfMoves.slice(0,state.sgfIndex);
+     }
+     render();updateInfo();
+   }
  });
 // 消去モード
  document.getElementById('btn-erase').addEventListener('click',()=>{
@@ -382,6 +439,16 @@ function pointToCoord(evt){
   document.getElementById('btn-next').addEventListener('click',()=>{setMoveIndex(state.sgfIndex+1);});
   document.getElementById('btn-prev10').addEventListener('click',()=>{setMoveIndex(state.sgfIndex-10);});
   document.getElementById('btn-next10').addEventListener('click',()=>{setMoveIndex(state.sgfIndex+10);});
+  document.getElementById('btn-load-sgf').addEventListener('click',()=>{
+    const text=document.getElementById('sgf-text').value;
+    if(text.trim()){state.sgfMoves=parseSGF(text);state.sgfIndex=0;setMoveIndex(0);msg('SGF 読み込み完了');}
+  });
+  document.getElementById('btn-copy-sgf').addEventListener('click',()=>{
+    const text=exportSGF();
+    document.getElementById('sgf-text').value=text;
+    navigator.clipboard.writeText(text).then(()=>msg('SGF をコピーしました'));
+  });
+  document.getElementById('btn-save-img').addEventListener('click',copyBoardImage);
 
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>setTimeout(render,200));
