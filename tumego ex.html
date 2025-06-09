@@ -534,7 +534,7 @@ function drawStones(){
 function drawMoveNumbers(){
   const placed=new Set();
   const start=state.numberStartIndex||0;
-  for(let i=start;i<state.sgfMoves.length;i++){
+  for(let i=start;i<state.sgfIndex;i++){
     const m=state.sgfMoves[i];
     const key=`${m.col},${m.row}`;
     if(placed.has(key)) continue;
@@ -569,7 +569,8 @@ function updateInfo(){
       if(n>=36&&n<=50) return String.fromCharCode(0x32b1+n-36);
       return n;
     };
-    const seq=state.sgfMoves.map((m,i)=>{
+    const start=state.numberStartIndex||0;
+    const seq=state.sgfMoves.slice(start,state.sgfIndex).map((m,i)=>{
       const c=letters[m.col];
       const r=state.boardSize-m.row;
       const mark=m.color===1?'■':'□';
