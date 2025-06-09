@@ -106,6 +106,22 @@
     }
     .moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
     .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
+
+    /* ===== スクショオーバーレイ ===== */
+    #screenshot-overlay{
+      position:fixed;
+      inset:0;
+      background:#fff;
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      gap:8px;
+      z-index:1000;
+    }
+    #screenshot-overlay img{width:100%;height:auto;max-width:95vmin;}
+    #screenshot-overlay .ctrl-btn{width:120px;}
   </style>
 </head>
 <body>
@@ -147,9 +163,14 @@
     <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
     <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
     <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
+    <button class="ctrl-btn" id="btn-screenshot">スクショ</button>
   </div>
   <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
   <div class="msg" id="msg"></div>
+  <div id="screenshot-overlay">
+    <img id="screenshot-img" />
+    <button class="ctrl-btn" id="btn-close-screenshot">閉じる</button>
+  </div>
 
 <script>
 // === 定数 ===
@@ -341,7 +362,7 @@ function exportSGF(){
   return sgf;
 }
 
-async function copyBoardImage(){
+async function createBoardCanvas(){
   const vars=['--line','--star','--board','--coord','--black','--white'];
   const style=getComputedStyle(document.documentElement);
   let data=new XMLSerializer().serializeToString(svg);
@@ -358,8 +379,9 @@ async function copyBoardImage(){
 
   const blob=new Blob([data],{type:'image/svg+xml'});
   const url=URL.createObjectURL(blob);
+  return await new Promise(resolve=>{
     const img=new Image();
-    img.onload=async()=>{
+    img.onload=()=>{
       const canvas=document.createElement('canvas');
       let seq='';
       if(state.numberMode && state.sgfMoves.length){
@@ -379,7 +401,7 @@ async function copyBoardImage(){
       }
       canvas.width=img.width;
       const ctx=canvas.getContext('2d');
-      ctx.font='24px sans-serif';
+      ctx.font='32px sans-serif';
       ctx.textAlign='center';
       let lines=[];
       if(seq){
@@ -397,16 +419,24 @@ async function copyBoardImage(){
         }
         if(line) lines.push(line);
       }
-      canvas.height=img.height + lines.length*30;
+      canvas.height=img.height + lines.length*40;
       ctx.drawImage(img,0,0);
       if(lines.length){
         ctx.fillStyle='#000';
         for(let i=0;i<lines.length;i++){
-          ctx.fillText(lines[i],canvas.width/2,img.height+30*(i+0.8));
+          ctx.fillText(lines[i],canvas.width/2,img.height+40*(i+0.8));
         }
       }
-    URL.revokeObjectURL(url);
-    canvas.toBlob(async b=>{
+      URL.revokeObjectURL(url);
+      resolve(canvas);
+    };
+    img.src=url;
+  });
+}
+
+async function copyBoardImage(){
+  const canvas=await createBoardCanvas();
+  canvas.toBlob(async b=>{
       try{
         if(window.showSaveFilePicker){
           const handle=await window.showSaveFilePicker({
@@ -426,9 +456,14 @@ async function copyBoardImage(){
           msg('画像をコピーしました');
         }
       }catch(e){console.error(e);}
-    });
-  };
-  img.src=url;
+  });
+}
+
+async function showScreenshot(){
+  const canvas=await createBoardCanvas();
+  const imgEl=document.getElementById('screenshot-img');
+  imgEl.src=canvas.toDataURL('image/png');
+  document.getElementById('screenshot-overlay').style.display='flex';
 }
 
 function setMoveIndex(idx){
@@ -684,6 +719,10 @@ function setMode(mode,btn){
     const text=exportSGF();
     document.getElementById('sgf-text').value=text;
     navigator.clipboard.writeText(text).then(()=>msg('SGF をコピーしました'));
+  });
+  document.getElementById('btn-screenshot').addEventListener('click',showScreenshot);
+  document.getElementById('btn-close-screenshot').addEventListener('click',()=>{
+    document.getElementById('screenshot-overlay').style.display='none';
   });
 
 // ============ リサイズ対応 ============
