@@ -285,7 +285,10 @@ async function copyBoardImage(){
     data=data.replace(reg,val);
   }
   const bg=style.getPropertyValue('--board').trim();
-  data=data.replace('<svg','<svg style="background:'+bg+'"');
+  const width=svg.clientWidth;
+  const height=svg.clientHeight;
+  const attr=`style="background:${bg}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"`;
+  data=data.replace('<svg',`<svg ${attr}`);
 
   const blob=new Blob([data],{type:'image/svg+xml'});
   const url=URL.createObjectURL(blob);
