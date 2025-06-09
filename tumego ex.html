@@ -452,7 +452,14 @@ function drawMoveNumbers(){
 function updateInfo(){
   const colorText={1:'黒',2:'白'};
   let turnColor=getTurnColor();
-  infoEl.textContent=`盤サイズ: ${state.boardSize}路　次の手番: ${colorText[turnColor]}`;
+  let modeText='';
+  if(state.numberMode){
+    modeText='解答モード';
+  }else{
+    const modeMap={black:'黒配置',white:'白配置',alt:'交互配置'};
+    modeText=modeMap[state.mode];
+  }
+  infoEl.textContent=`盤サイズ: ${state.boardSize}路　モード: ${modeText}　次の手番: ${colorText[turnColor]}`;
 }
 
 // === 盤クリック ===
@@ -509,10 +516,25 @@ function pointToCoord(evt){
     const el=document.getElementById('btn-erase');
     if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
   });
- document.getElementById('btn-play-black').addEventListener('click',()=>startNumberMode(1));
- document.getElementById('btn-play-white').addEventListener('click',()=>startNumberMode(2));
+function toggleNumberMode(color){
+  if(state.numberMode && state.startColor===color){
+    state.numberMode=false;
+    render();
+    updateInfo();
+  }else{
+    startNumberMode(color);
+  }
+}
+document.getElementById('btn-play-black').addEventListener('click',()=>toggleNumberMode(1));
+document.getElementById('btn-play-white').addEventListener('click',()=>toggleNumberMode(2));
 // 配置モード
- function setMode(mode,btn){state.mode=mode;setActive(btn,'play-btn');updateInfo();}
+function setMode(mode,btn){
+  state.mode=mode;
+  if(state.numberMode){state.numberMode=false;}
+  setActive(btn,'play-btn');
+  render();
+  updateInfo();
+}
  document.getElementById('btn-black' ).addEventListener('click',e=>setMode('black',e.currentTarget));
  document.getElementById('btn-white' ).addEventListener('click',e=>setMode('white',e.currentTarget));
   document.getElementById('btn-alt'   ).addEventListener('click',e=>setMode('alt',  e.currentTarget));
