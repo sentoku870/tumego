@@ -147,6 +147,7 @@
     <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
     <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
     <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
+    <button class="ctrl-btn" id="btn-save-image">画像保存</button>
   </div>
   <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
   <div class="msg" id="msg"></div>
@@ -431,6 +432,85 @@ async function copyBoardImage(){
   img.src=url;
 }
 
+async function exportImageWithSequence(){
+  const vars=['--line','--star','--board','--coord','--black','--white'];
+  const style=getComputedStyle(document.documentElement);
+  let data=new XMLSerializer().serializeToString(svg);
+  for(const v of vars){
+    const val=style.getPropertyValue(v).trim();
+    const reg=new RegExp(`var\\(${v.replace(/[-]/g,'\\$&')}\\)`,'g');
+    data=data.replace(reg,val);
+  }
+  const bg=style.getPropertyValue('--board').trim();
+  const width=svg.clientWidth;
+  const height=svg.clientHeight;
+  const attr=`style="background:${bg}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"`;
+  data=data.replace('<svg',`<svg ${attr}`);
+
+  const blob=new Blob([data],{type:'image/svg+xml'});
+  const url=URL.createObjectURL(blob);
+  const img=new Image();
+  return new Promise((resolve,reject)=>{
+    img.onload=async()=>{
+      try{
+        const canvas=document.createElement('canvas');
+        const ctx=canvas.getContext('2d');
+        const seq=movesEl.textContent.trim();
+        canvas.width=img.width;
+        ctx.font='24px sans-serif';
+        ctx.textAlign='center';
+        const lines=[];
+        if(seq){
+          const maxW=canvas.width-20;
+          const words=seq.split(' ');
+          let line='';
+          for(const w of words){
+            const test=line?line+' '+w:w;
+            if(ctx.measureText(test).width>maxW && line){
+              lines.push(line);
+              line=w;
+            }else{
+              line=test;
+            }
+          }
+          if(line) lines.push(line);
+        }
+        canvas.height=img.height+lines.length*30;
+        ctx.drawImage(img,0,0);
+        ctx.fillStyle='#000';
+        for(let i=0;i<lines.length;i++){
+          ctx.fillText(lines[i],canvas.width/2,img.height+30*(i+0.8));
+        }
+        URL.revokeObjectURL(url);
+        canvas.toBlob(async b=>{
+          if(!b){reject(new Error('image error'));return;}
+          try{
+            if(window.showSaveFilePicker){
+              const handle=await window.showSaveFilePicker({
+                suggestedName:'board.png',
+                types:[{description:'PNG image',accept:{'image/png':['.png']}}]
+              });
+              const w=await handle.createWritable();
+              await w.write(b);await w.close();
+            }else{
+              const a=document.createElement('a');
+              a.href=URL.createObjectURL(b);a.download='board.png';a.click();
+              URL.revokeObjectURL(a.href);
+            }
+            if(navigator.clipboard&&navigator.clipboard.write){
+              const item=new ClipboardItem({[b.type]:b});
+              await navigator.clipboard.write([item]);
+            }
+            resolve();
+          }catch(e){reject(e);}
+        },'image/png');
+      }catch(e){reject(e);} 
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('load error'));};
+    img.src=url;
+  });
+}
+
 function setMoveIndex(idx){
   idx=Math.max(0,Math.min(idx,state.sgfMoves.length));
   state.board=Array.from({length:state.boardSize},()=>Array(state.boardSize).fill(0));
@@ -684,6 +764,10 @@ function setMode(mode,btn){
     const text=exportSGF();
     document.getElementById('sgf-text').value=text;
     navigator.clipboard.writeText(text).then(()=>msg('SGF をコピーしました'));
+  });
+  document.getElementById('btn-save-image').addEventListener('click',()=>{
+    exportImageWithSequence().then(()=>msg('画像を保存・コピーしました'))
+      .catch(e=>{console.error(e);msg(e.message||'画像保存に失敗しました');});
   });
 
 // ============ リサイズ対応 ============
