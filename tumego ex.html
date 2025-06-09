@@ -167,7 +167,8 @@ const state = {
   sgfMoves: [],     // SGF から読み込んだ着手
   numberMode: false,
   startColor: 1,
-  sgfIndex: 0
+  sgfIndex: 0,
+  numberStartIndex: 0
 };
 
 const svg = document.getElementById('goban');
@@ -188,6 +189,7 @@ function initBoard(size){
   state.turn = 0;
   state.sgfMoves = [];
   state.sgfIndex = 0;
+  state.numberStartIndex = 0;
   state.eraseMode = false;
   msg('');
   movesEl.textContent='';
@@ -225,7 +227,8 @@ function saveTemp(){
     sgfMoves:state.sgfMoves.slice(),
     numberMode:state.numberMode,
     startColor:state.startColor,
-    sgfIndex:state.sgfIndex
+    sgfIndex:state.sgfIndex,
+    numberStartIndex:state.numberStartIndex
   };
   msg('一時保存しました');
 }
@@ -242,6 +245,7 @@ function loadTemp(){
   state.numberMode=tempSave.numberMode;
   state.startColor=tempSave.startColor;
   state.sgfIndex=tempSave.sgfIndex;
+  state.numberStartIndex=tempSave.numberStartIndex||0;
   render();
   updateInfo();
   updateSlider();
@@ -438,6 +442,11 @@ function setMoveIndex(idx){
   }
   state.history=[];
   state.sgfIndex=idx;
+  if(state.numberMode){
+    state.turn=Math.max(0,idx-state.numberStartIndex);
+  }else{
+    state.turn=idx;
+  }
   render();updateInfo();updateSlider();
 }
 
@@ -446,6 +455,7 @@ function loadSGF(file){
   reader.onload=()=>{
     state.sgfMoves=parseSGF(reader.result);
     state.sgfIndex=0;
+    state.numberStartIndex=0;
     setMoveIndex(0);
     msg(`SGF 読み込み完了 (${state.sgfMoves.length}手)`);
     document.getElementById('sgf-text').value=reader.result;
@@ -456,8 +466,8 @@ function loadSGF(file){
 function startNumberMode(color){
   state.numberMode=true;
   state.startColor=color;
-  state.sgfMoves=[];
-  state.sgfIndex=0;
+  state.numberStartIndex=state.sgfMoves.length;
+  state.sgfIndex=state.sgfMoves.length;
   state.turn=0;
   state.history=[];
   render();
@@ -523,7 +533,8 @@ function drawStones(){
 
 function drawMoveNumbers(){
   const placed=new Set();
-  for(let i=0;i<state.sgfMoves.length;i++){
+  const start=state.numberStartIndex||0;
+  for(let i=start;i<state.sgfMoves.length;i++){
     const m=state.sgfMoves[i];
     const key=`${m.col},${m.row}`;
     if(placed.has(key)) continue;
@@ -534,7 +545,7 @@ function drawMoveNumbers(){
     if(state.board[m.row][m.col]===1) fill='#fff';
     svg.appendChild(svgtag('text',{
       x:cx,y:cy,'font-size':CELL*0.4,fill,class:'move-num'
-    })).textContent=i+1;
+    })).textContent=i-start+1;
   }
 }
 
@@ -632,6 +643,7 @@ function pointToCoord(evt){
 function toggleNumberMode(color){
   if(state.numberMode && state.startColor===color){
     state.numberMode=false;
+    state.turn=state.sgfIndex;
     render();
     updateInfo();
   }else{
@@ -645,7 +657,10 @@ document.getElementById('btn-temp-load').addEventListener('click',loadTemp);
 // 配置モード
 function setMode(mode,btn){
   state.mode=mode;
-  if(state.numberMode){state.numberMode=false;}
+  if(state.numberMode){
+    state.numberMode=false;
+    state.turn=state.sgfIndex;
+  }
   setActive(btn,'play-btn');
   render();
   updateInfo();
