@@ -102,7 +102,7 @@ function getTurnColor(){
   if(state.numberMode){
     return state.turn%2===0?state.startColor:3-state.startColor;
   }
-  if(state.mode==='alt') return state.turn%2===0?1:2;
+  if(state.mode==='alt') return state.turn%2===0?state.startColor:3-state.startColor;
   if(state.mode==='black') return 1;
   return 2;
 }
@@ -514,7 +514,10 @@ function setMode(mode,btn){
 }
  document.getElementById('btn-black' ).addEventListener('click',e=>setMode('black',e.currentTarget));
  document.getElementById('btn-white' ).addEventListener('click',e=>setMode('white',e.currentTarget));
-  document.getElementById('btn-alt'   ).addEventListener('click',e=>setMode('alt',  e.currentTarget));
+ document.getElementById('btn-alt'   ).addEventListener('click',e=>{
+   state.startColor = state.startColor===1 ? 2 : 1;
+   setMode('alt',  e.currentTarget);
+ });
 
 // SGF 読み込み
   document.getElementById('sgf-input').addEventListener('change',e=>{
