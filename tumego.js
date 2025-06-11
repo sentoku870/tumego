@@ -433,7 +433,7 @@ function updateSlider(){
   sliderEl.value = state.sgfIndex;
 }
 
-// === 盤クリック ===
+// === 盤クリック / ドラッグ配置 ===
 svg.addEventListener('click',e=>{
   if(state.eraseMode){ // 消去モード
     const {col,row}=pointToCoord(e);
@@ -451,6 +451,52 @@ svg.addEventListener('click',e=>{
   const ok=tryMove(col,row,color);
   if(ok){render();updateInfo();updateSlider();}
 });
+
+// ===== ドラッグ配置 =====
+let dragButton=null; // 0:left 2:right
+let lastDrag=null;
+
+function handleDragPlace(evt){
+  const {col,row}=pointToCoord(evt);
+  if(!inRange(col)||!inRange(row)) return;
+  const key=`${col},${row}`;
+  if(key===lastDrag) return;
+  lastDrag=key;
+  if(state.eraseMode){
+    if(state.board[row][col]!==0){
+      state.history.push(cloneBoard(state.board));
+      state.board[row][col]=0;
+      render();
+      updateInfo();
+    }
+    return;
+  }
+  const color=dragButton===0?1:2;
+  const ok=tryMove(col,row,color);
+  if(ok){render();updateInfo();updateSlider();}
+}
+
+svg.addEventListener('mousedown',e=>{
+  if(e.button===0||e.button===2){
+    e.preventDefault();
+    dragButton=e.button;
+    lastDrag=null;
+    handleDragPlace(e);
+  }
+});
+
+window.addEventListener('mousemove',e=>{
+  if(dragButton!==null){
+    handleDragPlace(e);
+  }
+});
+
+window.addEventListener('mouseup',()=>{
+  dragButton=null;
+  lastDrag=null;
+});
+
+svg.addEventListener('contextmenu',e=>e.preventDefault());
 
 function pointToCoord(evt){
   const pt=svg.createSVGPoint();
