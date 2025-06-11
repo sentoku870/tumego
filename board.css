@@ -1,0 +1,34 @@
+/* ===== 碁盤ラッパー ===== */
+#board-wrapper{position:relative;width:100%;max-width:95vmin;background:var(--board);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+svg{width:100%;height:auto;display:block;background:var(--board);touch-action:manipulation;}
+text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-anchor:middle;user-select:none;}
+.star{fill:var(--star);}
+.move-num{font-weight:600;pointer-events:none;text-anchor:middle;dominant-baseline:middle;}
+
+/* ===== 情報表示 ===== */
+.info{
+  margin-top:4px;
+  margin-bottom:4px;
+  background:rgba(255,255,255,.8);
+  padding:2px 4px;
+  border-radius:4px;
+  font-size:15px;
+  font-weight:600;
+  color:#333;
+  min-height:1.4em;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
+}
+#move-slider{
+  display:block;
+  margin-bottom:8px;
+  width:80%;
+  max-width:95vmin;
+  margin-left:auto;
+  margin-right:auto;
+  height:12px;
+  padding:0;
+}
+.moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
+.msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}

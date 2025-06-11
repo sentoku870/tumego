@@ -1,0 +1,64 @@
+:root {
+  /* 色設定 */
+  --bg: #f7f7f7;
+  --board: #f1d49c;
+  --line: #000;
+  --star: #000;
+  --coord: #333;
+  --accent: #0066cc;
+  --black: #000;
+  --white: #fff;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+  padding:16px 8px;
+  min-height:100vh;
+}
+
+/* ===== 操作ボタン 3×3 グリッド ===== */
+#controls{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  width:100%;
+  max-width:480px;
+  grid-auto-rows:minmax(48px,auto); /* 1 行目と 2 行目を標準高さ、3 行目は play-btn が拡張 */
+}
+/* SGF 操作用ボタン群 */
+#sgf-controls{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
+  gap:8px;
+  width:100%;
+  max-width:480px;
+  grid-auto-rows:minmax(48px,auto);
+}
+#sgf-input{display:none;}
+#sgf-text{width:100%;max-width:480px;padding:4px;}
+.ctrl-btn{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:0 4px;
+  border:2px solid var(--accent);
+  border-radius:8px;
+  background:#fff;
+  color:var(--accent);
+  font-weight:600;
+  font-size:15px;
+  cursor:pointer;
+  user-select:none;
+  transition:background .15s ease,color .15s ease;
+}
+.ctrl-btn:hover{background:var(--accent);color:#fff;}
+.ctrl-btn.active{background:var(--accent);color:#fff;}
+/* 3 行目（プレイモード）は縦幅を少し大きく */
+.play-btn{padding-block:22px;font-size:16px;}
+@media(max-width:480px){.ctrl-btn{font-size:14px;}}
