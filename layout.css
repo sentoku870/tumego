@@ -40,6 +40,8 @@ body.horizontal #ui{
   overflow-y:auto;
 }
 
+body.horizontal .moves{display:none;}
+
 #controls{order:1;}
 .info{order:2;}
 #move-slider{order:3;}
