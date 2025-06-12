@@ -35,6 +35,10 @@ boardWrapper.addEventListener('pointerdown',()=>{
   boardWrapper.focus();
 });
 boardWrapper.addEventListener('blur',()=>{boardHasFocus=false;});
+// iOSでボードの上におけるタッチムーブで画面スクロールを無効に
+boardWrapper.addEventListener('touchmove',e=>{
+  if(e.touches.length===1) e.preventDefault();
+},{passive:false});
 
 // ============ 初期化 ============
 initBoard(9); // 初期は 9 路・石なし
