@@ -480,7 +480,9 @@ svg.addEventListener('pointerdown',e=>{
   boardHasFocus = true;
   boardWrapper.focus();
   if(e.button===2) e.preventDefault();
-  if(state.mode==='alt' && e.button===0){
+  if(state.eraseMode){
+    dragColor = null;
+  }else if(state.mode==='alt' && e.button===0){
     dragColor = null; // follow alternating turn
   }else{
     const leftColor  = state.mode==='white' ? 2 : 1;
@@ -494,7 +496,14 @@ svg.addEventListener('pointerdown',e=>{
 });
 
 svg.addEventListener('pointermove',e=>{
-  if(!dragging) return;
+  if(!dragging){
+    if(state.eraseMode && e.buttons){
+      dragging = true;
+      lastPos = null;
+    }else{
+      return;
+    }
+  }
   const {col,row}=pointToCoord(e);
   if(lastPos && lastPos.col===col && lastPos.row===row) return;
   lastPos = {col,row};
