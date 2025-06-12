@@ -459,6 +459,11 @@ function updateSlider(){
 let dragging = false;
 let dragColor = null;
 let lastPos = null;
+let eraseDragging = false;
+let eraseMoved = false;
+let eraseStartX = 0;
+let eraseStartY = 0;
+let ignoreEraseClick = false;
 
 function placeAtEvent(evt){
   const {col,row}=pointToCoord(evt);
@@ -519,6 +524,30 @@ function pointToCoord(evt){
   return {col,row};
 }
 
+function eraseAtEvent(evt){
+  const {col,row}=pointToCoord(evt);
+  if(!inRange(col)||!inRange(row)) return;
+  if(state.board[row][col]!==0){
+    state.history.push(cloneBoard(state.board));
+    state.board[row][col]=0;
+    render();updateInfo();
+  }
+}
+
+function eraseDragMove(e){
+  if(!eraseDragging) return;
+  if(Math.abs(e.clientX-eraseStartX)>3 || Math.abs(e.clientY-eraseStartY)>3){
+    eraseMoved = true;
+  }
+  eraseAtEvent(e);
+}
+
+function eraseDragEnd(){
+  document.removeEventListener('pointermove',eraseDragMove);
+  eraseDragging=false;
+  if(eraseMoved) ignoreEraseClick=true;
+}
+
 // === ボタンイベント ===
 // 盤サイズ
  document.querySelectorAll('.size-btn').forEach(btn=>btn.addEventListener('click',()=>{
@@ -545,11 +574,20 @@ function pointToCoord(evt){
   }
 });
 // 消去モード
-  document.getElementById('btn-erase').addEventListener('click',()=>{
-    state.eraseMode=!state.eraseMode;
-    const el=document.getElementById('btn-erase');
-    if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
-  });
+const btnErase=document.getElementById('btn-erase');
+btnErase.addEventListener('pointerdown',e=>{
+  eraseStartX=e.clientX;eraseStartY=e.clientY;eraseMoved=false;eraseDragging=true;
+  eraseAtEvent(e);
+  document.addEventListener('pointermove',eraseDragMove);
+  document.addEventListener('pointerup',eraseDragEnd,{once:true});
+  document.addEventListener('pointercancel',eraseDragEnd,{once:true});
+});
+btnErase.addEventListener('click',()=>{
+  if(ignoreEraseClick){ignoreEraseClick=false;return;}
+  state.eraseMode=!state.eraseMode;
+  if(state.eraseMode){btnErase.classList.add('active');msg('消去モード');}
+  else {btnErase.classList.remove('active');msg('');}
+});
 function toggleNumberMode(color){
   if(state.numberMode && state.startColor===color){
     state.numberMode=false;
