@@ -479,13 +479,14 @@ function handleDragPlace(evt){
 svg.addEventListener('mousedown',e=>{
   if(e.button===0||e.button===2){
     e.preventDefault();
+    if(e.button===2) e.stopPropagation();
     dragButton=e.button;
     lastDrag=null;
     handleDragPlace(e);
   }
 });
 
-window.addEventListener('mousemove',e=>{
+svg.addEventListener('mousemove',e=>{
   if(dragButton!==null){
     handleDragPlace(e);
   }
