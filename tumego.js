@@ -17,7 +17,7 @@ const state = {
   numberStartIndex: 0
 };
 
-let tsumegoTarget = null;
+let tsumegoTargets = [];
 let selectTargetMode = false;
 
 const svg = document.getElementById('goban');
@@ -65,7 +65,7 @@ function initBoard(size){
   state.sgfIndex = 0;
   state.numberStartIndex = 0;
   state.eraseMode = false;
-  tsumegoTarget = null;
+  tsumegoTargets = [];
   selectTargetMode = false;
   msg('');
   movesEl.textContent='';
@@ -240,12 +240,31 @@ function exportAnalysisSGF(){
   }
   if(ab) sgf+=`AB${ab}`;
   if(aw) sgf+=`AW${aw}`;
-  if(tsumegoTarget){
-    const coord=`${letters[tsumegoTarget.col]}${letters[tsumegoTarget.row]}`;
-    sgf+=`MA[${coord}]`;
+  if(tsumegoTargets.length){
+    sgf+='MA'+tsumegoTargets.map(t=>`[${letters[t.col]}${letters[t.row]}]`).join('');
   }
   sgf+=')';
   return sgf;
+}
+
+function checkOuterWall(){
+  const N=state.boardSize;
+  const miss=new Set();
+  for(let i=0;i<N;i++){
+    if(state.board[0][i]!==1) miss.add(`${i},0`);
+    if(state.board[N-1][i]!==1) miss.add(`${i},${N-1}`);
+    if(state.board[i][0]!==1) miss.add(`0,${i}`);
+    if(state.board[i][N-1]!==1) miss.add(`${N-1},${i}`);
+  }
+  return [...miss].map(s=>s.split(',').map(n=>parseInt(n,10)));
+}
+
+function addOuterWallIfNeeded(){
+  const miss=checkOuterWall();
+  if(miss.length&&confirm('外壁に不足している黒石を追加しますか？')){
+    miss.forEach(([x,y])=>{state.board[y][x]=1;});
+    render();
+  }
 }
 
 async function copyBoardImage(){
@@ -440,12 +459,14 @@ function drawStones(){
 }
 
 function drawTarget(){
-  if(!tsumegoTarget) return;
-  const cx=MARGIN+tsumegoTarget.col*CELL;
-  const cy=MARGIN+tsumegoTarget.row*CELL;
-  svg.appendChild(svgtag('circle',{
-    cx,cy,r:16,class:'target-marker'
-  }));
+  if(!tsumegoTargets.length) return;
+  for(const t of tsumegoTargets){
+    const cx=MARGIN+t.col*CELL;
+    const cy=MARGIN+t.row*CELL;
+    svg.appendChild(svgtag('circle',{
+      cx,cy,r:16,class:'target-marker'
+    }));
+  }
 }
 
 function drawMoveNumbers(){
@@ -542,7 +563,8 @@ svg.addEventListener('pointerdown',e=>{
   if(selectTargetMode){
     const {col,row}=pointToCoord(e);
     if(inRange(col)&&inRange(row)&&state.board[row][col]!==0){
-      tsumegoTarget={col,row};
+      const info=groupLib(col,row,state.board);
+      tsumegoTargets=info.stones.map(([x,y])=>({col:x,row:y}));
       selectTargetMode=false;
       document.getElementById('btn-select-target').classList.remove('active');
       msg('対象を設定しました');
@@ -704,15 +726,9 @@ function setMode(mode,btn){
 
   // 解析ボタン
   document.getElementById('btn-analyze').addEventListener('click',()=>{
-    let text=document.getElementById('sgf-text').value.trim();
-    if(!text){
-      if(!tsumegoTarget){msg('対象を選択してください');return;}
-      text=exportAnalysisSGF();
-    }else if(!/MA\[[a-z]{2}\]/i.test(text)){
-      if(!tsumegoTarget){msg('対象を選択してください');return;}
-      const coord=String.fromCharCode(97+tsumegoTarget.col)+String.fromCharCode(97+tsumegoTarget.row);
-      text=text.replace(/\)\s*$/,`MA[${coord}] )`);
-    }
+    if(!tsumegoTargets.length){msg('対象を選択してください');return;}
+    addOuterWallIfNeeded();
+    const text=exportAnalysisSGF();
     document.getElementById('sgf-text').value=text;
     try{
       const solver=new tsumego.Solver(text);
