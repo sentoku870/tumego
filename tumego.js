@@ -29,7 +29,8 @@ let boardHasFocus = false;
 function updateBoardSize(){
   const sizePx = CELL * state.boardSize;
   boardWrapper.style.width = sizePx + 'px';
-  boardWrapper.style.maxWidth = '95vmin';
+  const max = document.body.classList.contains('horizontal') ? '95vh' : '95vmin';
+  boardWrapper.style.maxWidth = max;
   const actual = boardWrapper.getBoundingClientRect().width;
   document.documentElement.style.setProperty('--board-width', actual + 'px');
 }

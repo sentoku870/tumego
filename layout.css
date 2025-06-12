@@ -14,29 +14,42 @@ body{
   margin:0;
   font-family:system-ui,sans-serif;
   background:var(--bg);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:12px;
   padding:16px 8px;
   min-height:100vh;
 }
 
-body.horizontal{
-  display:grid;
-  grid-template-columns:auto 1fr;
-  gap:16px;
-  align-items:start;
+#layout{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
 }
 
-body.horizontal #board-wrapper{grid-row:1/span 8;grid-column:1;}
-body.horizontal #controls,
-body.horizontal .info,
-body.horizontal #move-slider,
-body.horizontal .moves,
-body.horizontal #sgf-controls,
-body.horizontal #sgf-text,
-body.horizontal .msg{grid-column:2;}
+body.horizontal #layout{
+  flex-direction:row;
+  align-items:flex-start;
+  gap:16px;
+}
+
+#ui{display:contents;}
+body.horizontal #ui{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-height:var(--board-width);
+  overflow-y:auto;
+}
+
+#controls{order:1;}
+.info{order:2;}
+#move-slider{order:3;}
+#board-wrapper{order:4;}
+.moves{order:5;}
+#sgf-controls{order:6;}
+#sgf-text{order:7;}
+.msg{order:8;}
+body.horizontal #board-wrapper{order:1;}
+body.horizontal #ui{order:2;}
 
 /* board width synced elements */
 body:not(.horizontal) #controls,
