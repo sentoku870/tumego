@@ -584,18 +584,14 @@ function pointToCoord(evt){
     const el=document.getElementById('btn-erase');
     if(state.eraseMode){el.classList.add('active');msg('消去モード');} else {el.classList.remove('active');msg('');}
   });
-function toggleNumberMode(color){
-  if(state.numberMode && state.startColor===color){
-    state.numberMode=false;
-    state.turn=state.sgfIndex;
-    render();
-    updateInfo();
-  }else{
+function enableAnswerMode(color){
+  // Always switch to answer mode regardless of current state
+  if(!state.numberMode || state.startColor!==color){
     startNumberMode(color);
   }
 }
 ['btn-play-black','btn-play-white'].forEach((id,idx)=>{
-  const handler=()=>toggleNumberMode(idx+1);
+  const handler=()=>enableAnswerMode(idx+1);
   const btn=document.getElementById(id);
   btn.addEventListener('click',handler);
   btn.addEventListener('touchstart',handler,{passive:true});
