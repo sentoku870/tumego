@@ -498,6 +498,8 @@ window.addEventListener('mouseup',()=>{
 });
 
 svg.addEventListener('contextmenu',e=>e.preventDefault());
+// avoid browser dragging the board image on right drag
+svg.addEventListener('dragstart',e=>e.preventDefault());
 
 function pointToCoord(evt){
   const pt=svg.createSVGPoint();
