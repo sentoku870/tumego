@@ -17,7 +17,7 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:16px;
+  gap:12px;
   padding:16px 8px;
   min-height:100vh;
 }
@@ -37,6 +37,20 @@ body.horizontal .moves,
 body.horizontal #sgf-controls,
 body.horizontal #sgf-text,
 body.horizontal .msg{grid-column:2;}
+
+/* board width synced elements */
+body:not(.horizontal) #controls,
+body:not(.horizontal) .info,
+body:not(.horizontal) #move-slider,
+body:not(.horizontal) .moves,
+body:not(.horizontal) #sgf-controls,
+body:not(.horizontal) #sgf-text,
+body:not(.horizontal) .msg{
+  width:var(--board-width);
+  max-width:var(--board-width);
+}
+
+#sgf-text{margin-top:-4px;}
 
 /* ===== 操作ボタン 3×3 グリッド ===== */
 #controls{

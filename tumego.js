@@ -30,6 +30,8 @@ function updateBoardSize(){
   const sizePx = CELL * state.boardSize;
   boardWrapper.style.width = sizePx + 'px';
   boardWrapper.style.maxWidth = '95vmin';
+  const actual = boardWrapper.getBoundingClientRect().width;
+  document.documentElement.style.setProperty('--board-width', actual + 'px');
 }
 
 // ボードをフォーカス可能にしてフォーカス状態を管理

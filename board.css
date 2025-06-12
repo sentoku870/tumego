@@ -7,8 +7,7 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
 
 /* ===== 情報表示 ===== */
 .info{
-  margin-top:4px;
-  margin-bottom:4px;
+  margin-block:2px;
   background:rgba(255,255,255,.8);
   padding:2px 4px;
   border-radius:4px;
@@ -23,12 +22,10 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
 #move-slider{
   display:block;
   margin-bottom:8px;
-  width:80%;
-  max-width:95vmin;
-  margin-left:auto;
-  margin-right:auto;
+  width:var(--board-width);
+  max-width:var(--board-width);
   height:12px;
   padding:0;
 }
-.moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;}
+.moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;margin-block:2px;}
 .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
