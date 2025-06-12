@@ -611,6 +611,13 @@ function setMode(mode,btn){
     document.getElementById('sgf-text').value=text;
     navigator.clipboard.writeText(text).then(()=>msg('SGF をコピーしました'));
   });
+  const layoutBtn=document.getElementById('btn-layout');
+  let isHorizontal=false;
+  layoutBtn.addEventListener('click',()=>{
+    isHorizontal=!isHorizontal;
+    document.body.classList.toggle('horizontal',isHorizontal);
+    layoutBtn.textContent=isHorizontal?'縦レイアウト':'横レイアウト';
+  });
 
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>setTimeout(render,200));

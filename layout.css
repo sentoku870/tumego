@@ -22,6 +22,21 @@ body{
   min-height:100vh;
 }
 
+body.horizontal{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:start;
+}
+
+body.horizontal #board-wrapper{grid-row:1/span 4;grid-column:1;}
+body.horizontal #controls,
+body.horizontal .info,
+body.horizontal #move-slider,
+body.horizontal .moves,
+body.horizontal #sgf-controls,
+body.horizontal #sgf-text,
+body.horizontal .msg{grid-column:2;}
+
 /* ===== 操作ボタン 3×3 グリッド ===== */
 #controls{
   display:grid;
