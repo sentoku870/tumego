@@ -459,7 +459,9 @@ svg.addEventListener('pointerdown',e=>{
   if(state.mode==='alt' && e.button===0){
     dragColor = null; // follow alternating turn
   }else{
-    dragColor = e.button===0 ? 1 : e.button===2 ? 2 : null;
+    const leftColor  = state.mode==='white' ? 2 : 1;
+    const rightColor = state.mode==='white' ? 1 : 2;
+    dragColor = e.button===0 ? leftColor : e.button===2 ? rightColor : null;
   }
   dragging = true;
   lastPos = null;
