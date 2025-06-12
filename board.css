@@ -3,7 +3,15 @@
 svg{width:100%;height:auto;display:block;background:var(--board);touch-action:none;}
 text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-anchor:middle;user-select:none;}
 .star{fill:var(--star);}
-.move-num{font-weight:600;pointer-events:none;text-anchor:middle;dominant-baseline:middle;}
+.move-num{
+  font-weight:600;
+  pointer-events:none;
+  text-anchor:middle;
+  dominant-baseline:middle;
+  stroke:var(--board);
+  stroke-width:3px;
+  paint-order:stroke fill;
+}
 
 /* ===== 情報表示 ===== */
 .info{
@@ -27,5 +35,13 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
   height:12px;
   padding:0;
 }
-.moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;margin-block:2px;}
+.moves{
+  font-size:18px;
+  font-weight:600;
+  color:#333;
+  min-height:1.4em;
+  text-align:center;
+  word-break:break-all;
+  margin-block:2px;
+}
 .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
