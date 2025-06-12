@@ -61,6 +61,16 @@ function setActive(el,groupClass){
   if(el) el.classList.add('active');
 }
 
+// 他のボタンを押したときに消去モードを解除
+function disableEraseMode(){
+  if(state.eraseMode){
+    state.eraseMode = false;
+    const el = document.getElementById('btn-erase');
+    el.classList.remove('active');
+    msg('');
+  }
+}
+
 // === 一時保存・読込 ===
 function saveTemp(){
   tempSave={
@@ -496,13 +506,18 @@ function pointToCoord(evt){
 // === ボタンイベント ===
 // 盤サイズ
  document.querySelectorAll('.size-btn').forEach(btn=>btn.addEventListener('click',()=>{
+   disableEraseMode();
    const size=parseInt(btn.dataset.size,10);
    initBoard(size);
  }));
 // 全消去
- document.getElementById('btn-clear').addEventListener('click',()=>{initBoard(state.boardSize);});
+ document.getElementById('btn-clear').addEventListener('click',()=>{
+   disableEraseMode();
+   initBoard(state.boardSize);
+ });
 // 戻る
  document.getElementById('btn-undo').addEventListener('click',()=>{
+   disableEraseMode();
    if(state.history.length){
      state.board=state.history.pop();
      state.turn=Math.max(0,state.turn-1);
@@ -535,6 +550,7 @@ document.getElementById('btn-temp-save').addEventListener('click',saveTemp);
 document.getElementById('btn-temp-load').addEventListener('click',loadTemp);
 // 配置モード
 function setMode(mode,btn){
+  disableEraseMode();
   state.mode=mode;
   if(state.numberMode){
     state.numberMode=false;
@@ -570,3 +586,24 @@ function setMode(mode,btn){
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>setTimeout(render,200));
 window.addEventListener('resize',()=>setTimeout(render,200));
+
+// ===== キーボードショートカット =====
+const keyBindings = {
+  q: () => document.querySelector('.size-btn[data-size="9"]').click(),
+  w: () => document.querySelector('.size-btn[data-size="13"]').click(),
+  e: () => document.querySelector('.size-btn[data-size="19"]').click(),
+  a: () => document.getElementById('btn-clear').click(),
+  s: () => document.getElementById('btn-undo').click(),
+  d: () => document.getElementById('btn-erase').click(),
+  z: () => document.getElementById('btn-black').click(),
+  x: () => document.getElementById('btn-alt').click(),
+  c: () => document.getElementById('btn-white').click()
+};
+
+document.addEventListener('keydown',e=>{
+  const key = e.key.toLowerCase();
+  if(keyBindings[key]){
+    e.preventDefault();
+    keyBindings[key]();
+  }
+});
