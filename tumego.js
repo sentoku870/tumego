@@ -641,6 +641,21 @@ function setMode(mode,btn){
     updateBoardSize();
   });
 
+  // 解析ボタン
+  document.getElementById('btn-analyze').addEventListener('click',()=>{
+    const text=document.getElementById('sgf-text').value.trim();
+    if(!text){msg('SGF テキストがありません');return;}
+    try{
+      const solver=new tsumego.Solver(text);
+      const m=text.match(/PL\[([BW])\]/i);
+      const color=m?m[1].toUpperCase():'B';
+      const move=solver.solve(color);
+      msg('解析結果: '+(move||'なし'));
+    }catch(e){
+      console.error(e);msg('解析エラー: '+e.message);
+    }
+  });
+
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>{
   updateBoardSize();
