@@ -18,11 +18,23 @@ const state = {
 };
 
 const svg = document.getElementById('goban');
+const boardWrapper = document.getElementById('board-wrapper');
 const infoEl = document.getElementById('info');
 const sliderEl = document.getElementById('move-slider');
 const movesEl = document.getElementById('moves');
 const msgEl  = document.getElementById('msg');
 let tempSave = null;
+let boardHasFocus = false;
+
+// ボードをフォーカス可能にしてフォーカス状態を管理
+boardWrapper.tabIndex = 0;
+boardWrapper.addEventListener('pointerenter',()=>{boardHasFocus=true;});
+boardWrapper.addEventListener('pointerleave',()=>{boardHasFocus=false;});
+boardWrapper.addEventListener('pointerdown',()=>{
+  boardHasFocus = true;
+  boardWrapper.focus();
+});
+boardWrapper.addEventListener('blur',()=>{boardHasFocus=false;});
 
 // ============ 初期化 ============
 initBoard(9); // 初期は 9 路・石なし
@@ -465,6 +477,8 @@ function placeAtEvent(evt){
 }
 
 svg.addEventListener('pointerdown',e=>{
+  boardHasFocus = true;
+  boardWrapper.focus();
   if(e.button===2) e.preventDefault();
   if(state.mode==='alt' && e.button===0){
     dragColor = null; // follow alternating turn
@@ -601,6 +615,7 @@ const keyBindings = {
 };
 
 document.addEventListener('keydown',e=>{
+  if(!boardHasFocus) return;
   const key = e.key.toLowerCase();
   if(keyBindings[key]){
     e.preventDefault();
