@@ -456,7 +456,11 @@ function placeAtEvent(evt){
 
 svg.addEventListener('pointerdown',e=>{
   if(e.button===2) e.preventDefault();
-  dragColor = e.button===0 ? 1 : e.button===2 ? 2 : null;
+  if(state.mode==='alt' && e.button===0){
+    dragColor = null; // follow alternating turn
+  }else{
+    dragColor = e.button===0 ? 1 : e.button===2 ? 2 : null;
+  }
   dragging = true;
   lastPos = null;
   svg.setPointerCapture(e.pointerId);
