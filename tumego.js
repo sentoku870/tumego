@@ -26,6 +26,12 @@ const msgEl  = document.getElementById('msg');
 let tempSave = null;
 let boardHasFocus = false;
 
+function updateBoardSize(){
+  const sizePx = CELL * state.boardSize;
+  boardWrapper.style.width = sizePx + 'px';
+  boardWrapper.style.maxWidth = '95vmin';
+}
+
 // ボードをフォーカス可能にしてフォーカス状態を管理
 boardWrapper.tabIndex = 0;
 boardWrapper.addEventListener('pointerenter',()=>{boardHasFocus=true;});
@@ -56,6 +62,7 @@ function initBoard(size){
   msg('');
   movesEl.textContent='';
   render();
+  updateBoardSize();
   updateInfo();
   updateSlider();
   document.getElementById('sgf-text').value='';
@@ -617,11 +624,18 @@ function setMode(mode,btn){
     isHorizontal=!isHorizontal;
     document.body.classList.toggle('horizontal',isHorizontal);
     layoutBtn.textContent=isHorizontal?'縦レイアウト':'横レイアウト';
+    updateBoardSize();
   });
 
 // ============ リサイズ対応 ============
-window.addEventListener('orientationchange',()=>setTimeout(render,200));
-window.addEventListener('resize',()=>setTimeout(render,200));
+window.addEventListener('orientationchange',()=>{
+  updateBoardSize();
+  setTimeout(render,200);
+});
+window.addEventListener('resize',()=>{
+  updateBoardSize();
+  setTimeout(render,200);
+});
 
 // ===== キーボードショートカット =====
 const keyBindings = {
