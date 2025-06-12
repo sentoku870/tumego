@@ -18,11 +18,23 @@ const state = {
 };
 
 const svg = document.getElementById('goban');
+const boardWrapper = document.getElementById('board-wrapper');
 const infoEl = document.getElementById('info');
 const sliderEl = document.getElementById('move-slider');
 const movesEl = document.getElementById('moves');
 const msgEl  = document.getElementById('msg');
 let tempSave = null;
+let boardHasFocus = false;
+
+// ボードをフォーカス可能にしてフォーカス状態を管理
+boardWrapper.tabIndex = 0;
+boardWrapper.addEventListener('pointerenter',()=>{boardHasFocus=true;});
+boardWrapper.addEventListener('pointerleave',()=>{boardHasFocus=false;});
+boardWrapper.addEventListener('pointerdown',()=>{
+  boardHasFocus = true;
+  boardWrapper.focus();
+});
+boardWrapper.addEventListener('blur',()=>{boardHasFocus=false;});
 
 // ============ 初期化 ============
 initBoard(9); // 初期は 9 路・石なし
@@ -59,6 +71,16 @@ function neighbours([x,y]){
 function setActive(el,groupClass){
   document.querySelectorAll(`.${groupClass}`).forEach(b=>b.classList.remove('active'));
   if(el) el.classList.add('active');
+}
+
+// 他のボタンを押したときに消去モードを解除
+function disableEraseMode(){
+  if(state.eraseMode){
+    state.eraseMode = false;
+    const el = document.getElementById('btn-erase');
+    el.classList.remove('active');
+    msg('');
+  }
 }
 
 // === 一時保存・読込 ===
@@ -455,6 +477,8 @@ function placeAtEvent(evt){
 }
 
 svg.addEventListener('pointerdown',e=>{
+  boardHasFocus = true;
+  boardWrapper.focus();
   if(e.button===2) e.preventDefault();
   if(state.mode==='alt' && e.button===0){
     dragColor = null; // follow alternating turn
@@ -496,13 +520,18 @@ function pointToCoord(evt){
 // === ボタンイベント ===
 // 盤サイズ
  document.querySelectorAll('.size-btn').forEach(btn=>btn.addEventListener('click',()=>{
+   disableEraseMode();
    const size=parseInt(btn.dataset.size,10);
    initBoard(size);
  }));
 // 全消去
- document.getElementById('btn-clear').addEventListener('click',()=>{initBoard(state.boardSize);});
+ document.getElementById('btn-clear').addEventListener('click',()=>{
+   disableEraseMode();
+   initBoard(state.boardSize);
+ });
 // 戻る
  document.getElementById('btn-undo').addEventListener('click',()=>{
+   disableEraseMode();
    if(state.history.length){
      state.board=state.history.pop();
      state.turn=Math.max(0,state.turn-1);
@@ -535,6 +564,7 @@ document.getElementById('btn-temp-save').addEventListener('click',saveTemp);
 document.getElementById('btn-temp-load').addEventListener('click',loadTemp);
 // 配置モード
 function setMode(mode,btn){
+  disableEraseMode();
   state.mode=mode;
   if(state.numberMode){
     state.numberMode=false;
@@ -570,3 +600,25 @@ function setMode(mode,btn){
 // ============ リサイズ対応 ============
 window.addEventListener('orientationchange',()=>setTimeout(render,200));
 window.addEventListener('resize',()=>setTimeout(render,200));
+
+// ===== キーボードショートカット =====
+const keyBindings = {
+  q: () => document.querySelector('.size-btn[data-size="9"]').click(),
+  w: () => document.querySelector('.size-btn[data-size="13"]').click(),
+  e: () => document.querySelector('.size-btn[data-size="19"]').click(),
+  a: () => document.getElementById('btn-clear').click(),
+  s: () => document.getElementById('btn-undo').click(),
+  d: () => document.getElementById('btn-erase').click(),
+  z: () => document.getElementById('btn-black').click(),
+  x: () => document.getElementById('btn-alt').click(),
+  c: () => document.getElementById('btn-white').click()
+};
+
+document.addEventListener('keydown',e=>{
+  if(!boardHasFocus) return;
+  const key = e.key.toLowerCase();
+  if(keyBindings[key]){
+    e.preventDefault();
+    keyBindings[key]();
+  }
+});
