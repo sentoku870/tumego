@@ -26,6 +26,15 @@ const msgEl  = document.getElementById('msg');
 let tempSave = null;
 let boardHasFocus = false;
 
+function updateBoardSize(){
+  const sizePx = CELL * state.boardSize;
+  boardWrapper.style.width = sizePx + 'px';
+  const max = document.body.classList.contains('horizontal') ? '95vh' : '95vmin';
+  boardWrapper.style.maxWidth = max;
+  const actual = boardWrapper.getBoundingClientRect().width;
+  document.documentElement.style.setProperty('--board-width', actual + 'px');
+}
+
 // ボードをフォーカス可能にしてフォーカス状態を管理
 boardWrapper.tabIndex = 0;
 boardWrapper.addEventListener('pointerenter',()=>{boardHasFocus=true;});
@@ -56,6 +65,7 @@ function initBoard(size){
   msg('');
   movesEl.textContent='';
   render();
+  updateBoardSize();
   updateInfo();
   updateSlider();
   document.getElementById('sgf-text').value='';
@@ -442,13 +452,24 @@ function updateInfo(){
       return n;
     };
     const start=state.numberStartIndex||0;
-    const seq=state.sgfMoves.slice(start,state.sgfIndex).map((m,i)=>{
-      const c=letters[m.col];
-      const r=state.boardSize-m.row;
-      const mark=m.color===1?'■':'□';
-      return `${mark}${circle(i+1)} ${c}${r}`;
-    }).join(' ');
-    movesEl.textContent=seq;
+    const lastMap=new Map();
+    for(let i=start;i<state.sgfIndex;i++){
+      const m=state.sgfMoves[i];
+      lastMap.set(`${m.col},${m.row}`,i);
+    }
+    const seq=[];
+    for(let i=start;i<state.sgfIndex;i++){
+      const m=state.sgfMoves[i];
+      const key=`${m.col},${m.row}`;
+      const onBoard=lastMap.get(key)===i && state.board[m.row][m.col]===m.color;
+      if(!onBoard){
+        const c=letters[m.col];
+        const r=state.boardSize-m.row;
+        const mark=m.color===1?'■':'□';
+        seq.push(`${mark}${circle(i-start+1)} ${c}${r}`);
+      }
+    }
+    movesEl.textContent=seq.join(' ');
   }else{
     movesEl.textContent='';
   }
@@ -573,8 +594,12 @@ function toggleNumberMode(color){
     startNumberMode(color);
   }
 }
-document.getElementById('btn-play-black').addEventListener('click',()=>toggleNumberMode(1));
-document.getElementById('btn-play-white').addEventListener('click',()=>toggleNumberMode(2));
+['btn-play-black','btn-play-white'].forEach((id,idx)=>{
+  const handler=()=>toggleNumberMode(idx+1);
+  const btn=document.getElementById(id);
+  btn.addEventListener('click',handler);
+  btn.addEventListener('touchstart',handler,{passive:true});
+});
 document.getElementById('btn-temp-save').addEventListener('click',saveTemp);
 document.getElementById('btn-temp-load').addEventListener('click',loadTemp);
 // 配置モード
@@ -611,10 +636,24 @@ function setMode(mode,btn){
     document.getElementById('sgf-text').value=text;
     navigator.clipboard.writeText(text).then(()=>msg('SGF をコピーしました'));
   });
+  const layoutBtn=document.getElementById('btn-layout');
+  let isHorizontal=false;
+  layoutBtn.addEventListener('click',()=>{
+    isHorizontal=!isHorizontal;
+    document.body.classList.toggle('horizontal',isHorizontal);
+    layoutBtn.textContent=isHorizontal?'縦レイアウト':'横レイアウト';
+    updateBoardSize();
+  });
 
 // ============ リサイズ対応 ============
-window.addEventListener('orientationchange',()=>setTimeout(render,200));
-window.addEventListener('resize',()=>setTimeout(render,200));
+window.addEventListener('orientationchange',()=>{
+  updateBoardSize();
+  setTimeout(render,200);
+});
+window.addEventListener('resize',()=>{
+  updateBoardSize();
+  setTimeout(render,200);
+});
 
 // ===== キーボードショートカット =====
 const keyBindings = {

@@ -10,48 +10,47 @@
   <link rel="stylesheet" href="board.css" />
 </head>
 <body>
-  <!-- ===== 操作ボタン ===== -->
-  <div id="controls">
-    <!-- 1 行目: 盤サイズ -->
-    <button class="ctrl-btn size-btn" data-size="9">9路</button>
-    <button class="ctrl-btn size-btn" data-size="13">13路</button>
-    <button class="ctrl-btn size-btn" data-size="19">19路</button>
-    <!-- 2 行目: 編集系 -->
-    <button class="ctrl-btn" id="btn-clear">全消去</button>
-    <button class="ctrl-btn" id="btn-undo">戻る</button>
-    <button class="ctrl-btn" id="btn-erase">消去</button>
-    <!-- 3 行目: プレイモード -->
-    <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
-    <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
-    <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
-  </div>
-
-
-  <!-- ===== 碁盤 ===== -->
-    <!-- 情報表示とスライダー -->
-    <div class="info" id="info"></div>
-    <input id="move-slider" type="range" min="0" value="0" />
-
-    <!-- ===== 碁盤 ===== -->
+  <div id="layout">
     <div id="board-wrapper">
       <svg id="goban"></svg>
     </div>
+    <div id="ui">
+      <!-- ===== 操作ボタン ===== -->
+      <div id="controls">
+        <!-- 1 行目: 盤サイズ -->
+        <button class="ctrl-btn size-btn" data-size="9">9路</button>
+        <button class="ctrl-btn size-btn" data-size="13">13路</button>
+        <button class="ctrl-btn size-btn" data-size="19">19路</button>
+        <!-- 2 行目: 編集系 -->
+        <button class="ctrl-btn" id="btn-clear">全消去</button>
+        <button class="ctrl-btn" id="btn-undo">戻る</button>
+        <button class="ctrl-btn" id="btn-erase">消去</button>
+        <!-- 3 行目: プレイモード -->
+        <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
+        <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
+        <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
+      </div>
 
-  <div class="moves" id="moves"></div>
-  <!-- ===== SGF 読み込みと操作 ===== -->
-  <div id="sgf-controls">
-    <button class="ctrl-btn" id="btn-play-black">黒先</button>
-    <button class="ctrl-btn" id="btn-play-white">白先</button>
-    <button class="ctrl-btn" id="btn-temp-save">一時保存</button>
-    <button class="ctrl-btn" id="btn-temp-load">一時読込</button>
-    <input type="file" id="sgf-input" accept=".sgf" hidden />
-    <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
-    <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
-    <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
+      <div class="info" id="info"></div>
+      <input id="move-slider" type="range" min="0" value="0" />
+      <div class="moves" id="moves"></div>
+      <!-- ===== SGF 読み込みと操作 ===== -->
+      <div id="sgf-controls">
+        <button class="ctrl-btn" id="btn-play-black">黒先</button>
+        <button class="ctrl-btn" id="btn-play-white">白先</button>
+        <button class="ctrl-btn" id="btn-temp-save">一時保存</button>
+        <button class="ctrl-btn" id="btn-temp-load">一時読込</button>
+        <input type="file" id="sgf-input" accept=".sgf" hidden />
+        <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
+        <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
+        <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
+        <button class="ctrl-btn" id="btn-layout">横レイアウト</button>
+      </div>
+      <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
+      <div class="msg" id="msg"></div>
+    </div>
   </div>
-  <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
-  <div class="msg" id="msg"></div>
 
-<script src="tumego.js"></script>
+  <script src="tumego.js"></script>
 </body>
 </html>
