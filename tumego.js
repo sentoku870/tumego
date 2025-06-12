@@ -433,11 +433,15 @@ function updateSlider(){
   sliderEl.value = state.sgfIndex;
 }
 
-// === 盤クリック ===
-svg.addEventListener('click',e=>{
+// === 盤クリック・ドラッグ ===
+let dragging = false;
+let dragColor = null;
+let lastPos = null;
+
+function placeAtEvent(evt){
+  const {col,row}=pointToCoord(evt);
+  if(!inRange(col)||!inRange(row)) return;
   if(state.eraseMode){ // 消去モード
-    const {col,row}=pointToCoord(e);
-    if(!inRange(col)||!inRange(row)) return;
     if(state.board[row][col]!==0){
       state.history.push(cloneBoard(state.board));
       state.board[row][col]=0;
@@ -445,12 +449,40 @@ svg.addEventListener('click',e=>{
     }
     return;
   }
-  const {col,row}=pointToCoord(e);
-  if(!inRange(col)||!inRange(row)) return;
-  const color=getTurnColor();
-  const ok=tryMove(col,row,color);
+  const color = dragColor || getTurnColor();
+  const ok = tryMove(col,row,color);
   if(ok){render();updateInfo();updateSlider();}
+}
+
+svg.addEventListener('pointerdown',e=>{
+  if(e.button===2) e.preventDefault();
+  if(state.mode==='alt' && e.button===0){
+    dragColor = null; // follow alternating turn
+  }else{
+    dragColor = e.button===0 ? 1 : e.button===2 ? 2 : null;
+  }
+  dragging = true;
+  lastPos = null;
+  svg.setPointerCapture(e.pointerId);
+  placeAtEvent(e);
 });
+
+svg.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  const {col,row}=pointToCoord(e);
+  if(lastPos && lastPos.col===col && lastPos.row===row) return;
+  lastPos = {col,row};
+  placeAtEvent(e);
+});
+
+function endDrag(e){
+  if(!dragging) return;
+  dragging=false;dragColor=null;lastPos=null;
+  svg.releasePointerCapture(e.pointerId);
+}
+svg.addEventListener('pointerup',endDrag);
+svg.addEventListener('pointercancel',endDrag);
+svg.addEventListener('contextmenu',e=>e.preventDefault());
 
 function pointToCoord(evt){
   const pt=svg.createSVGPoint();
