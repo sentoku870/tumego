@@ -414,13 +414,9 @@ function drawStones(){
 }
 
 function drawMoveNumbers(){
-  const placed=new Set();
   const start=state.numberStartIndex||0;
   for(let i=start;i<state.sgfIndex;i++){
     const m=state.sgfMoves[i];
-    const key=`${m.col},${m.row}`;
-    if(placed.has(key)) continue;
-    placed.add(key);
     const cx=MARGIN+m.col*CELL;
     const cy=MARGIN+m.row*CELL;
     let fill='#000';
@@ -452,22 +448,13 @@ function updateInfo(){
       return n;
     };
     const start=state.numberStartIndex||0;
-    const lastMap=new Map();
-    for(let i=start;i<state.sgfIndex;i++){
-      const m=state.sgfMoves[i];
-      lastMap.set(`${m.col},${m.row}`,i);
-    }
     const seq=[];
     for(let i=start;i<state.sgfIndex;i++){
       const m=state.sgfMoves[i];
-      const key=`${m.col},${m.row}`;
-      const onBoard=lastMap.get(key)===i && state.board[m.row][m.col]===m.color;
-      if(!onBoard){
-        const c=letters[m.col];
-        const r=state.boardSize-m.row;
-        const mark=m.color===1?'■':'□';
-        seq.push(`${mark}${circle(i-start+1)} ${c}${r}`);
-      }
+      const c=letters[m.col];
+      const r=state.boardSize-m.row;
+      const mark=m.color===1?'■':'□';
+      seq.push(`${mark}${circle(i-start+1)} ${c}${r}`);
     }
     movesEl.textContent=seq.join(' ');
   }else{

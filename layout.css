@@ -74,7 +74,7 @@ body:not(.horizontal) .msg{
   gap:8px;
   width:100%;
   max-width:480px;
-  grid-auto-rows:minmax(48px,auto); /* 1 行目と 2 行目を標準高さ、3 行目は play-btn が拡張 */
+  grid-auto-rows:minmax(48px,auto);
 }
 /* SGF 操作用ボタン群 */
 #sgf-controls{
@@ -104,6 +104,9 @@ body:not(.horizontal) .msg{
 }
 .ctrl-btn:hover{background:var(--accent);color:#fff;}
 .ctrl-btn.active{background:var(--accent);color:#fff;}
-/* 3 行目（プレイモード）は縦幅を少し大きく */
-.play-btn{padding-block:22px;font-size:16px;}
+/* プレイモードボタンも他のボタンと同じサイズに */
+.play-btn{
+  padding-block:0;
+  font-size:15px;
+}
 @media(max-width:480px){.ctrl-btn{font-size:14px;}}
