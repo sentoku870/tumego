@@ -17,6 +17,9 @@ const state = {
   numberStartIndex: 0
 };
 
+let tsumegoTarget = null;
+let selectTargetMode = false;
+
 const svg = document.getElementById('goban');
 const boardWrapper = document.getElementById('board-wrapper');
 const infoEl = document.getElementById('info');
@@ -62,6 +65,8 @@ function initBoard(size){
   state.sgfIndex = 0;
   state.numberStartIndex = 0;
   state.eraseMode = false;
+  tsumegoTarget = null;
+  selectTargetMode = false;
   msg('');
   movesEl.textContent='';
   render();
@@ -218,6 +223,26 @@ function exportSGF(){
     const x=String.fromCharCode(97+m.col);
     const y=String.fromCharCode(97+m.row);
     sgf+=`;${c}[${x}${y}]`;
+  }
+  sgf+=')';
+  return sgf;
+}
+
+function exportAnalysisSGF(){
+  const letters='abcdefghijklmnopqrstuvwxyz';
+  let sgf=`(;GM[1]FF[4]SZ[${state.boardSize}]PL[${state.startColor===1?'B':'W'}]`;
+  let ab='',aw='';
+  for(let y=0;y<state.boardSize;y++){
+    for(let x=0;x<state.boardSize;x++){
+      if(state.board[y][x]===1) ab+=`[${letters[x]}${letters[y]}]`;
+      else if(state.board[y][x]===2) aw+=`[${letters[x]}${letters[y]}]`;
+    }
+  }
+  if(ab) sgf+=`AB${ab}`;
+  if(aw) sgf+=`AW${aw}`;
+  if(tsumegoTarget){
+    const coord=`${letters[tsumegoTarget.col]}${letters[tsumegoTarget.row]}`;
+    sgf+=`MA[${coord}]`;
   }
   sgf+=')';
   return sgf;
@@ -392,6 +417,7 @@ function render(){
   }
 
   drawStones();
+  drawTarget();
   if(state.numberMode) drawMoveNumbers();
 }
 
@@ -411,6 +437,15 @@ function drawStones(){
       }));
     }
   }
+}
+
+function drawTarget(){
+  if(!tsumegoTarget) return;
+  const cx=MARGIN+tsumegoTarget.col*CELL;
+  const cy=MARGIN+tsumegoTarget.row*CELL;
+  svg.appendChild(svgtag('circle',{
+    cx,cy,r:16,class:'target-marker'
+  }));
 }
 
 function drawMoveNumbers(){
@@ -504,6 +539,19 @@ function placeAtEvent(evt){
 svg.addEventListener('pointerdown',e=>{
   boardHasFocus = true;
   boardWrapper.focus();
+  if(selectTargetMode){
+    const {col,row}=pointToCoord(e);
+    if(inRange(col)&&inRange(row)&&state.board[row][col]!==0){
+      tsumegoTarget={col,row};
+      selectTargetMode=false;
+      document.getElementById('btn-select-target').classList.remove('active');
+      msg('対象を設定しました');
+      render();
+    }else{
+      msg('石がある点を選んでください');
+    }
+    return;
+  }
   if(e.button===2) e.preventDefault();
   if(state.eraseMode){
     dragColor = null;
@@ -641,10 +689,31 @@ function setMode(mode,btn){
     updateBoardSize();
   });
 
+  // 対象選択ボタン
+  const targetBtn=document.getElementById('btn-select-target');
+  targetBtn.addEventListener('click',()=>{
+    selectTargetMode=!selectTargetMode;
+    if(selectTargetMode){
+      targetBtn.classList.add('active');
+      msg('対象にする石をクリックしてください');
+    }else{
+      targetBtn.classList.remove('active');
+      msg('');
+    }
+  });
+
   // 解析ボタン
   document.getElementById('btn-analyze').addEventListener('click',()=>{
-    const text=document.getElementById('sgf-text').value.trim();
-    if(!text){msg('SGF テキストがありません');return;}
+    let text=document.getElementById('sgf-text').value.trim();
+    if(!text){
+      if(!tsumegoTarget){msg('対象を選択してください');return;}
+      text=exportAnalysisSGF();
+    }else if(!/MA\[[a-z]{2}\]/i.test(text)){
+      if(!tsumegoTarget){msg('対象を選択してください');return;}
+      const coord=String.fromCharCode(97+tsumegoTarget.col)+String.fromCharCode(97+tsumegoTarget.row);
+      text=text.replace(/\)\s*$/,`MA[${coord}] )`);
+    }
+    document.getElementById('sgf-text').value=text;
     try{
       const solver=new tsumego.Solver(text);
       const m=text.match(/PL\[([BW])\]/i);

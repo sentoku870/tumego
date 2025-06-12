@@ -29,3 +29,4 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
 }
 .moves{font-size:15px;font-weight:600;color:#333;min-height:1.4em;text-align:center;word-break:break-all;margin-block:2px;}
 .msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
+.target-marker{stroke:#c00;stroke-width:3;fill:none;pointer-events:none;}
