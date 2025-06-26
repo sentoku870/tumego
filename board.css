@@ -1,415 +1,110 @@
-/* ===== 碁盤ラッパー（iOS最適化） ===== */
-#board-wrapper{
-  position: relative;
-  width: 100%;
-  max-width: 95vmin;
-  background: var(--board);
-  border-radius: 16px; /* iOS風角丸 */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12); /* iOS風影 */
-  overscroll-behavior: contain;
-  touch-action: none;
-  /* iOS向けタッチ最適化 */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  /* 3D加速 */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-}
-
-/* iPad/大画面での最大サイズ制限 */
-@media (min-width: 768px) {
-  #board-wrapper {
-    max-width: min(95vmin, 600px);
-  }
-}
-
-/* iPhone向けサイズ調整 */
-@media (max-width: 414px) {
-  #board-wrapper {
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  }
-}
-
-svg{
-  width: 100%;
-  height: auto;
-  display: block;
-  background: var(--board);
-  touch-action: none;
-  border-radius: inherit;
-  /* iOS描画最適化 */
-  shape-rendering: geometricPrecision;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-/* 座標テキスト */
-text.coord{
-  fill: var(--coord);
-  font-weight: 600;
-  dominant-baseline: middle;
-  text-anchor: middle;
-  user-select: none;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-  /* アンチエイリアス最適化 */
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* 星（天元・星目） */
-.star{
-  fill: var(--star);
-  /* iOS向け描画最適化 */
-  paint-order: fill;
-}
-
-/* 手数表示 */
+/* ===== 碁盤ラッパー ===== */
+#board-wrapper{position:relative;width:100%;max-width:95vmin;background:var(--board);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25);overscroll-behavior:contain;touch-action:none;}
+svg{width:100%;height:auto;display:block;background:var(--board);touch-action:none;}
+text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-anchor:middle;user-select:none;}
+.star{fill:var(--star);}
 .move-num{
-  font-weight: 700;
-  pointer-events: none;
-  text-anchor: middle;
-  dominant-baseline: middle;
-  stroke: var(--board);
-  stroke-width: 3px;
-  paint-order: stroke fill;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
-  /* iOS向けフォント最適化 */
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+  font-weight:600;
+  pointer-events:none;
+  text-anchor:middle;
+  dominant-baseline:middle;
+  stroke:var(--board);
+  stroke-width:3px;
+  paint-order:stroke fill;
 }
 
-/* ===== 情報表示（iOS風） ===== */
+/* ===== 情報表示 ===== */
 .info{
-  margin-block: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1D1D1F;
-  min-height: 1.4em;
-  text-align: center;
-  width: 100%;
-  max-width: 95vmin;
-  border: 0.5px solid rgba(0, 0, 0, 0.04);
-  /* iOS向け影 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-block:2px;
+  background:rgba(255,255,255,.8);
+  padding:2px 4px;
+  border-radius:4px;
+  font-size:15px;
+  font-weight:600;
+  color:#333;
+  min-height:1.4em;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
 }
 
-/* ダークモード対応 */
-@media (prefers-color-scheme: dark) {
-  .info{
-    background: rgba(28, 28, 30, 0.95);
-    color: #F2F2F7;
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-}
-
-/* ===== 分岐情報表示（iOS風） ===== */
+/* ===== 分岐情報表示 ===== */
 .branch-info{
-  margin-block: 8px;
-  background: rgba(255, 235, 59, 0.95);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(245, 127, 23, 0.3);
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #333;
-  text-align: center;
-  width: 100%;
-  max-width: 95vmin;
-  box-shadow: 0 2px 8px rgba(255, 235, 59, 0.2);
+  margin-block:2px;
+  background:rgba(255,235,59,.9);
+  border:1px solid #f57f17;
+  padding:8px;
+  border-radius:4px;
+  font-size:14px;
+  color:#333;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
 }
 
 .branch-info-text{
-  margin-block: 8px;
-  background: rgba(76, 175, 80, 0.15);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #2e7d32;
-  text-align: center;
-  width: 100%;
-  max-width: 95vmin;
+  margin-block:2px;
+  background:rgba(76,175,80,.1);
+  border:1px solid #4caf50;
+  padding:6px;
+  border-radius:4px;
+  font-size:13px;
+  color:#2e7d32;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
 }
 
-/* 分岐ボタン（iOS風） */
 .branch-btn{
-  display: inline-block;
-  margin: 4px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  /* タッチターゲット最適化 */
-  min-width: 44px;
-  min-height: 32px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  display:inline-block;
+  margin:2px;
+  padding:4px 8px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  transition:background .15s ease;
 }
 
-.branch-btn:hover,
-.branch-btn:focus{
-  background: rgba(240, 240, 240, 0.95);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.branch-btn:active{
-  transform: translateY(0);
-  background: rgba(220, 220, 220, 0.95);
+.branch-btn:hover{
+  background:#f0f0f0;
 }
 
 .branch-btn.current{
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+  background:#2196f3;
+  color:#fff;
+  border-color:#1976d2;
 }
 
 /* 盤面上の候補手・分岐表示 */
 .next-move-candidate{
-  animation: pulse-ios 2s infinite ease-in-out;
+  animation: pulse 2s infinite;
 }
 
-@keyframes pulse-ios {
-  0% { 
-    opacity: 0.4; 
-    transform: scale(0.95);
-  }
-  50% { 
-    opacity: 1; 
-    transform: scale(1);
-  }
-  100% { 
-    opacity: 0.4; 
-    transform: scale(0.95);
-  }
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
-/* 分岐マーカー */
 .branch-marker-bg{
-  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* iOS風イージング */
-  transform-origin: center;
+  transition: all 0.2s ease;
 }
 
 .branch-marker-bg:hover{
-  transform: scale(1.15);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+  transform: scale(1.1);
 }
 
 .branch-click-area:hover + .branch-marker-bg{
-  transform: scale(1.15);
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
-}
-
-/* スライダー（完全iOS風） */
-#move-slider{
-  display: block;
-  margin-bottom: 12px;
-  width: var(--board-width);
-  max-width: var(--board-width);
-  height: 34px;
-  padding: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-}
-
-#move-slider::-webkit-slider-track {
-  height: 4px;
-  background: #E5E5EA;
-  border-radius: 2px;
-  border: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  #move-slider::-webkit-slider-track {
-    background: #48484A;
-  }
-}
-
-#move-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 28px;
-  width: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  transition: all 0.15s ease;
-}
-
-#move-slider::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
 }
 
-#move-slider::-webkit-slider-thumb:active {
-  transform: scale(1.05);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-/* Firefox対応 */
-#move-slider::-moz-range-track {
-  height: 4px;
-  background: #E5E5EA;
-  border-radius: 2px;
-  border: none;
-}
-
-#move-slider::-moz-range-thumb {
-  height: 28px;
-  width: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-/* 小さなスクリーン向け調整 */
-@media (max-width: 375px) {
-  .branch-btn {
-    margin: 2px;
-    padding: 6px 8px;
-    font-size: 11px;
-    min-width: 40px;
-    min-height: 28px;
-  }
-  
-  #move-slider {
-    height: 30px;
-  }
-  
-  #move-slider::-webkit-slider-thumb {
-    height: 24px;
-    width: 24px;
-  }
-}
-
-/* アクセシビリティ（動きを減らす設定） */
-@media (prefers-reduced-motion: reduce) {
-  .next-move-candidate {
-    animation: none;
-    opacity: 0.7;
-  }
-  
-  .branch-marker-bg,
-  .branch-btn,
-  #move-slider::-webkit-slider-thumb {
-    transition: none;
-  }
-}
-
-/* ハイコントラスト対応 */
-@media (prefers-contrast: high) {
-  .info {
-    border: 2px solid var(--coord);
-    background: var(--bg);
-  }
-  
-  .branch-btn {
-    border: 2px solid currentColor;
-  }
-  
-  #move-slider::-webkit-slider-track {
-    border: 1px solid var(--coord);
-  }
-  
-  #move-slider::-webkit-slider-thumb {
-    border: 2px solid var(--coord);
-  }
-}
-
-/* iPad向け大画面最適化 */
-@media (min-width: 768px) {
-  .info {
-    font-size: 16px;
-    padding: 14px 20px;
-  }
-  
-  .branch-info {
-    font-size: 15px;
-    padding: 14px 20px;
-  }
-  
-  .branch-btn {
-    padding: 10px 16px;
-    font-size: 13px;
-    min-width: 48px;
-    min-height: 36px;
-  }
-  
-  #move-slider {
-    height: 36px;
-  }
-  
-  #move-slider::-webkit-slider-thumb {
-    height: 30px;
-    width: 30px;
-  }
-}
-
-/* Apple Pencil対応（iPad Pro向け） */
-@media (pointer: fine) and (min-width: 768px) {
-  .branch-marker-bg:hover,
-  .branch-click-area:hover + .branch-marker-bg {
-    transform: scale(1.08); /* より控えめなホバー効果 */
-  }
-}
-
-/* タッチデバイス向けの追加最適化 */
-@media (hover: none) and (pointer: coarse) {
-  .branch-btn {
-    /* タッチデバイスでは少し大きく */
-    min-width: 48px;
-    min-height: 36px;
-    padding: 10px 14px;
-  }
-  
-  #move-slider::-webkit-slider-thumb {
-    /* タッチしやすいサイズに */
-    height: 32px;
-    width: 32px;
-  }
-}
-
-/* ゲシュトレイション対応ヒント */
-.gesture-hint {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 100;
-}
-
-.gesture-hint.show {
-  opacity: 1;
+#move-slider{
+  display:block;
+  margin-bottom:8px;
+  width:var(--board-width);
+  max-width:var(--board-width);
+  height:12px;
+  padding:0;
 }
