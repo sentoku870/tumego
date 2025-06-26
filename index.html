@@ -2,65 +2,184 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>囲碁ビューワ</title>
-  <meta name="color-scheme" content="light" />
+  <!-- iOS向けビューポート設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>囲碁ビューワ - Tumego</title>
   
+  <!-- カラースキーム対応 -->
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#007AFF" />
+  <meta name="theme-color" content="#0A84FF" media="(prefers-color-scheme: dark)" />
+  
+  <!-- PWA対応 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="path/to/your/icon.png"> 
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="囲碁ビューワ">
+  
+  <!-- アイコン設定（iOS各サイズ対応） -->
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='20' fill='%23000'/><circle cx='30' cy='30' r='15' fill='%23fff' stroke='%23000' stroke-width='2'/></svg>">
+  <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23007AFF' rx='20'/><circle cx='50' cy='50' r='15' fill='%23000'/><circle cx='35' cy='35' r='10' fill='%23fff' stroke='%23000' stroke-width='1'/></svg>">
+  <link rel="apple-touch-icon" sizes="152x152" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23007AFF' rx='20'/><circle cx='50' cy='50' r='15' fill='%23000'/><circle cx='35' cy='35' r='10' fill='%23fff' stroke='%23000' stroke-width='1'/></svg>">
+  <link rel="apple-touch-icon" sizes="120x120" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23007AFF' rx='20'/><circle cx='50' cy='50' r='15' fill='%23000'/><circle cx='35' cy='35' r='10' fill='%23fff' stroke='%23000' stroke-width='1'/></svg>">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- CSS読み込み -->
   <link rel="stylesheet" href="layout.css" />
   <link rel="stylesheet" href="board.css" />
+  
+  <!-- QRコードライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  
+  <!-- iOS向けメタタグ -->
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-orientation" content="portrait-any">
 </head>
 <body>
   <div id="layout">
+    <!-- 碁盤表示エリア -->
     <div id="board-wrapper">
       <svg id="goban"></svg>
     </div>
+    
     <div id="ui">
-      <!-- ===== 操作ボタン ===== -->
+      <!-- 基本操作ボタン -->
       <div id="controls">
-        <!-- 1 行目: 編集系 -->
-        <button class="ctrl-btn" id="btn-clear">全消去</button>
-        <button class="ctrl-btn" id="btn-undo">戻る</button>
-        <button class="ctrl-btn" id="btn-erase">消去</button>
-        <!-- 2 行目: プレイモード -->
-        <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
-        <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
-        <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
+        <!-- 1行目: 盤面管理 -->
+        <button class="ctrl-btn" id="btn-clear" role="button" aria-label="盤面をすべて消去">
+          🗑️ 全消去
+        </button>
+        <button class="ctrl-btn" id="btn-undo" role="button" aria-label="一手戻る">
+          ↶ 戻る
+        </button>
+        <button class="ctrl-btn" id="btn-erase" role="button" aria-label="消去モード切り替え">
+          🖌️ 消去
+        </button>
+        
+        <!-- 2行目: 配置モード -->
+        <button class="ctrl-btn play-btn" id="btn-black" role="button" aria-label="黒石配置モード">
+          ⚫ 黒配置
+        </button>
+        <button class="ctrl-btn play-btn" id="btn-alt" role="button" aria-label="交互配置モード">
+          ⚫⚪ 交互
+        </button>
+        <button class="ctrl-btn play-btn" id="btn-white" role="button" aria-label="白石配置モード">
+          ⚪ 白配置
+        </button>
       </div>
 
-      <div class="info" id="info"></div>
-      <input id="move-slider" type="range" min="0" value="0" />
-      <div class="moves" id="moves"></div>
-      <!-- ===== SGF 読み込みと操作 ===== -->
+      <!-- 情報表示 -->
+      <div class="info" id="info" role="status" aria-live="polite"></div>
+      
+      <!-- 手数スライダー -->
+      <input id="move-slider" type="range" min="0" value="0" 
+             aria-label="手数スライダー" role="slider" />
+      
+      <!-- 手順表示 -->
+      <div class="moves" id="moves" role="log" aria-label="手順表示"></div>
+      
+      <!-- SGF操作ボタン -->
       <div id="sgf-controls">
-        <button class="ctrl-btn size-btn" data-size="9">9路</button>
-        <button class="ctrl-btn size-btn" data-size="13">13路</button>
-        <button class="ctrl-btn size-btn" data-size="19">19路</button>
-        <button class="ctrl-btn" id="btn-prev-move">1手戻る</button>
-        <button class="ctrl-btn" id="btn-next-move">1手進む</button>
-        <button class="ctrl-btn" id="btn-play-black">黒先</button>
-        <button class="ctrl-btn" id="btn-play-white">白先</button>
-        <button class="ctrl-btn" id="btn-temp-save">一時保存</button>
-        <button class="ctrl-btn" id="btn-temp-load">一時読込</button>
-        <input type="file" id="sgf-input" accept=".sgf" hidden />
-        <label for="sgf-input" class="ctrl-btn">ファイル選択</label>
-        <button class="ctrl-btn" id="btn-load-sgf">貼り付け読込</button>
-        <button class="ctrl-btn" id="btn-copy-sgf">SGFコピー</button>
-        <button class="ctrl-btn" id="btn-qr-share">QRコード共有</button>
-        <button class="ctrl-btn" id="btn-layout">横レイアウト</button>
+        <button class="ctrl-btn" id="btn-prev-move" role="button" aria-label="前の手">
+          ⏮️ 前手
+        </button>
+        <button class="ctrl-btn" id="btn-next-move" role="button" aria-label="次の手">
+          ⏭️ 次手
+        </button>
+        
+        <!-- 盤サイズ選択（ドロップダウン） -->
+        <div class="dropdown-container">
+          <button class="ctrl-btn dropdown-btn" id="board-size-dropdown" role="button" aria-label="盤サイズ選択">
+            <span id="current-board-size">9路</span> ▼
+          </button>
+          <div class="dropdown-menu" id="board-size-menu">
+            <button class="dropdown-item size-btn" data-size="9">9路盤</button>
+            <button class="dropdown-item size-btn" data-size="13">13路盤</button>
+            <button class="dropdown-item size-btn" data-size="19">19路盤</button>
+          </div>
+        </div>
+        
+        <!-- 解答モード -->
+        <button class="ctrl-btn" id="btn-play-black" role="button" aria-label="黒番で解答開始">
+          🔴 黒先
+        </button>
+        <button class="ctrl-btn" id="btn-play-white" role="button" aria-label="白番で解答開始">
+          ⚪ 白先
+        </button>
+        
+        <!-- 保存・読み込み -->
+        <button class="ctrl-btn" id="btn-temp-save" role="button" aria-label="現在の状態を一時保存">
+          💾 保存
+        </button>
+        <button class="ctrl-btn" id="btn-temp-load" role="button" aria-label="一時保存した状態を読み込み">
+          📁 読込
+        </button>
+        
+        <!-- ファイル操作（ドロップダウン） -->
+        <div class="dropdown-container">
+          <button class="ctrl-btn dropdown-btn" id="file-operations-dropdown" role="button" aria-label="ファイル操作">
+            📂 ファイル ▼
+          </button>
+          <div class="dropdown-menu" id="file-operations-menu">
+            <label class="dropdown-item" for="sgf-input">📁 ファイル選択</label>
+            <button class="dropdown-item" id="btn-load-sgf">📋 貼り付け読込</button>
+            <button class="dropdown-item" id="btn-copy-sgf">📤 SGFコピー</button>
+            <button class="dropdown-item" id="btn-qr-share">📱 QR共有</button>
+          </div>
+        </div>
+        
+        <!-- 設定（ドロップダウン） -->
+        <div class="dropdown-container">
+          <button class="ctrl-btn dropdown-btn" id="settings-dropdown" role="button" aria-label="設定">
+            ⚙️ 設定 ▼
+          </button>
+          <div class="dropdown-menu" id="settings-menu">
+            <button class="dropdown-item" id="btn-layout">
+              🔄 <span id="layout-text">横表示</span>
+            </button>
+            <button class="dropdown-item" id="btn-dark-mode">
+              🌙 <span id="dark-mode-text">ダークモード</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
-      <div class="msg" id="msg"></div>
+      
+      <!-- 隠しファイル入力 -->
+      <input type="file" id="sgf-input" accept=".sgf" hidden aria-hidden="true" />
+      
+      <!-- SGFテキストエリア -->
+      <textarea id="sgf-text" rows="4" 
+                placeholder="SGF データを貼り付けるか、上のボタンでファイルを選択してください"
+                aria-label="SGFデータ入力エリア"></textarea>
+      
+      <!-- メッセージ表示 -->
+      <div class="msg" id="msg" role="alert" aria-live="assertive"></div>
     </div>
   </div>
 
-  <!-- ===== JavaScriptファイルの読み込み（順序重要） ===== -->
+  <!-- Service Worker登録 -->
+  <script>
+    // PWA対応: Service Worker登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
+
+  <!-- JavaScript読み込み（順序重要） -->
   <script src="tumego-core.js"></script>
   <script src="tumego-render.js"></script>
   <script src="tumego-sgf.js"></script>
+  <script src="dark-mode-toggle.js"></script>
+  <script src="dropdown-events.js"></script>
   <script src="tumego-events.js"></script> 
   <script src="tumego-qr.js"></script>
   <script src="tumego-main.js"></script>
