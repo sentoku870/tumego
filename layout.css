@@ -10,12 +10,19 @@
   --white: #fff;
 }
 *{box-sizing:border-box;}
-body{
-  margin:0;
-  font-family:system-ui,sans-serif;
-  background:var(--bg);
-  padding:16px 8px;
-  min-height:100vh;
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  /* 既存のpaddingをSafeArea対応版に置き換える */
+  padding: calc(16px + env(safe-area-inset-top)) 
+           calc(8px + env(safe-area-inset-right)) 
+           calc(16px + env(safe-area-inset-bottom)) 
+           calc(8px + env(safe-area-inset-left));
+  min-height: 100vh;
+  /* iOS Safariのアドレスバーなどを考慮し、表示領域の高さを最大化する */
+  min-height: -webkit-fill-available;
 }
 
 #layout{
@@ -32,30 +39,38 @@ body.horizontal #layout{
 }
 
 #ui{display:contents;}
+
+#ui{display:contents;}
+
 body.horizontal #ui{
   display:flex;
   flex-direction:column;
   gap:12px;
-  max-height:var(--board-width);
-  overflow-y:auto;
+  /* ▼▼▼ 修正箇所 ▼▼▼ */
+  flex: 1; /* 碁盤以外の残りスペースをすべてUIエリアとして使用する */
+  min-width: 220px; /* UIエリアが狭くなりすぎないように最小幅を確保 */
+  max-height: 95vh; /* 碁盤の最大高さとUIエリアの高さを合わせる */
+  overflow-y: auto; /* 内容が多い場合はUIエリア内を縦スクロール可能にする */
 }
 
 body.horizontal .moves{display:none;}
 
 #controls{order:1;}
 .info{order:2;}
-#move-slider{order:3;}
-#board-wrapper{order:4;}
-.moves{order:5;}
-#sgf-controls{order:6;}
-#sgf-text{order:7;}
-.msg{order:8;}
+#branch-info{order:3;}
+#move-slider{order:4;}
+#board-wrapper{order:5;}
+.moves{order:6;}
+#sgf-controls{order:7;}
+#sgf-text{order:8;}
+.msg{order:9;}
 body.horizontal #board-wrapper{order:1;}
 body.horizontal #ui{order:2;}
 
 /* board width synced elements */
 body:not(.horizontal) #controls,
 body:not(.horizontal) .info,
+body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #sgf-controls,
@@ -110,3 +125,26 @@ body:not(.horizontal) .msg{
   font-size:15px;
 }
 @media(max-width:480px){.ctrl-btn{font-size:14px;}}
+
+/* ▼▼▼ 追加したスタイル ▼▼▼ */
+
+/* 横レイアウト時のUI要素の幅を親要素(UIエリア)に合わせる */
+body.horizontal #move-slider,
+body.horizontal #sgf-text {
+  width: 100%;
+}
+
+/* 横レイアウト時、UIエリアの幅に応じてボタンの列数を自動調整する */
+body.horizontal #controls,
+body.horizontal #sgf-controls {
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+}
+
+/* タッチデバイス向けのスタイル調整 */
+@media (hover: none) and (pointer: coarse) {
+  #controls,
+  #sgf-controls {
+    /* 少し高さを大きくしてタップしやすくする */
+    grid-auto-rows: minmax(52px, auto);
+  }
+}

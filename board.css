@@ -27,6 +27,79 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
   width:100%;
   max-width:95vmin;
 }
+
+/* ===== 分岐情報表示 ===== */
+.branch-info{
+  margin-block:2px;
+  background:rgba(255,235,59,.9);
+  border:1px solid #f57f17;
+  padding:8px;
+  border-radius:4px;
+  font-size:14px;
+  color:#333;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
+}
+
+.branch-info-text{
+  margin-block:2px;
+  background:rgba(76,175,80,.1);
+  border:1px solid #4caf50;
+  padding:6px;
+  border-radius:4px;
+  font-size:13px;
+  color:#2e7d32;
+  text-align:center;
+  width:100%;
+  max-width:95vmin;
+}
+
+.branch-btn{
+  display:inline-block;
+  margin:2px;
+  padding:4px 8px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:4px;
+  cursor:pointer;
+  font-size:12px;
+  transition:background .15s ease;
+}
+
+.branch-btn:hover{
+  background:#f0f0f0;
+}
+
+.branch-btn.current{
+  background:#2196f3;
+  color:#fff;
+  border-color:#1976d2;
+}
+
+/* 盤面上の候補手・分岐表示 */
+.next-move-candidate{
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.branch-marker-bg{
+  transition: all 0.2s ease;
+}
+
+.branch-marker-bg:hover{
+  transform: scale(1.1);
+}
+
+.branch-click-area:hover + .branch-marker-bg{
+  transform: scale(1.1);
+}
+
 #move-slider{
   display:block;
   margin-bottom:8px;
@@ -35,13 +108,3 @@ text.coord{fill:var(--coord);font-weight:600;dominant-baseline:middle;text-ancho
   height:12px;
   padding:0;
 }
-.moves{
-  font-size:18px;
-  font-weight:600;
-  color:#333;
-  min-height:1.4em;
-  text-align:center;
-  word-break:break-all;
-  margin-block:2px;
-}
-.msg{color:#c00;font-size:14px;min-height:1.4em;text-align:center;}
