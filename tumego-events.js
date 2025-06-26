@@ -191,10 +191,6 @@ function initButtonEvents() {
     btn.addEventListener('touchstart', handler, { passive: true });
   });
 
-  // 一時保存・読込
-  document.getElementById('btn-temp-save').addEventListener('click', saveTemp);
-  document.getElementById('btn-temp-load').addEventListener('click', loadTemp);
-
   // 配置モード
   function setMode(mode, btn) {
     disableEraseMode();
@@ -228,6 +224,11 @@ function initButtonEvents() {
         state.sgfMoves = parseSGF(text);
         state.sgfIndex = 0;
         setMoveIndex(0);
+        // 置石がある場合は盤面を再描画
+        if (state.handicapPositions.length > 0) {
+          render();
+          updateInfo();
+        }
         document.getElementById('sgf-text').value = text;
         msg('クリップボードからSGFを読み込みました');
       } else {
@@ -241,6 +242,11 @@ function initButtonEvents() {
         state.sgfMoves = parseSGF(textFromTextarea);
         state.sgfIndex = 0;
         setMoveIndex(0);
+        // 置石がある場合は盤面を再描画
+        if (state.handicapPositions.length > 0) {
+          render();
+          updateInfo();
+        }
         msg('テキストエリアからSGFを読み込みました');
       } else {
         msg('クリップボードの読み込みに失敗しました。テキストエリアにSGFがありません。');
@@ -249,13 +255,72 @@ function initButtonEvents() {
   });
 
   document.getElementById('btn-copy-sgf').addEventListener('click', () => {
+    console.log('SGFコピー開始');
     const text = exportSGF();
+    console.log('SGF生成完了:', text);
     document.getElementById('sgf-text').value = text;
-    navigator.clipboard.writeText(text).then(() => msg('SGF をコピーしました'));
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('SGFクリップボードコピー完了');
+      msg('SGF をコピーしました');
+    }).catch(err => {
+      console.error('クリップボードコピー失敗:', err);
+      msg('SGF をテキストエリアに表示しました');
+    });
+  });
+
+  // SGF保存機能
+  document.getElementById('btn-save-sgf').addEventListener('click', async () => {
+    const sgfData = exportSGF();
+    const now = new Date();
+    const timestamp = now.getFullYear() + 
+                     String(now.getMonth() + 1).padStart(2, '0') + 
+                     String(now.getDate()).padStart(2, '0') + '_' +
+                     String(now.getHours()).padStart(2, '0') + 
+                     String(now.getMinutes()).padStart(2, '0');
+    const filename = `${timestamp}.sgf`;
+
+    try {
+      if (window.showSaveFilePicker) {
+        // File System Access API が利用可能な場合
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: 'SGF files',
+            accept: { 'application/x-go-sgf': ['.sgf'] }
+          }]
+        });
+        const writable = await fileHandle.createWritable();
+        await writable.write(sgfData);
+        await writable.close();
+        msg('SGFファイルを保存しました');
+      } else {
+        // 従来のダウンロード方式
+        const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        msg('SGFファイルをダウンロードしました');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') { // ユーザーがキャンセルした場合を除く
+        console.error('SGF保存エラー:', error);
+        msg('SGFファイルの保存に失敗しました');
+      }
+    }
   });
 
   // QRコード共有
   document.getElementById('btn-qr-share').addEventListener('click', createSGFQRCode);
+
+  // 置石機能
+  document.getElementById('btn-handicap').addEventListener('click', () => {
+    showHandicapSelection();
+  });
 
   // レイアウト切り替え
   const layoutBtn = document.getElementById('btn-layout');
@@ -299,7 +364,158 @@ function initKeyboardEvents() {
   });
 }
 
+// === 置石設定機能 ===
+function showHandicapSelection() {
+  // 既存のポップアップがあれば削除
+  const existing = document.getElementById('handicap-popup');
+  if (existing) {
+    existing.remove();
+  }
+
+  const popup = document.createElement('div');
+  popup.id = 'handicap-popup';
+  popup.innerHTML = `
+    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;" onclick="closeHandicapSelection()">
+      <div style="background:white; padding:30px; border-radius:15px; text-align:center; max-width:500px;" onclick="event.stopPropagation()">
+        <h2 style="margin-bottom:20px; color:#333;">🔥 置石設定</h2>
+        <p style="margin-bottom:25px; color:#666;">置石の数を選択してください</p>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0;">
+          <button onclick="setHandicap(0)" style="padding:15px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">先（置石なし）</button>
+          <button onclick="setHandicap(2)" style="padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">2子</button>
+          <button onclick="setHandicap(3)" style="padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">3子</button>
+          <button onclick="setHandicap(4)" style="padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">4子</button>
+          <button onclick="setHandicap(5)" style="padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">5子</button>
+          <button onclick="setHandicap(6)" style="padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">6子</button>
+          <button onclick="setHandicap(7)" style="padding:15px; background:#FF9800; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">7子</button>
+          <button onclick="setHandicap(8)" style="padding:15px; background:#FF9800; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">8子</button>
+          <button onclick="setHandicap(9)" style="padding:15px; background:#FF9800; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">9子</button>
+        </div>
+        <button onclick="closeHandicapSelection()" style="margin-top:15px; padding:10px 20px; background:#666; color:white; border:none; border-radius:5px;">❌ キャンセル</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+}
+
+function setHandicap(stones) {
+  closeHandicapSelection();
+  
+  if (stones === 0) {
+    // 先（置石なし）
+    initBoard(state.boardSize);
+    state.handicapStones = 0;
+    state.komi = 6.5;
+    msg('先（置石なし）に設定しました');
+    return;
+  }
+
+  // 盤をクリア
+  initBoard(state.boardSize);
+  
+  // 置石位置を設定
+  const handicapPositions = getHandicapPositions(state.boardSize, stones);
+  
+  // 置石を配置
+  handicapPositions.forEach(([col, row]) => {
+    if (inRange(col) && inRange(row)) {
+      state.board[row][col] = 1; // 黒石
+    }
+  });
+  
+  // 置石情報をSGF用に記録
+  state.handicapStones = stones;
+  state.handicapPositions = handicapPositions;
+  state.komi = 0; // 置石の場合はコミ0
+  
+  // 白番から開始
+  state.startColor = 2;
+  state.turn = 0;
+  
+  render();
+  updateInfo();
+  msg(`${stones}子局に設定しました（白番から開始、コミ0目）`);
+}
+
+function getHandicapPositions(boardSize, stones) {
+  const positions = [];
+  
+  if (boardSize === 19) {
+    const starPoints = [
+      [3, 3], [15, 3], [3, 15], [15, 15], // 四隅
+      [9, 9], // 天元
+      [3, 9], [15, 9], // 左右辺
+      [9, 3], [9, 15]  // 上下辺
+    ];
+    
+    if (stones === 2) positions.push(starPoints[0], starPoints[2]); // 右下、左上
+    else if (stones === 3) positions.push(starPoints[0], starPoints[2], starPoints[1]); // 右下、左上、右上
+    else if (stones === 4) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3]); // 四隅
+    else if (stones === 5) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[4]); // 四隅 + 天元
+    else if (stones === 6) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6]); // 四隅 + 左右辺
+    else if (stones === 7) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[4]); // 6子 + 天元
+    else if (stones === 8) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8]); // 四隅 + 四辺
+    else if (stones === 9) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8], starPoints[4]); // 8子 + 天元
+  } else if (boardSize === 13) {
+    const starPoints = [
+      [3, 3], [9, 3], [3, 9], [9, 9], // 四隅
+      [6, 6], // 天元
+      [3, 6], [9, 6], // 左右辺
+      [6, 3], [6, 9]  // 上下辺
+    ];
+    
+    if (stones === 2) positions.push(starPoints[0], starPoints[2]);
+    else if (stones === 3) positions.push(starPoints[0], starPoints[2], starPoints[1]);
+    else if (stones === 4) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3]);
+    else if (stones === 5) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[4]);
+    else if (stones === 6) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6]);
+    else if (stones === 7) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[4]);
+    else if (stones === 8) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8]);
+    else if (stones === 9) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8], starPoints[4]);
+  } else if (boardSize === 9) {
+    const starPoints = [
+      [2, 2], [6, 2], [2, 6], [6, 6], // 四隅
+      [4, 4], // 天元
+      [2, 4], [6, 4], // 左右辺
+      [4, 2], [4, 6]  // 上下辺
+    ];
+    
+    if (stones === 2) positions.push(starPoints[0], starPoints[2]);
+    else if (stones === 3) positions.push(starPoints[0], starPoints[2], starPoints[1]);
+    else if (stones === 4) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3]);
+    else if (stones === 5) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[4]);
+    else if (stones === 6) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6]);
+    else if (stones === 7) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[4]);
+    else if (stones === 8) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8]);
+    else if (stones === 9) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8], starPoints[4]);
+  }
+  
+  return positions;
+}
+
+function closeHandicapSelection() {
+  const popup = document.getElementById('handicap-popup');
+  if (popup) {
+    popup.remove();
+  }
+}
+
+// グローバルスコープに関数を登録（ポップアップ内で使用するため）
+window.setHandicap = setHandicap;
+window.closeHandicapSelection = closeHandicapSelection;
+
 // === リサイズ対応 ===
+function initResizeEvents() {
+  window.addEventListener('orientationchange', () => {
+    updateBoardSize();
+    setTimeout(render, 200);
+  });
+  
+  window.addEventListener('resize', () => {
+    updateBoardSize();
+    setTimeout(render, 200);
+  });
+}
 function initResizeEvents() {
   window.addEventListener('orientationchange', () => {
     updateBoardSize();

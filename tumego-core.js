@@ -14,12 +14,14 @@ const state = {
   numberMode: false,
   startColor: 1,
   sgfIndex: 0,
-  numberStartIndex: 0
+  numberStartIndex: 0,
+  komi: 6.5,        // コミ
+  handicapStones: 0, // 置石数
+  handicapPositions: [] // 置石位置
 };
 
 // DOM要素の参照（初期化時に設定）
 let svg, boardWrapper, infoEl, sliderEl, movesEl, msgEl;
-let tempSave = null;
 let boardHasFocus = false;
 
 // DOM要素を初期化する関数
@@ -142,6 +144,9 @@ function initBoard(size) {
   state.sgfIndex = 0;
   state.numberStartIndex = 0;
   state.eraseMode = false;
+  state.komi = 6.5; // デフォルトのコミ
+  state.handicapStones = 0;
+  state.handicapPositions = []; // 重要：置石情報をクリア
   msg('');
   if (movesEl) movesEl.textContent = '';
   render();
@@ -162,43 +167,6 @@ function initBoard(size) {
   if (eraseBtn) eraseBtn.classList.remove('active');
 }
 
-// === 一時保存・読込 ===
-function saveTemp() {
-  tempSave = {
-    boardSize: state.boardSize,
-    board: cloneBoard(state.board),
-    mode: state.mode,
-    eraseMode: state.eraseMode,
-    history: state.history.map(cloneBoard),
-    turn: state.turn,
-    sgfMoves: state.sgfMoves.slice(),
-    numberMode: state.numberMode,
-    startColor: state.startColor,
-    sgfIndex: state.sgfIndex,
-    numberStartIndex: state.numberStartIndex
-  };
-  msg('一時保存しました');
-}
-
-function loadTemp() {
-  if (!tempSave) { msg('一時保存がありません'); return; }
-  state.boardSize = tempSave.boardSize;
-  state.board = cloneBoard(tempSave.board);
-  state.mode = tempSave.mode;
-  state.eraseMode = tempSave.eraseMode;
-  state.history = tempSave.history.map(cloneBoard);
-  state.turn = tempSave.turn;
-  state.sgfMoves = tempSave.sgfMoves.slice();
-  state.numberMode = tempSave.numberMode;
-  state.startColor = tempSave.startColor;
-  state.sgfIndex = tempSave.sgfIndex;
-  state.numberStartIndex = tempSave.numberStartIndex || 0;
-  render();
-  updateInfo();
-  updateSlider();
-  msg('一時読込しました');
-}
-
 function startNumberMode(color) {
   state.numberMode = true;
   state.startColor = color;
@@ -216,6 +184,15 @@ function setMoveIndex(idx) {
   state.board = Array.from({ length: state.boardSize }, () => Array(state.boardSize).fill(0));
   state.history = [];
   state.turn = 0;
+  
+  // 置石がある場合は最初に配置（配列が存在し、かつ要素がある場合のみ）
+  if (state.handicapPositions && state.handicapPositions.length > 0) {
+    state.handicapPositions.forEach(([col, row]) => {
+      if (inRange(col) && inRange(row)) {
+        state.board[row][col] = 1; // 黒石
+      }
+    });
+  }
   
   for (let i = 0; i < idx; i++) {
     const m = state.sgfMoves[i];

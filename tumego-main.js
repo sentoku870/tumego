@@ -16,8 +16,14 @@ function init() {
     initKeyboardEvents();
     initResizeEvents();
     
-    // URL からの SGF 読み込み
-    loadSGFFromURL();
+    // URL からの SGF 読み込み（エラーハンドリング付き）
+    try {
+      if (typeof loadSGFFromURL === 'function') {
+        loadSGFFromURL();
+      }
+    } catch (error) {
+      console.warn('URL からの SGF 読み込みに失敗:', error);
+    }
     
     console.log('Tumego初期化完了');
   } catch (error) {

@@ -119,7 +119,16 @@ function updateInfo() {
     moveInfo = `　手数: 0`;
   }
   
-  infoEl.textContent = `盤サイズ: ${state.boardSize}路　モード: ${modeText}${moveInfo}　次の手番: ${colorText[turnColor]}`;
+  // コミ情報を追加
+  const komiText = `　コミ: ${state.komi}目`;
+  
+  // 置石情報を追加
+  let handicapText = '';
+  if (state.handicapStones > 0) {
+    handicapText = `　${state.handicapStones}子局`;
+  }
+  
+  infoEl.textContent = `盤サイズ: ${state.boardSize}路　モード: ${modeText}${moveInfo}${komiText}${handicapText}　次の手番: ${colorText[turnColor]}`;
   
   if (state.numberMode && state.sgfMoves.length && movesEl) {
     const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, state.boardSize).split('');
