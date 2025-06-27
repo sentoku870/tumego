@@ -1,0 +1,24 @@
+# 依存関係
+node_modules/
+
+# ビルド結果（任意 - distを含めるかは選択）
+# dist/
+
+# ログファイル
+*.log
+npm-debug.log*
+
+# エディタ設定
+.vscode/
+.idea/
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# 一時ファイル
+*.tmp
+*.temp
+
+# バックアップ
+original/
