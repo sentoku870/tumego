@@ -6,6 +6,7 @@
   <title>囲碁ビューワ</title>
   <meta name="color-scheme" content="light" />
   
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="path/to/your/icon.png"> 
@@ -68,6 +69,7 @@
         
         <!-- レイアウト・履歴 -->
         <button class="ctrl-btn" id="btn-layout">横レイアウト</button>
+        <button class="ctrl-btn" id="btn-rotate">🔄 回転</button>
         <button class="ctrl-btn history-btn" id="btn-history">📜 履歴</button>
       </div>
       
@@ -82,12 +84,7 @@
     </div>
   </div>
 
-  <!-- ===== JavaScriptファイルの読み込み（順序重要） ===== -->
-  <script src="tumego-core.js"></script>
-  <script src="tumego-render.js"></script>
-  <script src="tumego-sgf.js"></script>
-  <script src="tumego-events.js"></script> 
-  <script src="tumego-qr.js"></script>
-  <script src="tumego-main.js"></script>
+  <!-- TypeScript版（新バージョン） -->
+  <script type="module" src="dist/main.js"></script>
 </body>
 </html>

@@ -261,3 +261,28 @@ body.horizontal #sgf-controls {
     grid-auto-rows: minmax(52px, auto);
   }
 }
+
+/* モバイル専用の調整 */
+@media (max-width: 768px) {
+  #board-wrapper {
+    width: 100% !important;
+    max-width: 95vmin !important;
+  }
+  
+  body.horizontal #board-wrapper {
+    max-width: 95vh !important;
+  }
+  
+  /* ボタンのタップしやすさを向上 */
+  .ctrl-btn {
+    min-height: 48px;
+    font-size: 16px;
+  }
+}
+
+/* PC専用の調整 */
+@media (min-width: 769px) {
+  #board-wrapper {
+    /* PCでは路数に応じてサイズが変わる */
+  }
+}

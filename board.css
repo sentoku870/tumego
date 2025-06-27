@@ -136,3 +136,14 @@ text.coord {
   height: 12px;
   padding: 0;
 }
+
+/* 盤面回転機能 */
+svg.rotated {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+svg.rotated text.coord,
+svg.rotated .move-num {
+  transform: rotate(180deg);
+}
