@@ -256,31 +256,58 @@ export class Renderer {
             this.elements.msgEl.textContent = text;
         }
     }
-    // ============ 盤サイズ更新 ============
     updateBoardSize() {
         if (!this.elements.boardWrapper)
             return;
-        // モバイル優先の設定
         const isHorizontal = document.body.classList.contains('horizontal');
-        const isMobile = window.innerWidth <= 768; // モバイル判定
-        if (isMobile) {
-            // モバイル: 画面いっぱいに表示
-            const maxSize = isHorizontal ? '95vh' : '95vmin';
-            this.elements.boardWrapper.style.width = '100%';
-            this.elements.boardWrapper.style.maxWidth = maxSize;
+        const isMobile = window.innerWidth <= 768;
+        if (isHorizontal) {
+            // 横レイアウト時の処理
+            if (isMobile) {
+                // モバイル横レイアウト: 利用可能な横幅を最大限活用
+                const availableWidth = window.innerWidth - 250; // UIエリアの幅を考慮
+                const availableHeight = window.innerHeight * 0.95;
+                const maxSize = Math.min(availableWidth, availableHeight);
+                this.elements.boardWrapper.style.width = maxSize + 'px';
+                this.elements.boardWrapper.style.height = maxSize + 'px';
+                this.elements.boardWrapper.style.maxWidth = maxSize + 'px';
+                this.elements.boardWrapper.style.maxHeight = maxSize + 'px';
+            }
+            else {
+                // PC横レイアウト: 利用可能な横幅を最大限活用
+                const availableWidth = window.innerWidth - 350; // UIエリアの幅を考慮（PCはUIが広い）
+                const availableHeight = window.innerHeight * 0.95;
+                const maxSize = Math.min(availableWidth, availableHeight);
+                this.elements.boardWrapper.style.width = maxSize + 'px';
+                this.elements.boardWrapper.style.height = maxSize + 'px';
+                this.elements.boardWrapper.style.maxWidth = maxSize + 'px';
+                this.elements.boardWrapper.style.maxHeight = maxSize + 'px';
+            }
         }
         else {
-            // PC: 路数に応じてサイズを調整
-            const baseSize = DEFAULT_CONFIG.CELL_SIZE;
-            const sizePx = baseSize * this.state.boardSize;
-            this.elements.boardWrapper.style.width = sizePx + 'px';
-            this.elements.boardWrapper.style.maxWidth = isHorizontal ? '70vh' : '70vmin';
+            // 縦レイアウト時の処理（既存のロジック）
+            if (isMobile) {
+                // モバイル縦レイアウト: 画面いっぱいに表示
+                this.elements.boardWrapper.style.width = '100%';
+                this.elements.boardWrapper.style.height = 'auto';
+                this.elements.boardWrapper.style.maxWidth = '95vmin';
+                this.elements.boardWrapper.style.maxHeight = 'none';
+            }
+            else {
+                // PC縦レイアウト: 路数に応じてサイズを調整
+                const baseSize = DEFAULT_CONFIG.CELL_SIZE;
+                const sizePx = baseSize * this.state.boardSize;
+                this.elements.boardWrapper.style.width = sizePx + 'px';
+                this.elements.boardWrapper.style.height = 'auto';
+                this.elements.boardWrapper.style.maxWidth = '70vmin';
+                this.elements.boardWrapper.style.maxHeight = 'none';
+            }
         }
         // 強制的にレイアウトを再計算
         this.elements.boardWrapper.offsetHeight;
         const actualWidth = this.elements.boardWrapper.getBoundingClientRect().width;
         document.documentElement.style.setProperty('--board-width', actualWidth + 'px');
-        console.log(`盤サイズ更新: ${this.state.boardSize}路, 実際の幅: ${actualWidth}px, モバイル: ${isMobile}`);
+        console.log(`盤サイズ更新: ${this.state.boardSize}路, 実際の幅: ${actualWidth}px, モバイル: ${isMobile}, 横レイアウト: ${isHorizontal}`);
     }
 }
 //# sourceMappingURL=renderer.js.map

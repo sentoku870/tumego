@@ -40,6 +40,7 @@ body.horizontal #layout {
   flex-direction: row;
   align-items: flex-start;
   gap: 16px;
+  height: 100%;
 }
 
 #ui {
@@ -50,10 +51,23 @@ body.horizontal #ui {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1; /* 碁盤以外の残りスペースをすべてUIエリアとして使用 */
-  min-width: 220px; /* UIエリアが狭くなりすぎないように最小幅を確保 */
-  max-height: 95vh; /* 碁盤の最大高さとUIエリアの高さを合わせる */
-  overflow-y: auto; /* 内容が多い場合はUIエリア内を縦スクロール可能にする */
+  /* UIエリアの幅を固定 */
+  min-width: 280px;
+  max-width: 320px;
+  width: 300px;
+  max-height: 95vh;
+  overflow-y: auto;
+  flex-shrink: 0; /* UIエリアが縮小されないようにする */
+}
+
+/* 横レイアウト時の碁盤エリア */
+body.horizontal #board-wrapper {
+  /* 残りの利用可能な幅をすべて使用 */
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0; /* flex itemが縮小できるようにする */
 }
 
 body.horizontal .moves {
@@ -243,7 +257,8 @@ body.horizontal #sgf-text {
 
 body.horizontal #controls,
 body.horizontal #sgf-controls {
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  max-width: 100%;
 }
 
 /* ===== レスポンシブ対応 ===== */
@@ -273,6 +288,13 @@ body.horizontal #sgf-controls {
     max-width: 95vh !important;
   }
   
+  /* モバイル横レイアウト時のUIエリア調整 */
+  body.horizontal #ui {
+    min-width: 220px;
+    max-width: 250px;
+    width: 230px;
+  }
+  
   /* ボタンのタップしやすさを向上 */
   .ctrl-btn {
     min-height: 48px;
@@ -282,7 +304,13 @@ body.horizontal #sgf-controls {
 
 /* PC専用の調整 */
 @media (min-width: 769px) {
-  #board-wrapper {
-    /* PCでは路数に応じてサイズが変わる */
+  /* 横レイアウト時の最適化 */
+  body.horizontal #layout {
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+  
+  body.horizontal #board-wrapper {
+    max-height: 95vh;
   }
 }
