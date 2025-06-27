@@ -172,18 +172,18 @@ function initButtonEvents() {
   const undoBtn = getDOMElement('btn-undo');
   if (undoBtn) {
     undoBtn.addEventListener('click', () => {
-      disableEraseMode();
-      if (state.history.length) {
-        state.board = state.history.pop();
+      if (state.numberMode) {
+        // ナンバーモードの場合は、SGFシーケンス内での移動
+        state.sgfIndex = Math.max(state.numberStartIndex, state.sgfIndex - 1);
+        setMoveIndex(state.sgfIndex); // SGFの履歴から盤面を再構築
+      } else if (state.turn > 0) {
+        // 標準プレイモードの場合は、手動で置いた石を元に戻す
         state.turn = Math.max(0, state.turn - 1);
-        if (state.sgfIndex > 0) {
-          state.sgfIndex--;
-          state.sgfMoves = state.sgfMoves.slice(0, state.sgfIndex);
-        }
-        render(); 
-        updateInfo(); 
-        updateSlider();
+        state.board = cloneBoard(state.history[state.turn]);
+        // ★問題の行を削除しました。これにより、手動UndoがSGFデータに影響を与えなくなります。
       }
+      updateInfo();
+      render();
     });
   }
 
