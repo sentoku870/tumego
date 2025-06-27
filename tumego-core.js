@@ -1,10 +1,24 @@
-// === 定数 ===
-const CELL = 60; // 論理セル幅
-const MARGIN = 30; // 盤外余白
+// === 設定定数 ===
+const CONFIG = {
+  CELL_SIZE: 60,
+  MARGIN: 30,
+  STONE_RADIUS: 26,
+  STAR_RADIUS: 4,
+  MAX_BOARD_SIZE: 19,
+  MIN_BOARD_SIZE: 9,
+  DEFAULT_BOARD_SIZE: 9,
+  DEFAULT_KOMI: 6.5,
+  COORD_FONT_RATIO: 0.28,
+  MOVE_NUM_FONT_RATIO: 0.4
+};
+
+// 互換性のため従来の定数も残す
+const CELL = CONFIG.CELL_SIZE;
+const MARGIN = CONFIG.MARGIN;
 
 // === 盤面状態 ===
 const state = {
-  boardSize: 9,
+  boardSize: CONFIG.DEFAULT_BOARD_SIZE,
   board: [],        // 0:空 1:黒 2:白
   mode: 'alt',      // 'black' | 'white' | 'alt'
   eraseMode: false,
@@ -15,7 +29,7 @@ const state = {
   startColor: 1,
   sgfIndex: 0,
   numberStartIndex: 0,
-  komi: 6.5,        // コミ
+  komi: CONFIG.DEFAULT_KOMI,
   handicapStones: 0, // 置石数
   handicapPositions: [] // 置石位置
 };
@@ -24,23 +38,35 @@ const state = {
 let svg, boardWrapper, infoEl, sliderEl, movesEl, msgEl;
 let boardHasFocus = false;
 
+// DOM要素を安全に取得する関数
+function getDOMElement(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`DOM要素が見つかりません: ${id}`);
+  }
+  return el;
+}
+
 // DOM要素を初期化する関数
 function initDOMElements() {
-  svg = document.getElementById('goban');
-  boardWrapper = document.getElementById('board-wrapper');
-  infoEl = document.getElementById('info');
-  sliderEl = document.getElementById('move-slider');
-  movesEl = document.getElementById('moves');
-  msgEl = document.getElementById('msg');
+  svg = getDOMElement('goban');
+  boardWrapper = getDOMElement('board-wrapper');
+  infoEl = getDOMElement('info');
+  sliderEl = getDOMElement('move-slider');
+  movesEl = getDOMElement('moves');
+  msgEl = getDOMElement('msg');
   
-  // 要素が存在しない場合はエラーを投げる
-  if (!svg || !boardWrapper || !infoEl || !sliderEl || !movesEl || !msgEl) {
+  // 必須要素が存在しない場合はエラーを投げる
+  if (!svg || !boardWrapper) {
     throw new Error('必要なDOM要素が見つかりません');
   }
 }
 
 // ============ ユーティリティ ============
 function msg(text) { 
+  if (!msgEl) {
+    msgEl = getDOMElement('msg');
+  }
   if (msgEl) msgEl.textContent = text; 
 }
 
@@ -60,8 +86,8 @@ function setActive(el, groupClass) {
 function disableEraseMode() {
   if (state.eraseMode) {
     state.eraseMode = false;
-    const el = document.getElementById('btn-erase');
-    el.classList.remove('active');
+    const el = getDOMElement('btn-erase');
+    if (el) el.classList.remove('active');
     msg('');
   }
 }
@@ -144,7 +170,7 @@ function initBoard(size) {
   state.sgfIndex = 0;
   state.numberStartIndex = 0;
   state.eraseMode = false;
-  state.komi = 6.5; // デフォルトのコミ
+  state.komi = CONFIG.DEFAULT_KOMI;
   state.handicapStones = 0;
   state.handicapPositions = []; // 重要：置石情報をクリア
   msg('');
@@ -154,13 +180,13 @@ function initBoard(size) {
   updateInfo();
   updateSlider();
   
-  const sgfTextEl = document.getElementById('sgf-text');
+  const sgfTextEl = getDOMElement('sgf-text');
   if (sgfTextEl) sgfTextEl.value = '';
   
   // ボタン状態
   const sizeBtn = document.querySelector(`.size-btn[data-size="${size}"]`);
-  const altBtn = document.getElementById('btn-alt');
-  const eraseBtn = document.getElementById('btn-erase');
+  const altBtn = getDOMElement('btn-alt');
+  const eraseBtn = getDOMElement('btn-erase');
   
   setActive(sizeBtn, 'size-btn');
   setActive(altBtn, 'play-btn');

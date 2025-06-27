@@ -1,5 +1,8 @@
 // === イベント処理とユーザー操作 ===
 
+// タッチイベント用の変数
+let touchStartY = 0;
+
 // ボードをフォーカス可能にしてフォーカス状態を管理
 function initBoardEvents() {
   boardWrapper.tabIndex = 0;
@@ -11,9 +14,22 @@ function initBoardEvents() {
   });
   boardWrapper.addEventListener('blur', () => { boardHasFocus = false; });
   
-  // iOSでボードの上におけるタッチムーブで画面スクロールを無効に
+  // 改善されたタッチイベント処理
+  boardWrapper.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+  
   boardWrapper.addEventListener('touchmove', e => {
-    if (e.touches.length === 1) e.preventDefault();
+    if (e.touches.length === 1) {
+      const touchY = e.touches[0].clientY;
+      const deltaY = Math.abs(touchY - touchStartY);
+      // 縦スクロールの動きが小さい場合のみ preventDefault
+      if (deltaY < 10) {
+        e.preventDefault();
+      }
+    }
   }, { passive: false });
 }
 
@@ -107,14 +123,22 @@ function initSVGEvents() {
   svg.addEventListener('contextmenu', e => e.preventDefault());
 }
 
+// 改善されたエラーハンドリング付き座標変換
 function pointToCoord(evt) {
-  const pt = svg.createSVGPoint();
-  pt.x = evt.clientX; 
-  pt.y = evt.clientY;
-  const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-  const col = Math.round((svgP.x - MARGIN) / CELL);
-  const row = Math.round((svgP.y - MARGIN) / CELL);
-  return { col, row };
+  try {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX; 
+    pt.y = evt.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { col: -1, row: -1 };
+    const svgP = pt.matrixTransform(ctm.inverse());
+    const col = Math.round((svgP.x - MARGIN) / CELL);
+    const row = Math.round((svgP.y - MARGIN) / CELL);
+    return { col, row };
+  } catch (e) {
+    console.error('座標変換エラー:', e);
+    return { col: -1, row: -1 };
+  }
 }
 
 // === ボタンイベント ===
@@ -129,66 +153,81 @@ function initButtonEvents() {
   });
 
   // 全消去
-  document.getElementById('btn-clear').addEventListener('click', () => {
-    disableEraseMode();
-    initBoard(state.boardSize);
-  });
+  const clearBtn = getDOMElement('btn-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      disableEraseMode();
+      initBoard(state.boardSize);
+    });
+  }
 
   // 戻る
-  document.getElementById('btn-undo').addEventListener('click', () => {
-    disableEraseMode();
-    if (state.history.length) {
-      state.board = state.history.pop();
-      state.turn = Math.max(0, state.turn - 1);
-      if (state.sgfIndex > 0) {
-        state.sgfIndex--;
-        state.sgfMoves = state.sgfMoves.slice(0, state.sgfIndex);
+  const undoBtn = getDOMElement('btn-undo');
+  if (undoBtn) {
+    undoBtn.addEventListener('click', () => {
+      disableEraseMode();
+      if (state.history.length) {
+        state.board = state.history.pop();
+        state.turn = Math.max(0, state.turn - 1);
+        if (state.sgfIndex > 0) {
+          state.sgfIndex--;
+          state.sgfMoves = state.sgfMoves.slice(0, state.sgfIndex);
+        }
+        render(); 
+        updateInfo(); 
+        updateSlider();
       }
-      render(); 
-      updateInfo(); 
-      updateSlider();
-    }
-  });
+    });
+  }
 
   // 消去モード
-  document.getElementById('btn-erase').addEventListener('click', () => {
-    state.eraseMode = !state.eraseMode;
-    const el = document.getElementById('btn-erase');
-    if (state.eraseMode) { 
-      el.classList.add('active'); 
-      msg('消去モード'); 
-    } else { 
-      el.classList.remove('active'); 
-      msg(''); 
-    }
-  });
+  const eraseBtn = getDOMElement('btn-erase');
+  if (eraseBtn) {
+    eraseBtn.addEventListener('click', () => {
+      state.eraseMode = !state.eraseMode;
+      if (state.eraseMode) { 
+        eraseBtn.classList.add('active'); 
+        msg('消去モード'); 
+      } else { 
+        eraseBtn.classList.remove('active'); 
+        msg(''); 
+      }
+    });
+  }
 
   // 1手戻る・進むボタン
-  document.getElementById('btn-prev-move').addEventListener('click', () => {
-    if (state.sgfIndex > 0) {
-      setMoveIndex(state.sgfIndex - 1);
-    }
-  });
+  const prevBtn = getDOMElement('btn-prev-move');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (state.sgfIndex > 0) {
+        setMoveIndex(state.sgfIndex - 1);
+      }
+    });
+  }
 
-  document.getElementById('btn-next-move').addEventListener('click', () => {
-    if (state.sgfIndex < state.sgfMoves.length) {
-      setMoveIndex(state.sgfIndex + 1);
-    }
-  });
+  const nextBtn = getDOMElement('btn-next-move');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (state.sgfIndex < state.sgfMoves.length) {
+        setMoveIndex(state.sgfIndex + 1);
+      }
+    });
+  }
 
   // 解答モード
   function enableAnswerMode(color) {
-    // Always switch to answer mode regardless of current state
     if (!state.numberMode || state.startColor !== color) {
       startNumberMode(color);
     }
   }
 
   ['btn-play-black', 'btn-play-white'].forEach((id, idx) => {
-    const handler = () => enableAnswerMode(idx + 1);
-    const btn = document.getElementById(id);
-    btn.addEventListener('click', handler);
-    btn.addEventListener('touchstart', handler, { passive: true });
+    const btn = getDOMElement(id);
+    if (btn) {
+      const handler = () => enableAnswerMode(idx + 1);
+      btn.addEventListener('click', handler);
+      btn.addEventListener('touchstart', handler, { passive: true });
+    }
   });
 
   // 配置モード
@@ -204,153 +243,178 @@ function initButtonEvents() {
     updateInfo();
   }
 
-  document.getElementById('btn-black').addEventListener('click', e => setMode('black', e.currentTarget));
-  document.getElementById('btn-white').addEventListener('click', e => setMode('white', e.currentTarget));
-  document.getElementById('btn-alt').addEventListener('click', e => {
-    state.startColor = state.startColor === 1 ? 2 : 1;
-    setMode('alt', e.currentTarget);
-  });
+  const blackBtn = getDOMElement('btn-black');
+  if (blackBtn) blackBtn.addEventListener('click', e => setMode('black', e.currentTarget));
+  
+  const whiteBtn = getDOMElement('btn-white');
+  if (whiteBtn) whiteBtn.addEventListener('click', e => setMode('white', e.currentTarget));
+  
+  const altBtn = getDOMElement('btn-alt');
+  if (altBtn) {
+    altBtn.addEventListener('click', e => {
+      state.startColor = state.startColor === 1 ? 2 : 1;
+      setMode('alt', e.currentTarget);
+    });
+  }
 
   // SGF 関連
-  document.getElementById('sgf-input').addEventListener('change', e => {
-    const file = e.target.files[0];
-    if (file) loadSGF(file);
-  });
-
-  document.getElementById('btn-load-sgf').addEventListener('click', async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) {
-        state.sgfMoves = parseSGF(text);
-        state.sgfIndex = 0;
-        setMoveIndex(0);
-        // 置石がある場合は盤面を再描画
-        if (state.handicapPositions.length > 0) {
-          render();
-          updateInfo();
-        }
-        document.getElementById('sgf-text').value = text;
-        msg('クリップボードからSGFを読み込みました');
-      } else {
-        msg('クリップボードにSGFがありません');
-      }
-    } catch (err) {
-      console.error('クリップボードの読み込みに失敗しました: ', err);
-      const sgfTextarea = document.getElementById('sgf-text');
-      if (sgfTextarea && sgfTextarea.value.trim()) {
-        const textFromTextarea = sgfTextarea.value.trim();
-        state.sgfMoves = parseSGF(textFromTextarea);
-        state.sgfIndex = 0;
-        setMoveIndex(0);
-        // 置石がある場合は盤面を再描画
-        if (state.handicapPositions.length > 0) {
-          render();
-          updateInfo();
-        }
-        msg('テキストエリアからSGFを読み込みました');
-      } else {
-        msg('クリップボードの読み込みに失敗しました。テキストエリアにSGFがありません。');
-      }
-    }
-  });
-
-  document.getElementById('btn-copy-sgf').addEventListener('click', () => {
-    console.log('SGFコピー開始');
-    const text = exportSGF();
-    console.log('SGF生成完了:', text);
-    document.getElementById('sgf-text').value = text;
-    navigator.clipboard.writeText(text).then(() => {
-      console.log('SGFクリップボードコピー完了');
-      msg('SGF をコピーしました');
-    }).catch(err => {
-      console.error('クリップボードコピー失敗:', err);
-      msg('SGF をテキストエリアに表示しました');
+  const sgfInput = getDOMElement('sgf-input');
+  if (sgfInput) {
+    sgfInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) loadSGF(file);
     });
-  });
+  }
+
+  const loadSgfBtn = getDOMElement('btn-load-sgf');
+  if (loadSgfBtn) {
+    loadSgfBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text.trim()) {
+          state.sgfMoves = parseSGF(text);
+          state.sgfIndex = 0;
+          setMoveIndex(0);
+          if (state.handicapPositions.length > 0) {
+            render();
+            updateInfo();
+          }
+          const sgfTextarea = getDOMElement('sgf-text');
+          if (sgfTextarea) sgfTextarea.value = text;
+          msg('クリップボードからSGFを読み込みました');
+        } else {
+          msg('クリップボードにSGFがありません');
+        }
+      } catch (err) {
+        console.error('クリップボードの読み込みに失敗しました: ', err);
+        const sgfTextarea = getDOMElement('sgf-text');
+        if (sgfTextarea && sgfTextarea.value.trim()) {
+          const textFromTextarea = sgfTextarea.value.trim();
+          state.sgfMoves = parseSGF(textFromTextarea);
+          state.sgfIndex = 0;
+          setMoveIndex(0);
+          if (state.handicapPositions.length > 0) {
+            render();
+            updateInfo();
+          }
+          msg('テキストエリアからSGFを読み込みました');
+        } else {
+          msg('クリップボードの読み込みに失敗しました。テキストエリアにSGFがありません。');
+        }
+      }
+    });
+  }
+
+  const copySgfBtn = getDOMElement('btn-copy-sgf');
+  if (copySgfBtn) {
+    copySgfBtn.addEventListener('click', () => {
+      console.log('SGFコピー開始');
+      const text = exportSGF();
+      console.log('SGF生成完了:', text);
+      const sgfTextarea = getDOMElement('sgf-text');
+      if (sgfTextarea) sgfTextarea.value = text;
+      navigator.clipboard.writeText(text).then(() => {
+        console.log('SGFクリップボードコピー完了');
+        msg('SGF をコピーしました');
+      }).catch(err => {
+        console.error('クリップボードコピー失敗:', err);
+        msg('SGF をテキストエリアに表示しました');
+      });
+    });
+  }
 
   // SGF保存機能
-  document.getElementById('btn-save-sgf').addEventListener('click', async () => {
-    const sgfData = exportSGF();
-    const now = new Date();
-    const timestamp = now.getFullYear() + 
-                     String(now.getMonth() + 1).padStart(2, '0') + 
-                     String(now.getDate()).padStart(2, '0') + '_' +
-                     String(now.getHours()).padStart(2, '0') + 
-                     String(now.getMinutes()).padStart(2, '0');
-    const filename = `${timestamp}.sgf`;
+  const saveSgfBtn = getDOMElement('btn-save-sgf');
+  if (saveSgfBtn) {
+    saveSgfBtn.addEventListener('click', async () => {
+      const sgfData = exportSGF();
+      const now = new Date();
+      const timestamp = now.getFullYear() + 
+                       String(now.getMonth() + 1).padStart(2, '0') + 
+                       String(now.getDate()).padStart(2, '0') + '_' +
+                       String(now.getHours()).padStart(2, '0') + 
+                       String(now.getMinutes()).padStart(2, '0');
+      const filename = `${timestamp}.sgf`;
 
-    try {
-      if (window.showSaveFilePicker) {
-        // File System Access API が利用可能な場合
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: filename,
-          types: [{
-            description: 'SGF files',
-            accept: { 'application/x-go-sgf': ['.sgf'] }
-          }]
-        });
-        const writable = await fileHandle.createWritable();
-        await writable.write(sgfData);
-        await writable.close();
-        msg('SGFファイルを保存しました');
-      } else {
-        // 従来のダウンロード方式
-        const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        msg('SGFファイルをダウンロードしました');
+      try {
+        if (window.showSaveFilePicker) {
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'SGF files',
+              accept: { 'application/x-go-sgf': ['.sgf'] }
+            }]
+          });
+          const writable = await fileHandle.createWritable();
+          await writable.write(sgfData);
+          await writable.close();
+          msg('SGFファイルを保存しました');
+        } else {
+          const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          msg('SGFファイルをダウンロードしました');
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('SGF保存エラー:', error);
+          msg('SGFファイルの保存に失敗しました');
+        }
       }
-    } catch (error) {
-      if (error.name !== 'AbortError') { // ユーザーがキャンセルした場合を除く
-        console.error('SGF保存エラー:', error);
-        msg('SGFファイルの保存に失敗しました');
-      }
-    }
-  });
+    });
+  }
 
   // QRコード共有
-  document.getElementById('btn-qr-share').addEventListener('click', createSGFQRCode);
+  const qrBtn = getDOMElement('btn-qr-share');
+  if (qrBtn) qrBtn.addEventListener('click', createSGFQRCode);
 
   // 置石機能
-  document.getElementById('btn-handicap').addEventListener('click', () => {
-    showHandicapSelection();
-  });
+  const handicapBtn = getDOMElement('btn-handicap');
+  if (handicapBtn) {
+    handicapBtn.addEventListener('click', () => {
+      showHandicapSelection();
+    });
+  }
 
   // レイアウト切り替え
-  const layoutBtn = document.getElementById('btn-layout');
-  let isHorizontal = false;
-  layoutBtn.addEventListener('click', () => {
-    isHorizontal = !isHorizontal;
-    document.body.classList.toggle('horizontal', isHorizontal);
-    layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-    updateBoardSize();
-  });
+  const layoutBtn = getDOMElement('btn-layout');
+  if (layoutBtn) {
+    let isHorizontal = false;
+    layoutBtn.addEventListener('click', () => {
+      isHorizontal = !isHorizontal;
+      document.body.classList.toggle('horizontal', isHorizontal);
+      layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+      updateBoardSize();
+    });
+  }
 
   // スライダー
-  sliderEl.addEventListener('input', e => { 
-    setMoveIndex(parseInt(e.target.value, 10)); 
-  });
+  if (sliderEl) {
+    sliderEl.addEventListener('input', e => { 
+      setMoveIndex(parseInt(e.target.value, 10)); 
+    });
+  }
 }
 
 // === キーボードショートカット ===
 const keyBindings = {
-  q: () => document.querySelector('.size-btn[data-size="9"]').click(),
-  w: () => document.querySelector('.size-btn[data-size="13"]').click(),
-  e: () => document.querySelector('.size-btn[data-size="19"]').click(),
-  a: () => document.getElementById('btn-clear').click(),
-  s: () => document.getElementById('btn-undo').click(),
-  d: () => document.getElementById('btn-erase').click(),
-  z: () => document.getElementById('btn-black').click(),
-  x: () => document.getElementById('btn-alt').click(),
-  c: () => document.getElementById('btn-white').click(),
-  ArrowLeft: () => document.getElementById('btn-prev-move').click(),
-  ArrowRight: () => document.getElementById('btn-next-move').click()
+  q: () => { const btn = document.querySelector('.size-btn[data-size="9"]'); if (btn) btn.click(); },
+  w: () => { const btn = document.querySelector('.size-btn[data-size="13"]'); if (btn) btn.click(); },
+  e: () => { const btn = document.querySelector('.size-btn[data-size="19"]'); if (btn) btn.click(); },
+  a: () => { const btn = getDOMElement('btn-clear'); if (btn) btn.click(); },
+  s: () => { const btn = getDOMElement('btn-undo'); if (btn) btn.click(); },
+  d: () => { const btn = getDOMElement('btn-erase'); if (btn) btn.click(); },
+  z: () => { const btn = getDOMElement('btn-black'); if (btn) btn.click(); },
+  x: () => { const btn = getDOMElement('btn-alt'); if (btn) btn.click(); },
+  c: () => { const btn = getDOMElement('btn-white'); if (btn) btn.click(); },
+  ArrowLeft: () => { const btn = getDOMElement('btn-prev-move'); if (btn) btn.click(); },
+  ArrowRight: () => { const btn = getDOMElement('btn-next-move'); if (btn) btn.click(); }
 };
 
 function initKeyboardEvents() {
@@ -402,10 +466,9 @@ function setHandicap(stones) {
   closeHandicapSelection();
   
   if (stones === 0) {
-    // 先（置石なし）
     initBoard(state.boardSize);
     state.handicapStones = 0;
-    state.komi = 6.5;
+    state.komi = CONFIG.DEFAULT_KOMI;
     msg('先（置石なし）に設定しました');
     return;
   }
@@ -448,14 +511,14 @@ function getHandicapPositions(boardSize, stones) {
       [9, 3], [9, 15]  // 上下辺
     ];
     
-    if (stones === 2) positions.push(starPoints[0], starPoints[2]); // 右下、左上
-    else if (stones === 3) positions.push(starPoints[0], starPoints[2], starPoints[1]); // 右下、左上、右上
-    else if (stones === 4) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3]); // 四隅
-    else if (stones === 5) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[4]); // 四隅 + 天元
-    else if (stones === 6) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6]); // 四隅 + 左右辺
-    else if (stones === 7) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[4]); // 6子 + 天元
-    else if (stones === 8) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8]); // 四隅 + 四辺
-    else if (stones === 9) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8], starPoints[4]); // 8子 + 天元
+    if (stones === 2) positions.push(starPoints[0], starPoints[2]);
+    else if (stones === 3) positions.push(starPoints[0], starPoints[2], starPoints[1]);
+    else if (stones === 4) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3]);
+    else if (stones === 5) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[4]);
+    else if (stones === 6) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6]);
+    else if (stones === 7) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[4]);
+    else if (stones === 8) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8]);
+    else if (stones === 9) positions.push(starPoints[0], starPoints[1], starPoints[2], starPoints[3], starPoints[5], starPoints[6], starPoints[7], starPoints[8], starPoints[4]);
   } else if (boardSize === 13) {
     const starPoints = [
       [3, 3], [9, 3], [3, 9], [9, 9], // 四隅
@@ -493,10 +556,14 @@ function getHandicapPositions(boardSize, stones) {
   return positions;
 }
 
+// メモリリーク対策を含む改善された閉じる関数
 function closeHandicapSelection() {
   const popup = document.getElementById('handicap-popup');
   if (popup) {
-    popup.remove();
+    // すべてのイベントリスナーを削除（クローンで置き換え）
+    const newPopup = popup.cloneNode(true);
+    popup.parentNode.replaceChild(newPopup, popup);
+    newPopup.remove();
   }
 }
 
@@ -504,18 +571,7 @@ function closeHandicapSelection() {
 window.setHandicap = setHandicap;
 window.closeHandicapSelection = closeHandicapSelection;
 
-// === リサイズ対応 ===
-function initResizeEvents() {
-  window.addEventListener('orientationchange', () => {
-    updateBoardSize();
-    setTimeout(render, 200);
-  });
-  
-  window.addEventListener('resize', () => {
-    updateBoardSize();
-    setTimeout(render, 200);
-  });
-}
+// === リサイズ対応（重複を削除） ===
 function initResizeEvents() {
   window.addEventListener('orientationchange', () => {
     updateBoardSize();
