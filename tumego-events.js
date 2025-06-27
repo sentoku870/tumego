@@ -148,7 +148,10 @@ function initButtonEvents() {
     btn.addEventListener('click', () => {
       disableEraseMode();
       const size = parseInt(btn.dataset.size, 10);
-      initBoard(size);
+      // 現在と違うサイズの場合のみ履歴保存
+      if (size !== state.boardSize) {
+        initBoard(size);
+      }
     });
   });
 
@@ -156,6 +159,10 @@ function initButtonEvents() {
   const clearBtn = getDOMElement('btn-clear');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
+      // 履歴保存（現在の状態が意味がある場合のみ）
+      if (state.sgfMoves.length > 0 || state.handicapStones > 0 || state.board.some(row => row.some(cell => cell !== 0))) {
+        operationHistory.save(`全消去前（${state.sgfMoves.length}手）`);
+      }
       disableEraseMode();
       initBoard(state.boardSize);
     });
@@ -177,6 +184,14 @@ function initButtonEvents() {
         updateInfo(); 
         updateSlider();
       }
+    });
+  }
+
+  // 履歴ボタン
+  const historyBtn = getDOMElement('btn-history');
+  if (historyBtn) {
+    historyBtn.addEventListener('click', () => {
+      showHistoryDialog();
     });
   }
 
@@ -214,21 +229,30 @@ function initButtonEvents() {
     });
   }
 
-  // 解答モード
-  function enableAnswerMode(color) {
-    if (!state.numberMode || state.startColor !== color) {
-      startNumberMode(color);
-    }
+  // 解答ボタン（トグル機能付き）
+  const answerBtn = getDOMElement('btn-answer');
+  if (answerBtn) {
+    answerBtn.addEventListener('click', () => {
+      // 解答モード開始前に履歴保存
+      if (state.sgfMoves.length > 0 || state.board.some(row => row.some(cell => cell !== 0))) {
+        const modeText = state.answerMode === 'black' ? '白先' : '黒先';
+        operationHistory.save(`${modeText}解答開始前（${state.sgfMoves.length}手）`);
+      }
+      
+      // 現在の解答モードを切り替え
+      if (state.answerMode === 'black') {
+        state.answerMode = 'white';
+        answerBtn.textContent = '⚪ 白先';
+        answerBtn.classList.add('white-mode');
+        startNumberMode(2); // 白先
+      } else {
+        state.answerMode = 'black';
+        answerBtn.textContent = '🔥 黒先';
+        answerBtn.classList.remove('white-mode');
+        startNumberMode(1); // 黒先
+      }
+    });
   }
-
-  ['btn-play-black', 'btn-play-white'].forEach((id, idx) => {
-    const btn = getDOMElement(id);
-    if (btn) {
-      const handler = () => enableAnswerMode(idx + 1);
-      btn.addEventListener('click', handler);
-      btn.addEventListener('touchstart', handler, { passive: true });
-    }
-  });
 
   // 配置モード
   function setMode(mode, btn) {
@@ -257,8 +281,70 @@ function initButtonEvents() {
     });
   }
 
-  // SGF 関連
+  // ファイルメニュー処理
+  const fileBtn = getDOMElement('btn-file');
+  const fileDropdown = getDOMElement('file-dropdown');
+  
+  if (fileBtn && fileDropdown) {
+    fileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileDropdown.classList.toggle('show');
+    });
+
+    // ドロップダウン外クリックで閉じる
+    document.addEventListener('click', () => {
+      fileDropdown.classList.remove('show');
+    });
+
+    fileDropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  // ファイル操作ボタン
+  initFileOperations();
+
+  // 置石機能
+  const handicapBtn = getDOMElement('btn-handicap');
+  if (handicapBtn) {
+    handicapBtn.addEventListener('click', () => {
+      showHandicapSelection();
+    });
+  }
+
+  // レイアウト切り替え
+  const layoutBtn = getDOMElement('btn-layout');
+  if (layoutBtn) {
+    let isHorizontal = false;
+    layoutBtn.addEventListener('click', () => {
+      isHorizontal = !isHorizontal;
+      document.body.classList.toggle('horizontal', isHorizontal);
+      layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+      updateBoardSize();
+    });
+  }
+
+  // スライダー
+  if (sliderEl) {
+    sliderEl.addEventListener('input', e => { 
+      setMoveIndex(parseInt(e.target.value, 10)); 
+    });
+  }
+}
+
+// ファイル操作の初期化
+function initFileOperations() {
   const sgfInput = getDOMElement('sgf-input');
+  const fileDropdown = getDOMElement('file-dropdown');
+  
+  const fileSelectBtn = getDOMElement('btn-file-select');
+  if (fileSelectBtn && sgfInput) {
+    fileSelectBtn.addEventListener('click', () => {
+      sgfInput.click();
+      fileDropdown.classList.remove('show');
+    });
+  }
+
   if (sgfInput) {
     sgfInput.addEventListener('change', e => {
       const file = e.target.files[0];
@@ -266,9 +352,10 @@ function initButtonEvents() {
     });
   }
 
-  const loadSgfBtn = getDOMElement('btn-load-sgf');
-  if (loadSgfBtn) {
-    loadSgfBtn.addEventListener('click', async () => {
+  const fileLoadBtn = getDOMElement('btn-file-load');
+  if (fileLoadBtn) {
+    fileLoadBtn.addEventListener('click', async () => {
+      fileDropdown.classList.remove('show');
       try {
         const text = await navigator.clipboard.readText();
         if (text.trim()) {
@@ -305,16 +392,14 @@ function initButtonEvents() {
     });
   }
 
-  const copySgfBtn = getDOMElement('btn-copy-sgf');
-  if (copySgfBtn) {
-    copySgfBtn.addEventListener('click', () => {
-      console.log('SGFコピー開始');
+  const fileCopyBtn = getDOMElement('btn-file-copy');
+  if (fileCopyBtn) {
+    fileCopyBtn.addEventListener('click', () => {
+      fileDropdown.classList.remove('show');
       const text = exportSGF();
-      console.log('SGF生成完了:', text);
       const sgfTextarea = getDOMElement('sgf-text');
       if (sgfTextarea) sgfTextarea.value = text;
       navigator.clipboard.writeText(text).then(() => {
-        console.log('SGFクリップボードコピー完了');
         msg('SGF をコピーしました');
       }).catch(err => {
         console.error('クリップボードコピー失敗:', err);
@@ -323,10 +408,10 @@ function initButtonEvents() {
     });
   }
 
-  // SGF保存機能
-  const saveSgfBtn = getDOMElement('btn-save-sgf');
-  if (saveSgfBtn) {
-    saveSgfBtn.addEventListener('click', async () => {
+  const fileSaveBtn = getDOMElement('btn-file-save');
+  if (fileSaveBtn) {
+    fileSaveBtn.addEventListener('click', async () => {
+      fileDropdown.classList.remove('show');
       const sgfData = exportSGF();
       const now = new Date();
       const timestamp = now.getFullYear() + 
@@ -370,34 +455,11 @@ function initButtonEvents() {
     });
   }
 
-  // QRコード共有
-  const qrBtn = getDOMElement('btn-qr-share');
-  if (qrBtn) qrBtn.addEventListener('click', createSGFQRCode);
-
-  // 置石機能
-  const handicapBtn = getDOMElement('btn-handicap');
-  if (handicapBtn) {
-    handicapBtn.addEventListener('click', () => {
-      showHandicapSelection();
-    });
-  }
-
-  // レイアウト切り替え
-  const layoutBtn = getDOMElement('btn-layout');
-  if (layoutBtn) {
-    let isHorizontal = false;
-    layoutBtn.addEventListener('click', () => {
-      isHorizontal = !isHorizontal;
-      document.body.classList.toggle('horizontal', isHorizontal);
-      layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-      updateBoardSize();
-    });
-  }
-
-  // スライダー
-  if (sliderEl) {
-    sliderEl.addEventListener('input', e => { 
-      setMoveIndex(parseInt(e.target.value, 10)); 
+  const fileQRBtn = getDOMElement('btn-file-qr');
+  if (fileQRBtn) {
+    fileQRBtn.addEventListener('click', () => {
+      fileDropdown.classList.remove('show');
+      createSGFQRCode();
     });
   }
 }
@@ -410,6 +472,7 @@ const keyBindings = {
   a: () => { const btn = getDOMElement('btn-clear'); if (btn) btn.click(); },
   s: () => { const btn = getDOMElement('btn-undo'); if (btn) btn.click(); },
   d: () => { const btn = getDOMElement('btn-erase'); if (btn) btn.click(); },
+  h: () => { const btn = getDOMElement('btn-history'); if (btn) btn.click(); }, // 履歴ショートカット
   z: () => { const btn = getDOMElement('btn-black'); if (btn) btn.click(); },
   x: () => { const btn = getDOMElement('btn-alt'); if (btn) btn.click(); },
   c: () => { const btn = getDOMElement('btn-white'); if (btn) btn.click(); },
@@ -464,6 +527,11 @@ function showHandicapSelection() {
 
 function setHandicap(stones) {
   closeHandicapSelection();
+  
+  // 現在の状態に意味があるデータがある場合は履歴保存
+  if (state.sgfMoves.length > 0 || state.handicapStones > 0 || state.board.some(row => row.some(cell => cell !== 0))) {
+    operationHistory.save(`置石変更前（${state.handicapStones}子→${stones}子）`);
+  }
   
   if (stones === 0) {
     initBoard(state.boardSize);
@@ -567,11 +635,107 @@ function closeHandicapSelection() {
   }
 }
 
-// グローバルスコープに関数を登録（ポップアップ内で使用するため）
-window.setHandicap = setHandicap;
-window.closeHandicapSelection = closeHandicapSelection;
+// === 履歴ダイアログ ===
+function showHistoryDialog() {
+  const historyList = operationHistory.getList();
+  
+  if (historyList.length === 0) {
+    alert('📜 操作履歴がありません。\n\n重要な操作（盤サイズ変更、置石設定、全消去、SGF読み込みなど）を行うと、履歴が保存されます。');
+    return;
+  }
 
-// === リサイズ対応（重複を削除） ===
+  // 既存のポップアップがあれば削除
+  const existing = document.getElementById('history-popup');
+  if (existing) {
+    existing.remove();
+  }
+
+  const popup = document.createElement('div');
+  popup.id = 'history-popup';
+  
+  const historyItems = historyList.map((item, index) => `
+    <button onclick="restoreHistory(${item.index})" 
+            style="display:block; width:100%; margin:5px 0; padding:12px; 
+                   background:#fff; border:1px solid #ddd; border-radius:6px; 
+                   cursor:pointer; text-align:left; font-size:14px; 
+                   transition:background 0.2s;" 
+            onmouseover="this.style.background='#f0f0f0'" 
+            onmouseout="this.style.background='#fff'">
+      <div style="font-weight:600; color:#333;">${item.description}</div>
+      <div style="font-size:12px; color:#666; margin-top:4px;">${item.timeString}</div>
+    </button>
+  `).join('');
+
+  popup.innerHTML = `
+    <div style="position:fixed; top:0; left:0; width:100%; height:100%; 
+                background:rgba(0,0,0,0.8); z-index:9999; 
+                display:flex; justify-content:center; align-items:center;" 
+         onclick="closeHistoryDialog()">
+      <div style="background:white; padding:25px; border-radius:15px; 
+                  text-align:center; max-width:500px; max-height:80vh; 
+                  overflow-y:auto;" 
+           onclick="event.stopPropagation()">
+        <h2 style="margin-bottom:20px; color:#333;">📜 操作履歴</h2>
+        <p style="margin-bottom:20px; color:#666; font-size:14px;">
+          復元したい操作を選択してください（最新${historyList.length}件）
+        </p>
+        <div style="margin:20px 0;">
+          ${historyItems}
+        </div>
+        <div style="margin-top:20px; padding-top:15px; border-top:1px solid #eee;">
+          <button onclick="clearHistory()" 
+                  style="margin:5px; padding:8px 16px; background:#ff6b35; color:white; 
+                         border:none; border-radius:6px; cursor:pointer; font-size:13px;">
+            🗑️ 履歴クリア
+          </button>
+          <button onclick="closeHistoryDialog()" 
+                  style="margin:5px; padding:8px 16px; background:#666; color:white; 
+                         border:none; border-radius:6px; cursor:pointer; font-size:13px;">
+            ❌ 閉じる
+          </button>
+        </div>
+        <div style="font-size:11px; color:#999; margin-top:10px;">
+          ⚠️ 履歴復元後は、復元時点以降の操作が失われます
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+}
+
+function restoreHistory(index) {
+  if (confirm('この操作履歴に復元しますか？\n\n⚠️ 復元すると、現在の状態が失われます。')) {
+    const success = operationHistory.restore(index);
+    if (success) {
+      closeHistoryDialog();
+    } else {
+      alert('履歴の復元に失敗しました。');
+    }
+  }
+}
+
+function clearHistory() {
+  if (confirm('操作履歴をすべて削除しますか？\n\n⚠️ この操作は取り消せません。')) {
+    operationHistory.clear();
+    closeHistoryDialog();
+    msg('操作履歴をクリアしました');
+  }
+}
+
+function closeHistoryDialog() {
+  const popup = document.getElementById('history-popup');
+  if (popup) {
+    popup.remove();
+  }
+}
+
+// グローバルスコープに関数を登録（ポップアップ内で使用するため）
+window.restoreHistory = restoreHistory;
+window.clearHistory = clearHistory;
+window.closeHistoryDialog = closeHistoryDialog;
+
+// === リサイズ対応 ===
 function initResizeEvents() {
   window.addEventListener('orientationchange', () => {
     updateBoardSize();

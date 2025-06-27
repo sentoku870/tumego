@@ -16,6 +16,10 @@ function init() {
     initKeyboardEvents();
     initResizeEvents();
     
+    // 履歴機能の初期化
+    operationHistory.clear();
+    operationHistory.save('アプリケーション開始');
+    
     // URL からの SGF 読み込み（エラーハンドリング付き）
     try {
       if (typeof loadSGFFromURL === 'function') {
@@ -25,7 +29,7 @@ function init() {
       console.warn('URL からの SGF 読み込みに失敗:', error);
     }
     
-    console.log('Tumego初期化完了');
+    console.log('Tumego初期化完了 - 履歴機能有効');
   } catch (error) {
     console.error('初期化エラー:', error);
     alert('アプリケーションの初期化に失敗しました: ' + error.message);

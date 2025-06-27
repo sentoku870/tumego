@@ -9,65 +9,72 @@
   --black: #000;
   --white: #fff;
 }
-*{box-sizing:border-box;}
+
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
   background: var(--bg);
-  /* 既存のpaddingをSafeArea対応版に置き換える */
+  /* Safe Area対応のpadding */
   padding: calc(16px + env(safe-area-inset-top)) 
            calc(8px + env(safe-area-inset-right)) 
            calc(16px + env(safe-area-inset-bottom)) 
            calc(8px + env(safe-area-inset-left));
   min-height: 100vh;
-  /* iOS Safariのアドレスバーなどを考慮し、表示領域の高さを最大化する */
+  /* iOS Safariのアドレスバーなどを考慮 */
   min-height: -webkit-fill-available;
 }
 
-#layout{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:12px;
+/* ===== レイアウト ===== */
+#layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-body.horizontal #layout{
-  flex-direction:row;
-  align-items:flex-start;
-  gap:16px;
+body.horizontal #layout {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
 }
 
-#ui{display:contents;}
+#ui {
+  display: contents;
+}
 
-#ui{display:contents;}
-
-body.horizontal #ui{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  /* ▼▼▼ 修正箇所 ▼▼▼ */
-  flex: 1; /* 碁盤以外の残りスペースをすべてUIエリアとして使用する */
+body.horizontal #ui {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1; /* 碁盤以外の残りスペースをすべてUIエリアとして使用 */
   min-width: 220px; /* UIエリアが狭くなりすぎないように最小幅を確保 */
   max-height: 95vh; /* 碁盤の最大高さとUIエリアの高さを合わせる */
   overflow-y: auto; /* 内容が多い場合はUIエリア内を縦スクロール可能にする */
 }
 
-body.horizontal .moves{display:none;}
+body.horizontal .moves {
+  display: none;
+}
 
-#controls{order:1;}
-.info{order:2;}
-#branch-info{order:3;}
-#move-slider{order:4;}
-#board-wrapper{order:5;}
-.moves{order:6;}
-#sgf-controls{order:7;}
-#sgf-text{order:8;}
-.msg{order:9;}
-body.horizontal #board-wrapper{order:1;}
-body.horizontal #ui{order:2;}
+/* ===== 要素の並び順 ===== */
+#controls { order: 1; }
+.info { order: 2; }
+#branch-info { order: 3; }
+#move-slider { order: 4; }
+#board-wrapper { order: 5; }
+.moves { order: 6; }
+#sgf-controls { order: 7; }
+#sgf-text { order: 8; }
+.msg { order: 9; }
 
-/* board width synced elements */
+body.horizontal #board-wrapper { order: 1; }
+body.horizontal #ui { order: 2; }
+
+/* ===== 縦レイアウト時の幅同期 ===== */
 body:not(.horizontal) #controls,
 body:not(.horizontal) .info,
 body:not(.horizontal) #branch-info,
@@ -75,69 +82,175 @@ body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #sgf-controls,
 body:not(.horizontal) #sgf-text,
-body:not(.horizontal) .msg{
-  width:var(--board-width);
-  max-width:var(--board-width);
+body:not(.horizontal) .msg {
+  width: var(--board-width);
+  max-width: var(--board-width);
 }
 
-#sgf-text{margin-top:-4px;}
+#sgf-text {
+  margin-top: -4px;
+}
 
-/* ===== 操作ボタン 3×3 グリッド ===== */
-#controls{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  width:100%;
-  max-width:480px;
-  grid-auto-rows:minmax(48px,auto);
+/* ===== ボタングリッド ===== */
+#controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  grid-auto-rows: minmax(48px, auto);
 }
-/* SGF 操作用ボタン群 */
-#sgf-controls{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(80px,1fr));
-  gap:8px;
-  width:100%;
-  max-width:480px;
-  grid-auto-rows:minmax(48px,auto);
-}
-#sgf-input{display:none;}
-#sgf-text{width:100%;max-width:480px;padding:4px;}
-.ctrl-btn{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  padding:0 4px;
-  border:2px solid var(--accent);
-  border-radius:8px;
-  background:#fff;
-  color:var(--accent);
-  font-weight:600;
-  font-size:15px;
-  cursor:pointer;
-  user-select:none;
-  transition:background .15s ease,color .15s ease;
-}
-.ctrl-btn:hover{background:var(--accent);color:#fff;}
-.ctrl-btn.active{background:var(--accent);color:#fff;}
-/* プレイモードボタンも他のボタンと同じサイズに */
-.play-btn{
-  padding-block:0;
-  font-size:15px;
-}
-@media(max-width:480px){.ctrl-btn{font-size:14px;}}
 
-/* ▼▼▼ 追加したスタイル ▼▼▼ */
+/* 履歴ボタンの特別なスタイル */
+.history-btn {
+  background: #FF9800;
+  color: #fff;
+  border-color: #FF9800;
+}
 
-/* 横レイアウト時のUI要素の幅を親要素(UIエリア)に合わせる */
+.history-btn:hover {
+  background: #F57C00;
+  border-color: #F57C00;
+}
+
+#sgf-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  grid-auto-rows: minmax(48px, auto);
+}
+
+#sgf-input {
+  display: none;
+}
+
+#sgf-text {
+  width: 100%;
+  max-width: 480px;
+  padding: 4px;
+}
+
+/* ===== ボタンスタイル ===== */
+.ctrl-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 4px;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s ease, color .15s ease;
+}
+
+.ctrl-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.ctrl-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 解答ボタンの特別なスタイル */
+.answer-btn {
+  background: #4CAF50;
+  color: #fff;
+  border-color: #4CAF50;
+}
+
+.answer-btn:hover {
+  background: #45a049;
+}
+
+.answer-btn.white-mode {
+  background: #fff;
+  color: #333;
+  border-color: #333;
+}
+
+.answer-btn.white-mode:hover {
+  background: #f0f0f0;
+}
+
+/* プレイモードボタン */
+.play-btn {
+  padding-block: 0;
+  font-size: 15px;
+}
+
+/* ===== ファイルメニュー ===== */
+.file-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.file-dropdown {
+  display: none;
+  position: absolute;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1000;
+  border-radius: 8px;
+  overflow: hidden;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+}
+
+.file-dropdown.show {
+  display: block;
+}
+
+.file-dropdown button {
+  background: none;
+  border: none;
+  padding: 12px 16px;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.file-dropdown button:hover {
+  background-color: #f1f1f1;
+}
+
+.file-dropdown button:first-child {
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.file-dropdown button:last-child {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* ===== 横レイアウト時の調整 ===== */
 body.horizontal #move-slider,
 body.horizontal #sgf-text {
   width: 100%;
 }
 
-/* 横レイアウト時、UIエリアの幅に応じてボタンの列数を自動調整する */
 body.horizontal #controls,
 body.horizontal #sgf-controls {
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+}
+
+/* ===== レスポンシブ対応 ===== */
+@media (max-width: 480px) {
+  .ctrl-btn {
+    font-size: 14px;
+  }
 }
 
 /* タッチデバイス向けのスタイル調整 */

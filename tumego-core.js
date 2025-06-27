@@ -31,7 +31,114 @@ const state = {
   numberStartIndex: 0,
   komi: CONFIG.DEFAULT_KOMI,
   handicapStones: 0, // 置石数
-  handicapPositions: [] // 置石位置
+  handicapPositions: [], // 置石位置
+  answerMode: 'black' // 'black' または 'white' - 解答モードの状態
+};
+
+// === 操作履歴管理 ===
+const operationHistory = {
+  snapshots: [], // 最大5つの操作履歴
+  maxSnapshots: 5,
+  
+  // 現在の状態をスナップショットとして保存
+  save(description) {
+    const snapshot = {
+      timestamp: new Date(),
+      description: description,
+      state: {
+        boardSize: state.boardSize,
+        board: cloneBoard(state.board),
+        mode: state.mode,
+        sgfMoves: [...state.sgfMoves],
+        sgfIndex: state.sgfIndex,
+        numberStartIndex: state.numberStartIndex,
+        handicapStones: state.handicapStones,
+        handicapPositions: [...state.handicapPositions],
+        komi: state.komi,
+        startColor: state.startColor,
+        numberMode: state.numberMode,
+        answerMode: state.answerMode,
+        turn: state.turn
+      }
+    };
+    
+    this.snapshots.unshift(snapshot);
+    if (this.snapshots.length > this.maxSnapshots) {
+      this.snapshots.pop();
+    }
+    
+    console.log(`操作履歴保存: ${description}`, this.snapshots.length);
+  },
+  
+  // 指定のスナップショットに復元
+  restore(index) {
+    if (index < 0 || index >= this.snapshots.length) return false;
+    
+    const snapshot = this.snapshots[index];
+    const savedState = snapshot.state;
+    
+    // 状態を復元
+    state.boardSize = savedState.boardSize;
+    state.board = cloneBoard(savedState.board);
+    state.mode = savedState.mode;
+    state.sgfMoves = [...savedState.sgfMoves];
+    state.sgfIndex = savedState.sgfIndex;
+    state.numberStartIndex = savedState.numberStartIndex;
+    state.handicapStones = savedState.handicapStones;
+    state.handicapPositions = [...savedState.handicapPositions];
+    state.komi = savedState.komi;
+    state.startColor = savedState.startColor;
+    state.numberMode = savedState.numberMode;
+    state.answerMode = savedState.answerMode;
+    state.turn = savedState.turn;
+    
+    // 復元後の処理
+    render();
+    updateInfo();
+    updateSlider();
+    updateBoardSize();
+    
+    // SGFテキストエリアの更新
+    const sgfTextEl = getDOMElement('sgf-text');
+    if (sgfTextEl) {
+      sgfTextEl.value = exportSGF();
+    }
+    
+    // ボタン状態の更新
+    const sizeBtn = document.querySelector(`.size-btn[data-size="${state.boardSize}"]`);
+    if (sizeBtn) setActive(sizeBtn, 'size-btn');
+    
+    // 解答ボタンの状態更新
+    const answerBtn = getDOMElement('btn-answer');
+    if (answerBtn) {
+      if (state.answerMode === 'white') {
+        answerBtn.textContent = '⚪ 白先';
+        answerBtn.classList.add('white-mode');
+      } else {
+        answerBtn.textContent = '🔥 黒先';
+        answerBtn.classList.remove('white-mode');
+      }
+    }
+    
+    console.log(`履歴復元: ${snapshot.description}`);
+    msg(`履歴復元: ${snapshot.description}`);
+    return true;
+  },
+  
+  // 履歴一覧を取得
+  getList() {
+    return this.snapshots.map((snapshot, index) => ({
+      index: index,
+      description: snapshot.description,
+      timestamp: snapshot.timestamp,
+      timeString: snapshot.timestamp.toLocaleTimeString()
+    }));
+  },
+  
+  // 履歴をクリア
+  clear() {
+    this.snapshots = [];
+  }
 };
 
 // DOM要素の参照（初期化時に設定）
@@ -162,6 +269,11 @@ function tryMove(col, row, color, record = true) {
 
 // === 盤を初期化 ===
 function initBoard(size) {
+  // 既存の状態に意味のあるデータがある場合は履歴保存
+  if (state.sgfMoves.length > 0 || state.handicapStones > 0) {
+    operationHistory.save(`${state.boardSize}路盤（${state.sgfMoves.length}手）`);
+  }
+  
   state.boardSize = size;
   state.board = Array.from({ length: size }, () => Array(size).fill(0));
   state.history = [];

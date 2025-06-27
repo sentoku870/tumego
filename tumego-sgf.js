@@ -1,6 +1,12 @@
 // === SGF 読み込み・エクスポート ===
 function parseSGF(text) {
   console.log('SGF解析開始:', text);
+  
+  // SGF読み込み前に現在の状態を履歴保存
+  if (state.sgfMoves.length > 0 || state.handicapStones > 0 || state.board.some(row => row.some(cell => cell !== 0))) {
+    operationHistory.save(`SGF読み込み前（${state.sgfMoves.length}手）`);
+  }
+  
   const moves = [];
   
   // 盤サイズ
