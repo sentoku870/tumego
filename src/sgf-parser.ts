@@ -146,30 +146,10 @@ export class SGFParser {
     return sgf;
   }
 
-  // ============ SGFデータ圧縮 ============
-  compress(sgfData: string): string {
-    try {
-      let compressed = sgfData
-        .replace(/\s+/g, ' ')           // 複数の空白を1つに
-        .replace(/\s*;\s*/g, ';')       // セミコロン周りの空白削除
-        .replace(/\s*\[\s*/g, '[')      // 括弧周りの空白削除
-        .replace(/\s*\]\s*/g, ']')
-        .replace(/\s*\(\s*/g, '(')      // 丸括弧周りの空白削除
-        .replace(/\s*\)\s*/g, ')')
-        .trim();
-
-      console.log(`圧縮前: ${sgfData.length}文字 → 圧縮後: ${compressed.length}文字`);
-      return compressed;
-    } catch (error) {
-      console.error('圧縮エラー:', error);
-      return sgfData;
-    }
-  }
-
   // ============ URL共有用エンコード ============
   encodeForURL(sgfData: string): string {
     try {
-      return btoa(sgfData);
+      return encodeURIComponent(btoa(sgfData));
     } catch (error) {
       console.error('URL エンコードエラー:', error);
       return '';
@@ -179,7 +159,7 @@ export class SGFParser {
   // ============ URL共有用デコード ============
   decodeFromURL(encodedData: string): string {
     try {
-      return atob(encodedData);
+      return atob(decodeURIComponent(encodedData));
     } catch (error) {
       console.error('URL デコードエラー:', error);
       return '';

@@ -1,13 +1,12 @@
 // ============ メインゲームエンジン ============
-import { 
-  GameState, 
-  Position, 
-  StoneColor, 
-  CellState, 
-  Move, 
-  GroupInfo, 
+import {
+  GameState,
+  Position,
+  StoneColor,
+  CellState,
+  Move,
+  GroupInfo,
   DEFAULT_CONFIG,
-  OperationHistory,
   HistorySnapshot,
   HistoryItem
 } from './types.js';

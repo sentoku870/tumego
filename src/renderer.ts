@@ -1,5 +1,5 @@
 // ============ 描画エンジン ============
-import { GameState, Position, DEFAULT_CONFIG, UIElements } from './types.js';
+import { GameState, DEFAULT_CONFIG, UIElements } from './types.js';
 
 export class Renderer {
   constructor(

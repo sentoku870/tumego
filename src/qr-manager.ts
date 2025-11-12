@@ -35,11 +35,12 @@ export class QRManager {
         return;
       }
 
-      const compressed = btoa(sgfData);
-      const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-        ? 'https://sentoku870.github.io/tumego/'
-        : window.location.origin + window.location.pathname;
-      const shareURL = baseURL + '?sgf=' + compressed;
+      const shareURL = this.sgfParser.createShareURL(sgfData);
+
+      if (!shareURL || shareURL.endsWith('?sgf=')) {
+        alert('共有用URLの生成に失敗しました。もう一度お試しください。');
+        return;
+      }
 
       if (shareURL.length > 2000) {
         alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用してください。');
@@ -59,14 +60,16 @@ export class QRManager {
       }
 
       const markdownLink = `[${label}](${shareURL})`;
+      const spoilerLine = this.buildSpoilerMoveSequence(state);
+      const clipboardText = spoilerLine ? `${markdownLink}\n${spoilerLine}` : markdownLink;
 
       try {
-        await navigator.clipboard.writeText(markdownLink);
+        await navigator.clipboard.writeText(clipboardText);
       } catch (error) {
-        this.copyToClipboardFallback(markdownLink);
+        this.copyToClipboardFallback(clipboardText);
       }
 
-      alert(`Discord共有用のリンクをコピーしました！\n\n${markdownLink}`);
+      alert(`Discord共有用のリンクをコピーしました！\n\n${clipboardText}`);
     } catch (error) {
       console.error('Discord共有リンク作成エラー:', error);
       alert('エラー: ' + (error as Error).message);
@@ -125,11 +128,13 @@ export class QRManager {
 
   // ============ 自動表示QR作成 ============
   private createAutoLoadQR(sgfData: string): void {
-    const compressed = btoa(sgfData);
-    const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-      ? 'https://sentoku870.github.io/tumego/'
-      : window.location.origin + window.location.pathname;
-    const shareURL = baseURL + '?sgf=' + compressed;
+    const shareURL = this.sgfParser.createShareURL(sgfData);
+
+    if (!shareURL || shareURL.endsWith('?sgf=')) {
+      alert('共有用URLの生成に失敗しました。SGFデータQRを使用してください。');
+      this.createDirectSGFQR(sgfData);
+      return;
+    }
 
     if (shareURL.length > 2000) {
       alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用します。');
@@ -233,5 +238,27 @@ export class QRManager {
     const answer = state.answerMode === 'white' ? '白先' : '黒先';
     const prefix = state.problemDiagramSet ? '問題図' : '詰碁';
     return `${prefix} ${boardSize}路 ${moveCount}手 ${answer}`;
+  }
+
+  private buildSpoilerMoveSequence(state: GameState): string {
+    if (!state.sgfMoves || state.sgfMoves.length === 0) {
+      return '';
+    }
+
+    const maxMoves = 15;
+    const circledNumbers = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫', '⑬', '⑭', '⑮'];
+    const columnLetters = 'ABCDEFGHJKLMNOPQRSTUV'.split('');
+    const boardSize = state.boardSize || (state.board ? state.board.length : 0) || 0;
+
+    const sequence = state.sgfMoves.slice(0, maxMoves).map((move, index) => {
+      const colorSymbol = move.color === 1 ? '■' : '□';
+      const numberSymbol = circledNumbers[index] || String(index + 1);
+      const letter = columnLetters[move.col] || String.fromCharCode(65 + move.col);
+      const rowNumber = boardSize > 0 ? boardSize - move.row : move.row + 1;
+      const sanitizedRow = rowNumber > 0 ? rowNumber : move.row + 1;
+      return `${colorSymbol}${numberSymbol} ${letter}${sanitizedRow}`;
+    });
+
+    return `||${sequence.join(' ')} ||`;
   }
 }
