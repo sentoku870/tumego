@@ -18,7 +18,10 @@ function createInitialState() {
         komi: DEFAULT_CONFIG.DEFAULT_KOMI,
         handicapStones: 0,
         handicapPositions: [],
-        answerMode: 'black'
+        answerMode: 'black',
+        problemDiagramSet: false,
+        problemDiagramBlack: [],
+        problemDiagramWhite: []
     };
 }
 // ============ DOM要素の取得 ============

@@ -36,6 +36,9 @@ export class HistoryManager {
             startColor: savedState.startColor,
             numberMode: savedState.numberMode,
             answerMode: savedState.answerMode,
+            problemDiagramSet: savedState.problemDiagramSet,
+            problemDiagramBlack: [...savedState.problemDiagramBlack],
+            problemDiagramWhite: [...savedState.problemDiagramWhite],
             turn: savedState.turn,
             eraseMode: false // 復元時は消去モードを無効化
         });
@@ -151,7 +154,9 @@ export class HistoryManager {
             board: this.cloneBoard(state.board),
             history: state.history.map(board => this.cloneBoard(board)),
             sgfMoves: [...state.sgfMoves],
-            handicapPositions: [...state.handicapPositions]
+            handicapPositions: [...state.handicapPositions],
+            problemDiagramBlack: [...state.problemDiagramBlack],
+            problemDiagramWhite: [...state.problemDiagramWhite]
         };
     }
     cloneBoard(board) {

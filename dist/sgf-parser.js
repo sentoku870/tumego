@@ -30,11 +30,12 @@ export class SGFParser {
             gameInfo.handicapStones = parseInt(handicapMatch[1], 10);
             console.log('置石数:', gameInfo.handicapStones);
         }
+        const blackSetup = [];
+        const whiteSetup = [];
         // 置石位置（AB: Add Black）の解析
         const addBlackMatches = sgfText.match(/AB(?:\[[a-z]{2}\])+/gi);
         if (addBlackMatches) {
             console.log('置石情報:', addBlackMatches);
-            gameInfo.handicapPositions = [];
             addBlackMatches.forEach(match => {
                 const coordinates = match.match(/\[([a-z]{2})\]/g);
                 if (coordinates) {
@@ -42,16 +43,45 @@ export class SGFParser {
                         const clean = coord.slice(1, -1); // [cc] → cc
                         const col = clean.charCodeAt(0) - 97;
                         const row = clean.charCodeAt(1) - 97;
-                        gameInfo.handicapPositions.push({ col, row });
+                        blackSetup.push({ col, row });
                         console.log('置石位置:', col, row);
                     });
                 }
             });
-            // 置石がある場合は白番から開始
-            if (gameInfo.handicapPositions.length > 0) {
+        }
+        // 白石初期配置（AW: Add White）の解析
+        const addWhiteMatches = sgfText.match(/AW(?:\[[a-z]{2}\])+/gi);
+        if (addWhiteMatches) {
+            console.log('初期白石情報:', addWhiteMatches);
+            addWhiteMatches.forEach(match => {
+                const coordinates = match.match(/\[([a-z]{2})\]/g);
+                if (coordinates) {
+                    coordinates.forEach(coord => {
+                        const clean = coord.slice(1, -1);
+                        const col = clean.charCodeAt(0) - 97;
+                        const row = clean.charCodeAt(1) - 97;
+                        whiteSetup.push({ col, row });
+                        console.log('初期白石位置:', col, row);
+                    });
+                }
+            });
+        }
+        if (blackSetup.length > 0) {
+            if (gameInfo.handicapStones && gameInfo.handicapStones > 0) {
+                gameInfo.handicapPositions = blackSetup;
                 gameInfo.startColor = 2;
                 console.log('白番開始に設定');
             }
+            else {
+                gameInfo.problemDiagramBlack = blackSetup;
+            }
+        }
+        if (whiteSetup.length > 0) {
+            gameInfo.problemDiagramWhite = whiteSetup;
+        }
+        if ((gameInfo.problemDiagramBlack && gameInfo.problemDiagramBlack.length > 0) ||
+            (gameInfo.problemDiagramWhite && gameInfo.problemDiagramWhite.length > 0)) {
+            gameInfo.problemDiagramSet = true;
         }
         // 着手の解析
         const moveMatches = sgfText.matchAll(/;([BW])\[([a-z]{2})\]/g);
@@ -68,15 +98,22 @@ export class SGFParser {
     export(state) {
         let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]KM[${state.komi}]`;
         // 置石がある場合はハンディキャップとして記録
-        if (state.handicapStones > 0) {
+        const treatAsHandicap = state.handicapStones > 0 && !state.problemDiagramSet;
+        if (treatAsHandicap) {
             sgf += `HA[${state.handicapStones}]`;
-            // 置石位置を記録（AB: Add Black）
-            if (state.handicapPositions.length > 0) {
-                const handicapCoords = state.handicapPositions
-                    .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-                    .join('');
-                sgf += `AB${handicapCoords}`;
-            }
+        }
+        const initialBlack = state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions;
+        if (initialBlack.length > 0) {
+            const blackCoords = initialBlack
+                .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+                .join('');
+            sgf += `AB${blackCoords}`;
+        }
+        if (state.problemDiagramSet && state.problemDiagramWhite.length > 0) {
+            const whiteCoords = state.problemDiagramWhite
+                .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+                .join('');
+            sgf += `AW${whiteCoords}`;
         }
         // 着手を記録
         for (const move of state.sgfMoves) {

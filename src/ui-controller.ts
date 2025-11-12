@@ -323,23 +323,23 @@ export class UIController {
     // 解答ボタン
     const answerBtn = document.getElementById('btn-answer');
     answerBtn?.addEventListener('click', () => {
-      // 解答モード開始前に履歴保存
-      if (this.state.sgfMoves.length > 0 || this.state.board.some(row => row.some(cell => cell !== 0))) {
-        const modeText = this.state.answerMode === 'black' ? '白先' : '黒先';
-        this.historyManager.save(`${modeText}解答開始前（${this.state.sgfMoves.length}手）`, this.state);
-      }
-      
-      if (this.state.answerMode === 'black') {
+      this.disableEraseMode();
+
+      if (!this.state.numberMode) {
+        if (this.state.sgfMoves.length > 0 || this.state.board.some(row => row.some(cell => cell !== 0))) {
+          this.historyManager.save(`黒先解答開始前（${this.state.sgfMoves.length}手）`, this.state);
+        }
+        this.state.answerMode = 'black';
+        this.engine.startNumberMode(1);
+      } else if (this.state.answerMode === 'black') {
         this.state.answerMode = 'white';
-        answerBtn.textContent = '⚪ 白先';
-        answerBtn.classList.add('white-mode');
         this.engine.startNumberMode(2);
       } else {
         this.state.answerMode = 'black';
-        answerBtn.textContent = '🔥 黒先';
-        answerBtn.classList.remove('white-mode');
         this.engine.startNumberMode(1);
       }
+
+      this.updateAnswerButtonDisplay();
       this.updateUI();
     });
 
@@ -376,6 +376,32 @@ export class UIController {
           this.renderer.showMessage(`履歴を復元しました`);
         }
       });
+    });
+
+    const problemBtn = document.getElementById('btn-problem');
+    problemBtn?.addEventListener('click', () => {
+      this.disableEraseMode();
+
+      if (!this.state.numberMode) {
+        if (this.state.sgfMoves.length > 0 || this.state.board.some(row => row.some(cell => cell !== 0))) {
+          this.historyManager.save(`問題図確定前（${this.state.sgfMoves.length}手）`, this.state);
+        }
+
+        this.engine.setProblemDiagram();
+        this.state.answerMode = 'black';
+        this.updateAnswerButtonDisplay();
+        this.updateUI();
+        this.renderer.showMessage('問題図を確定しました');
+      } else {
+        if (!this.engine.hasProblemDiagram()) {
+          this.renderer.showMessage('問題図が設定されていません');
+          return;
+        }
+
+        this.engine.restoreProblemDiagram();
+        this.updateUI();
+        this.renderer.showMessage('問題図に戻しました');
+      }
     });
 
     // スライダー
@@ -503,8 +529,10 @@ export class UIController {
     if (this.state.numberMode) {
       this.state.numberMode = false;
       this.state.turn = this.state.sgfIndex;
+      this.state.answerMode = 'black';
+      this.updateAnswerButtonDisplay();
     }
-    
+
     this.setActiveButton(buttonElement, 'play-btn');
     this.updateUI();
   }
@@ -515,6 +543,19 @@ export class UIController {
       const eraseBtn = document.getElementById('btn-erase');
       eraseBtn?.classList.remove('active');
       this.renderer.showMessage('');
+    }
+  }
+
+  private updateAnswerButtonDisplay(): void {
+    const answerBtn = document.getElementById('btn-answer');
+    if (!answerBtn) return;
+
+    if (this.state.answerMode === 'white') {
+      answerBtn.textContent = '⚪ 白先';
+      answerBtn.classList.add('white-mode');
+    } else {
+      answerBtn.textContent = '🔥 黒先';
+      answerBtn.classList.remove('white-mode');
     }
   }
 
@@ -534,9 +575,13 @@ export class UIController {
     if (result.gameInfo.boardSize) {
       this.engine.initBoard(result.gameInfo.boardSize);
     }
-    
+
+    this.state.problemDiagramSet = false;
+    this.state.problemDiagramBlack = [];
+    this.state.problemDiagramWhite = [];
+
     Object.assign(this.state, result.gameInfo);
-    
+
     // 着手を設定
     this.state.sgfMoves = result.moves;
     this.state.sgfIndex = 0;
@@ -552,6 +597,8 @@ export class UIController {
     if (sgfTextarea) {
       sgfTextarea.value = this.sgfParser.export(this.state);
     }
+
+    this.updateAnswerButtonDisplay();
   }
 
   private showHandicapDialog(): void {
@@ -698,7 +745,8 @@ export class UIController {
     
     this.setActiveButton(sizeBtn!, 'size-btn');
     this.setActiveButton(altBtn!, 'play-btn');
-    
+    this.updateAnswerButtonDisplay();
+
     console.log('Tumego UI Controller 初期化完了');
   }
 }

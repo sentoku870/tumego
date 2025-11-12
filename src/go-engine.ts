@@ -118,20 +118,11 @@ export class GoEngine {
 
   setMoveIndex(idx: number): void {
     idx = Math.max(0, Math.min(idx, this.state.sgfMoves.length));
-    
-    // 盤面をリセット
-    this.state.board = Array.from({ length: this.state.boardSize }, () => Array(this.state.boardSize).fill(0));
+
+    // 盤面をリセットして問題図/置石を反映
     this.state.history = [];
     this.state.turn = 0;
-
-    // 置石を配置
-    if (this.state.handicapPositions.length > 0) {
-      this.state.handicapPositions.forEach(pos => {
-        if (this.isValidPosition(pos)) {
-          this.state.board[pos.row][pos.col] = 1; // 黒石
-        }
-      });
-    }
+    this.applyInitialSetup();
 
     // 指定された手数まで着手を再生
     for (let i = 0; i < idx; i++) {
@@ -235,18 +226,9 @@ export class GoEngine {
   }
 
   private rebuildBoardFromMoves(limit: number): void {
-    const size = this.state.boardSize;
-    this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
     this.state.history = [];
     this.state.turn = 0;
-
-    if (this.state.handicapPositions.length > 0) {
-      this.state.handicapPositions.forEach(handicap => {
-        if (this.isValidPosition(handicap)) {
-          this.state.board[handicap.row][handicap.col] = 1;
-        }
-      });
-    }
+    this.applyInitialSetup();
 
     for (let i = 0; i < limit; i++) {
       const move = this.state.sgfMoves[i];
@@ -290,6 +272,9 @@ export class GoEngine {
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     this.state.handicapStones = 0;
     this.state.handicapPositions = [];
+    this.state.problemDiagramSet = false;
+    this.state.problemDiagramBlack = [];
+    this.state.problemDiagramWhite = [];
   }
 
   private hasGameData(): boolean {
@@ -512,7 +497,86 @@ export class GoEngine {
     return false;
   }
 
+  setProblemDiagram(): void {
+    const blackPositions: Position[] = [];
+    const whitePositions: Position[] = [];
+
+    for (let row = 0; row < this.state.boardSize; row++) {
+      for (let col = 0; col < this.state.boardSize; col++) {
+        const cell = this.state.board[row][col];
+        if (cell === 1) {
+          blackPositions.push({ col, row });
+        } else if (cell === 2) {
+          whitePositions.push({ col, row });
+        }
+      }
+    }
+
+    this.state.problemDiagramBlack = blackPositions.map(pos => ({ ...pos }));
+    this.state.problemDiagramWhite = whitePositions.map(pos => ({ ...pos }));
+    this.state.problemDiagramSet = true;
+
+    // 問題図は一般配置として扱うため、置石情報はリセットする
+    this.state.handicapPositions = [];
+    this.state.handicapStones = 0;
+
+    // 解答着手は問題図から開始する
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+    this.state.turn = 0;
+    this.state.numberMode = false;
+    this.state.numberStartIndex = 0;
+    this.state.history = [];
+
+    this.applyInitialSetup();
+  }
+
+  restoreProblemDiagram(): void {
+    if (!this.state.problemDiagramSet) {
+      return;
+    }
+
+    this.state.sgfIndex = 0;
+    this.rebuildBoardFromMoves(0);
+    if (this.state.numberMode) {
+      this.state.turn = 0;
+      this.state.history = [];
+    }
+  }
+
+  hasProblemDiagram(): boolean {
+    return this.state.problemDiagramSet;
+  }
+
   private cloneBoard2D(board: CellState[][]): CellState[][] {
     return board.map(row => row.slice());
+  }
+
+  private applyInitialSetup(): void {
+    const size = this.state.boardSize;
+    const board = Array.from({ length: size }, () => Array(size).fill(0));
+
+    if (this.state.handicapPositions.length > 0) {
+      this.state.handicapPositions.forEach(pos => {
+        if (this.isValidPosition(pos)) {
+          board[pos.row][pos.col] = 1;
+        }
+      });
+    }
+
+    if (this.state.problemDiagramSet) {
+      this.state.problemDiagramBlack.forEach(pos => {
+        if (this.isValidPosition(pos)) {
+          board[pos.row][pos.col] = 1;
+        }
+      });
+      this.state.problemDiagramWhite.forEach(pos => {
+        if (this.isValidPosition(pos)) {
+          board[pos.row][pos.col] = 2;
+        }
+      });
+    }
+
+    this.state.board = board;
   }
 }

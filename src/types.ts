@@ -47,6 +47,9 @@ export interface GameState {
   handicapStones: number;
   handicapPositions: Position[];
   answerMode: AnswerMode;
+  problemDiagramSet: boolean;
+  problemDiagramBlack: Position[];
+  problemDiagramWhite: Position[];
 }
 
 // ============ UI要素 ============
