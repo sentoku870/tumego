@@ -20,6 +20,7 @@ function createInitialState(): GameState {
     komi: DEFAULT_CONFIG.DEFAULT_KOMI,
     handicapStones: 0,
     handicapPositions: [],
+    whiteSetupPositions: [],
     answerMode: 'black'
   };
 }

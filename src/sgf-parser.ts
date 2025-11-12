@@ -20,6 +20,7 @@ export class SGFParser {
     gameInfo.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     gameInfo.handicapStones = 0;
     gameInfo.handicapPositions = [];
+    gameInfo.whiteSetupPositions = [];
     gameInfo.startColor = 1; // デフォルトは黒先
 
     // コミの解析
@@ -41,7 +42,7 @@ export class SGFParser {
     if (addBlackMatches) {
       console.log('置石情報:', addBlackMatches);
       gameInfo.handicapPositions = [];
-      
+
       addBlackMatches.forEach(match => {
         const coordinates = match.match(/\[([a-z]{2})\]/g);
         if (coordinates) {
@@ -62,6 +63,25 @@ export class SGFParser {
       }
     }
 
+    const addWhiteMatches = sgfText.match(/AW(?:\[[a-z]{2}\])+/gi);
+    if (addWhiteMatches) {
+      console.log('白石初期配置情報:', addWhiteMatches);
+      gameInfo.whiteSetupPositions = [];
+
+      addWhiteMatches.forEach(match => {
+        const coordinates = match.match(/\[([a-z]{2})\]/g);
+        if (coordinates) {
+          coordinates.forEach(coord => {
+            const clean = coord.slice(1, -1);
+            const col = clean.charCodeAt(0) - 97;
+            const row = clean.charCodeAt(1) - 97;
+            gameInfo.whiteSetupPositions!.push({ col, row });
+            console.log('白石初期配置:', col, row);
+          });
+        }
+      });
+    }
+
     // 着手の解析
     const moveMatches = sgfText.matchAll(/;([BW])\[([a-z]{2})\]/g);
     for (const match of moveMatches) {
@@ -71,7 +91,7 @@ export class SGFParser {
       moves.push({ col, row, color: color as 1 | 2 });
     }
 
-    console.log('解析完了 - 着手数:', moves.length, '置石数:', gameInfo.handicapPositions?.length || 0);
+    console.log('解析完了 - 着手数:', moves.length, '置石数:', gameInfo.handicapPositions?.length || 0, '白石初期配置数:', gameInfo.whiteSetupPositions?.length || 0);
     return { moves, gameInfo };
   }
 
@@ -82,14 +102,20 @@ export class SGFParser {
     // 置石がある場合はハンディキャップとして記録
     if (state.handicapStones > 0) {
       sgf += `HA[${state.handicapStones}]`;
+    }
 
-      // 置石位置を記録（AB: Add Black）
-      if (state.handicapPositions.length > 0) {
-        const handicapCoords = state.handicapPositions
-          .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-          .join('');
-        sgf += `AB${handicapCoords}`;
-      }
+    if (state.handicapPositions.length > 0) {
+      const handicapCoords = state.handicapPositions
+        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+        .join('');
+      sgf += `AB${handicapCoords}`;
+    }
+
+    if (state.whiteSetupPositions.length > 0) {
+      const whiteCoords = state.whiteSetupPositions
+        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+        .join('');
+      sgf += `AW${whiteCoords}`;
     }
 
     // 着手を記録
@@ -127,7 +153,11 @@ export class SGFParser {
   // ============ URL共有用エンコード ============
   encodeForURL(sgfData: string): string {
     try {
-      return btoa(sgfData);
+      const utf8 = new TextEncoder().encode(sgfData);
+      let binary = '';
+      utf8.forEach(byte => { binary += String.fromCharCode(byte); });
+      const base64 = btoa(binary);
+      return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
     } catch (error) {
       console.error('URL エンコードエラー:', error);
       return '';
@@ -137,7 +167,12 @@ export class SGFParser {
   // ============ URL共有用デコード ============
   decodeFromURL(encodedData: string): string {
     try {
-      return atob(encodedData);
+      const normalized = encodedData.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = normalized.length % 4 === 0 ? '' : '='.repeat(4 - (normalized.length % 4));
+      const base64 = normalized + padding;
+      const binary = atob(base64);
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
     } catch (error) {
       console.error('URL デコードエラー:', error);
       return '';

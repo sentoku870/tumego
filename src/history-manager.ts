@@ -38,6 +38,7 @@ export class HistoryManager {
       numberStartIndex: savedState.numberStartIndex,
       handicapStones: savedState.handicapStones,
       handicapPositions: [...savedState.handicapPositions],
+      whiteSetupPositions: [...savedState.whiteSetupPositions],
       komi: savedState.komi,
       startColor: savedState.startColor,
       numberMode: savedState.numberMode,
@@ -171,7 +172,8 @@ export class HistoryManager {
       board: this.cloneBoard(state.board),
       history: state.history.map(board => this.cloneBoard(board)),
       sgfMoves: [...state.sgfMoves],
-      handicapPositions: [...state.handicapPositions]
+      handicapPositions: [...state.handicapPositions],
+      whiteSetupPositions: [...state.whiteSetupPositions]
     };
   }
 

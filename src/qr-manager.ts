@@ -78,7 +78,13 @@ export class QRManager {
 
   // ============ 自動表示QR作成 ============
   private createAutoLoadQR(sgfData: string): void {
-    const compressed = btoa(sgfData);
+    const compressed = this.sgfParser.encodeForURL(sgfData);
+
+    if (!compressed) {
+      alert('SGFデータのエンコードに失敗しました。');
+      return;
+    }
+
     const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
       ? 'https://sentoku870.github.io/tumego/'
       : window.location.origin + window.location.pathname;

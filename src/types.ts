@@ -46,6 +46,7 @@ export interface GameState {
   komi: number;
   handicapStones: number;
   handicapPositions: Position[];
+  whiteSetupPositions: Position[];
   answerMode: AnswerMode;
 }
 

@@ -58,6 +58,13 @@ export class GoEngine {
                 }
             });
         }
+        if (this.state.whiteSetupPositions.length > 0) {
+            this.state.whiteSetupPositions.forEach(pos => {
+                if (this.isValidPosition(pos)) {
+                    this.state.board[pos.row][pos.col] = 2; // 白石
+                }
+            });
+        }
         // 指定された手数まで着手を再生
         for (let i = 0; i < idx; i++) {
             const move = this.state.sgfMoves[i];
@@ -162,10 +169,12 @@ export class GoEngine {
         this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         this.state.handicapStones = 0;
         this.state.handicapPositions = [];
+        this.state.whiteSetupPositions = [];
     }
     hasGameData() {
         return this.state.sgfMoves.length > 0 ||
             this.state.handicapStones > 0 ||
+            this.state.whiteSetupPositions.length > 0 ||
             this.state.board.some(row => row.some(cell => cell !== 0));
     }
     saveToHistory(description) {
@@ -187,6 +196,7 @@ export class GoEngine {
             this.initBoard(this.state.boardSize);
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
+            this.state.whiteSetupPositions = [];
             this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI; // 6.5目
             this.state.startColor = 1; // 黒先
             return;
@@ -196,6 +206,7 @@ export class GoEngine {
             this.initBoard(this.state.boardSize);
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
+            this.state.whiteSetupPositions = [];
             this.state.komi = 0; // コミなし
             this.state.startColor = 1; // 黒先
             return;
@@ -213,6 +224,7 @@ export class GoEngine {
         });
         this.state.handicapStones = stones;
         this.state.handicapPositions = handicapPositions;
+        this.state.whiteSetupPositions = [];
         this.state.komi = 0; // 置石局はコミ0目
         this.state.startColor = 2; // 白番から開始
         this.state.turn = 0;
@@ -363,9 +375,29 @@ export class GoEngine {
         }
         else if (this.state.turn > 0) {
             this.state.turn = Math.max(0, this.state.turn - 1);
+            this.state.sgfIndex = Math.max(0, this.state.sgfIndex - 1);
+            this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
             if (this.state.history[this.state.turn]) {
                 this.state.board = this.cloneBoard2D(this.state.history[this.state.turn]);
             }
+            else {
+                this.state.board = Array.from({ length: this.state.boardSize }, () => Array(this.state.boardSize).fill(0));
+                if (this.state.handicapPositions.length > 0) {
+                    this.state.handicapPositions.forEach(pos => {
+                        if (this.isValidPosition(pos)) {
+                            this.state.board[pos.row][pos.col] = 1;
+                        }
+                    });
+                }
+                if (this.state.whiteSetupPositions.length > 0) {
+                    this.state.whiteSetupPositions.forEach(pos => {
+                        if (this.isValidPosition(pos)) {
+                            this.state.board[pos.row][pos.col] = 2;
+                        }
+                    });
+                }
+            }
+            this.state.history = this.state.history.slice(0, this.state.turn + 1);
             return true;
         }
         return false;
