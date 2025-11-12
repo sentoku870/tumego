@@ -20,6 +20,7 @@ export class SGFParser {
     gameInfo.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     gameInfo.handicapStones = 0;
     gameInfo.handicapPositions = [];
+    gameInfo.whiteSetupPositions = [];
     gameInfo.startColor = 1; // デフォルトは黒先
 
     // コミの解析
@@ -62,6 +63,25 @@ export class SGFParser {
       }
     }
 
+    const addWhiteMatches = sgfText.match(/AW(?:\[[a-z]{2}\])+/gi);
+    if (addWhiteMatches) {
+      console.log('白石初期配置情報:', addWhiteMatches);
+      gameInfo.whiteSetupPositions = [];
+
+      addWhiteMatches.forEach(match => {
+        const coordinates = match.match(/\[([a-z]{2})\]/g);
+        if (coordinates) {
+          coordinates.forEach(coord => {
+            const clean = coord.slice(1, -1);
+            const col = clean.charCodeAt(0) - 97;
+            const row = clean.charCodeAt(1) - 97;
+            gameInfo.whiteSetupPositions!.push({ col, row });
+            console.log('白石初期位置:', col, row);
+          });
+        }
+      });
+    }
+
     // 着手の解析
     const moveMatches = sgfText.matchAll(/;([BW])\[([a-z]{2})\]/g);
     for (const match of moveMatches) {
@@ -90,6 +110,13 @@ export class SGFParser {
           .join('');
         sgf += `AB${handicapCoords}`;
       }
+    }
+
+    if (state.whiteSetupPositions.length > 0) {
+      const whiteCoords = state.whiteSetupPositions
+        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+        .join('');
+      sgf += `AW${whiteCoords}`;
     }
 
     // 着手を記録
@@ -127,7 +154,8 @@ export class SGFParser {
   // ============ URL共有用エンコード ============
   encodeForURL(sgfData: string): string {
     try {
-      return btoa(sgfData);
+      const base64 = this.toBase64(sgfData);
+      return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/u, '');
     } catch (error) {
       console.error('URL エンコードエラー:', error);
       return '';
@@ -137,11 +165,35 @@ export class SGFParser {
   // ============ URL共有用デコード ============
   decodeFromURL(encodedData: string): string {
     try {
-      return atob(encodedData);
+      let base64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = base64.length % 4;
+      if (padding) {
+        base64 += '='.repeat(4 - padding);
+      }
+      return this.fromBase64(base64);
     } catch (error) {
       console.error('URL デコードエラー:', error);
       return '';
     }
+  }
+
+  private toBase64(text: string): string {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(text);
+    let binary = '';
+    bytes.forEach(byte => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  }
+
+  private fromBase64(encoded: string): string {
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
   }
 
   // ============ ファイル読み込み ============
@@ -245,11 +297,14 @@ export class SGFParser {
   // ============ URL共有機能 ============
   createShareURL(sgfData: string, baseURL?: string): string {
     const compressed = this.encodeForURL(sgfData);
-    const base = baseURL || 
+    if (!compressed) {
+      return '';
+    }
+    const base = baseURL ||
                  (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
                    ? 'https://sentoku870.github.io/tumego/'
                    : window.location.origin + window.location.pathname);
-    
+
     return base + '?sgf=' + compressed;
   }
 

@@ -58,6 +58,13 @@ export class GoEngine {
                 }
             });
         }
+        if (this.state.whiteSetupPositions.length > 0) {
+            this.state.whiteSetupPositions.forEach(pos => {
+                if (this.isValidPosition(pos)) {
+                    this.state.board[pos.row][pos.col] = 2; // 白石
+                }
+            });
+        }
         // 指定された手数まで着手を再生
         for (let i = 0; i < idx; i++) {
             const move = this.state.sgfMoves[i];
@@ -162,11 +169,13 @@ export class GoEngine {
         this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         this.state.handicapStones = 0;
         this.state.handicapPositions = [];
+        this.state.whiteSetupPositions = [];
     }
     hasGameData() {
         return this.state.sgfMoves.length > 0 ||
             this.state.handicapStones > 0 ||
-            this.state.board.some(row => row.some(cell => cell !== 0));
+            this.state.board.some(row => row.some(cell => cell !== 0)) ||
+            this.state.whiteSetupPositions.length > 0;
     }
     saveToHistory(description) {
         // 履歴管理機能
@@ -187,6 +196,7 @@ export class GoEngine {
             this.initBoard(this.state.boardSize);
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
+            this.state.whiteSetupPositions = [];
             this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI; // 6.5目
             this.state.startColor = 1; // 黒先
             return;
@@ -196,6 +206,7 @@ export class GoEngine {
             this.initBoard(this.state.boardSize);
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
+            this.state.whiteSetupPositions = [];
             this.state.komi = 0; // コミなし
             this.state.startColor = 1; // 黒先
             return;
@@ -213,6 +224,7 @@ export class GoEngine {
         });
         this.state.handicapStones = stones;
         this.state.handicapPositions = handicapPositions;
+        this.state.whiteSetupPositions = [];
         this.state.komi = 0; // 置石局はコミ0目
         this.state.startColor = 2; // 白番から開始
         this.state.turn = 0;
@@ -361,11 +373,20 @@ export class GoEngine {
             this.setMoveIndex(this.state.sgfIndex);
             return true;
         }
-        else if (this.state.turn > 0) {
-            this.state.turn = Math.max(0, this.state.turn - 1);
-            if (this.state.history[this.state.turn]) {
-                this.state.board = this.cloneBoard2D(this.state.history[this.state.turn]);
+        if (this.state.history.length > this.state.sgfIndex) {
+            const previous = this.state.history.pop();
+            if (previous) {
+                this.state.board = this.cloneBoard2D(previous);
             }
+            this.state.turn = this.state.sgfIndex;
+            return true;
+        }
+        if (this.state.sgfIndex > 0) {
+            const newIndex = this.state.sgfIndex - 1;
+            this.state.sgfMoves = this.state.sgfMoves.slice(0, newIndex);
+            this.state.sgfIndex = newIndex;
+            this.state.numberStartIndex = Math.min(this.state.numberStartIndex, newIndex);
+            this.setMoveIndex(newIndex);
             return true;
         }
         return false;

@@ -78,11 +78,12 @@ export class QRManager {
 
   // ============ 自動表示QR作成 ============
   private createAutoLoadQR(sgfData: string): void {
-    const compressed = btoa(sgfData);
-    const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-      ? 'https://sentoku870.github.io/tumego/'
-      : window.location.origin + window.location.pathname;
-    const shareURL = baseURL + '?sgf=' + compressed;
+    const shareURL = this.sgfParser.createShareURL(sgfData);
+
+    if (!shareURL) {
+      alert('URLを生成できませんでした。SGFデータQRコードを使用してください。');
+      return;
+    }
 
     if (shareURL.length > 2000) {
       alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用します。');

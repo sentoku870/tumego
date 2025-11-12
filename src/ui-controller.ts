@@ -538,10 +538,7 @@ export class UIController {
     this.state.sgfIndex = 0;
     this.engine.setMoveIndex(0);
     
-    // 置石がある場合は盤面を再描画
-    if (this.state.handicapPositions.length > 0) {
-      this.updateUI();
-    }
+    this.updateUI();
     
     // SGFテキストエリアの更新
     const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
