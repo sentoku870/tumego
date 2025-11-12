@@ -519,6 +519,12 @@ export class UIController {
       document.getElementById('file-dropdown')?.classList.remove('show');
       this.qrManager.createSGFQRCode(this.state);
     });
+
+    const fileDiscordBtn = document.getElementById('btn-file-discord');
+    fileDiscordBtn?.addEventListener('click', () => {
+      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.qrManager.createDiscordShareLink(this.state);
+    });
   }
 
   // ============ ヘルパーメソッド ============

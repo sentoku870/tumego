@@ -26,6 +26,53 @@ export class QRManager {
     }
   }
 
+  async createDiscordShareLink(state: GameState): Promise<void> {
+    try {
+      const sgfData = this.sgfParser.export(state);
+
+      if (!sgfData || sgfData.trim() === '' || sgfData === '(;GM[1]FF[4]SZ[9])') {
+        alert('SGFデータがありません。まず石を配置してください。');
+        return;
+      }
+
+      const compressed = btoa(sgfData);
+      const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+        ? 'https://sentoku870.github.io/tumego/'
+        : window.location.origin + window.location.pathname;
+      const shareURL = baseURL + '?sgf=' + compressed;
+
+      if (shareURL.length > 2000) {
+        alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用してください。');
+        return;
+      }
+
+      const defaultLabel = this.buildDefaultDiscordLabel(state);
+      const labelInput = prompt('Discordに表示する文字列を入力してください', defaultLabel);
+      if (labelInput === null) {
+        return;
+      }
+
+      const label = labelInput.trim();
+      if (!label) {
+        alert('共有テキストが空です。もう一度入力してください。');
+        return;
+      }
+
+      const markdownLink = `[${label}](${shareURL})`;
+
+      try {
+        await navigator.clipboard.writeText(markdownLink);
+      } catch (error) {
+        this.copyToClipboardFallback(markdownLink);
+      }
+
+      alert(`Discord共有用のリンクをコピーしました！\n\n${markdownLink}`);
+    } catch (error) {
+      console.error('Discord共有リンク作成エラー:', error);
+      alert('エラー: ' + (error as Error).message);
+    }
+  }
+
   // ============ 共有方法選択 ============
   private showShareMethodSelection(sgfData: string): void {
     const existing = document.getElementById('share-method-popup');
@@ -169,5 +216,22 @@ export class QRManager {
     });
 
     document.body.appendChild(popup);
+  }
+
+  private copyToClipboardFallback(text: string): void {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  }
+
+  private buildDefaultDiscordLabel(state: GameState): string {
+    const moveCount = state.sgfMoves ? state.sgfMoves.length : 0;
+    const boardSize = state.boardSize || 9;
+    const answer = state.answerMode === 'white' ? '白先' : '黒先';
+    const prefix = state.problemDiagramSet ? '問題図' : '詰碁';
+    return `${prefix} ${boardSize}路 ${moveCount}手 ${answer}`;
   }
 }

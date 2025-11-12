@@ -467,6 +467,12 @@ export class UIController {
             (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
             this.qrManager.createSGFQRCode(this.state);
         });
+        const fileDiscordBtn = document.getElementById('btn-file-discord');
+        fileDiscordBtn === null || fileDiscordBtn === void 0 ? void 0 : fileDiscordBtn.addEventListener('click', () => {
+            var _a;
+            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.qrManager.createDiscordShareLink(this.state);
+        });
     }
     // ============ ヘルパーメソッド ============
     setMode(mode, buttonElement) {
