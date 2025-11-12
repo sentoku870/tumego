@@ -148,7 +148,11 @@ export class UIController {
         if (!this.isValidPosition(pos))
             return;
         if (this.state.eraseMode) {
-            this.handleErase(pos);
+            const erased = this.handleErase(pos);
+            if (!erased) {
+                this.disableEraseMode();
+                this.handlePlaceStone(pos);
+            }
         }
         else {
             this.handlePlaceStone(pos);
@@ -161,11 +165,11 @@ export class UIController {
         }
     }
     handleErase(pos) {
-        if (this.state.board[pos.row][pos.col] !== 0) {
-            this.state.history.push(this.state.board.map(row => row.slice()));
-            this.state.board[pos.row][pos.col] = 0;
+        if (this.engine.removeStoneAt(pos)) {
             this.updateUI();
+            return true;
         }
+        return false;
     }
     // ============ 座標変換 ============
     getPositionFromEvent(event) {

@@ -34,6 +34,45 @@ export class GoEngine {
         this.applyMove(newBoard, pos, color, record);
         return true;
     }
+    removeStoneAt(pos) {
+        if (!this.isValidPosition(pos)) {
+            return false;
+        }
+        const currentStone = this.state.board[pos.row][pos.col];
+        if (currentStone === 0) {
+            return false;
+        }
+        // 置石の削除に対応
+        const handicapIndex = this.state.handicapPositions.findIndex(handicap => handicap.col === pos.col && handicap.row === pos.row);
+        if (handicapIndex !== -1) {
+            this.state.handicapPositions.splice(handicapIndex, 1);
+            this.state.handicapStones = this.state.handicapPositions.length;
+            this.rebuildBoardFromMoves(this.state.sgfIndex);
+            return true;
+        }
+        const removeIndex = this.findLastMoveIndex(pos, currentStone);
+        if (removeIndex === -1) {
+            this.state.board[pos.row][pos.col] = 0;
+            return true;
+        }
+        const updatedMoves = [...this.state.sgfMoves];
+        updatedMoves.splice(removeIndex, 1);
+        if (this.state.numberMode && removeIndex < this.state.numberStartIndex) {
+            this.state.numberStartIndex = Math.max(0, this.state.numberStartIndex - 1);
+        }
+        this.state.sgfMoves = updatedMoves;
+        if (this.state.numberMode) {
+            this.state.numberStartIndex = Math.min(this.state.numberStartIndex, this.state.sgfMoves.length);
+        }
+        if (this.state.sgfIndex > removeIndex) {
+            this.state.sgfIndex = Math.max(removeIndex, this.state.sgfIndex - 1);
+        }
+        else if (this.state.sgfIndex > this.state.sgfMoves.length) {
+            this.state.sgfIndex = this.state.sgfMoves.length;
+        }
+        this.rebuildBoardFromMoves(this.state.sgfIndex);
+        return true;
+    }
     // ============ 盤面管理 ============
     initBoard(size) {
         // 履歴保存（既存データがある場合）
@@ -141,6 +180,35 @@ export class GoEngine {
         stones.forEach(stone => {
             board[stone.row][stone.col] = 0;
         });
+    }
+    rebuildBoardFromMoves(limit) {
+        const size = this.state.boardSize;
+        this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
+        this.state.history = [];
+        this.state.turn = 0;
+        if (this.state.handicapPositions.length > 0) {
+            this.state.handicapPositions.forEach(handicap => {
+                if (this.isValidPosition(handicap)) {
+                    this.state.board[handicap.row][handicap.col] = 1;
+                }
+            });
+        }
+        for (let i = 0; i < limit; i++) {
+            const move = this.state.sgfMoves[i];
+            this.tryMove(move, move.color, false);
+        }
+        if (this.state.numberMode) {
+            this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
+        }
+    }
+    findLastMoveIndex(pos, color) {
+        for (let i = this.state.sgfMoves.length - 1; i >= 0; i--) {
+            const move = this.state.sgfMoves[i];
+            if (move.col === pos.col && move.row === pos.row && move.color === color) {
+                return i;
+            }
+        }
+        return -1;
     }
     applyMove(newBoard, pos, color, record) {
         this.state.history.push(this.cloneBoard());
