@@ -90,6 +90,11 @@ export class UIController {
         if (e.button === 2)
             e.preventDefault();
         if (this.state.eraseMode) {
+            //　右クリックで消去モード終了
+            if (e.button === 2) {
+                this.disableEraseMode();
+                return;
+            }
             this.dragState.dragColor = null;
         }
         else if (this.state.mode === 'alt') {
@@ -148,11 +153,7 @@ export class UIController {
         if (!this.isValidPosition(pos))
             return;
         if (this.state.eraseMode) {
-            const erased = this.handleErase(pos);
-            if (!erased) {
-                this.disableEraseMode();
-                this.handlePlaceStone(pos);
-            }
+            this.handleErase(pos);
         }
         else {
             this.handlePlaceStone(pos);
