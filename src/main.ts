@@ -31,19 +31,21 @@ function createInitialState(): GameState {
 function getUIElements(): UIElements {
   const svg = document.getElementById('goban') as unknown as SVGSVGElement;
   const boardWrapper = document.getElementById('board-wrapper') as HTMLElement;
+  const boardCanvas = document.getElementById('boardCanvas') as HTMLCanvasElement;
   const infoEl = document.getElementById('info') as HTMLElement;
   const sliderEl = document.getElementById('move-slider') as HTMLInputElement;
   const movesEl = document.getElementById('moves') as HTMLElement;
   const msgEl = document.getElementById('msg') as HTMLElement;
 
   // 必須要素の存在確認
-  if (!svg || !boardWrapper) {
-    throw new Error('必要なDOM要素が見つかりません (svg, boardWrapper)');
+  if (!svg || !boardWrapper || !boardCanvas) {
+    throw new Error('必要なDOM要素が見つかりません (svg, boardWrapper, boardCanvas)');
   }
 
   return {
     svg,
     boardWrapper,
+    boardCanvas,
     infoEl,
     sliderEl,
     movesEl,

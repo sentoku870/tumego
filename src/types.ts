@@ -56,6 +56,7 @@ export interface GameState {
 export interface UIElements {
   svg: SVGSVGElement;
   boardWrapper: HTMLElement;
+  boardCanvas: HTMLCanvasElement;
   infoEl: HTMLElement;
   sliderEl: HTMLInputElement;
   movesEl: HTMLElement;

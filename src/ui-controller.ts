@@ -418,6 +418,11 @@ export class UIController {
       }
     });
 
+    const boardSaveBtn = document.getElementById('btn-save-board');
+    boardSaveBtn?.addEventListener('click', () => {
+      void this.handleBoardSave();
+    });
+
     // 履歴ボタン
     const historyBtn = document.getElementById('btn-history');
     historyBtn?.addEventListener('click', () => {
@@ -642,6 +647,119 @@ export class UIController {
     }
 
     return sequence.length ? sequence.join(' ') : null;
+  }
+
+  private async handleBoardSave(): Promise<void> {
+    const canvas = this.elements.boardCanvas;
+    if (!canvas) {
+      this.renderer.showMessage('盤面画像用キャンバスが見つかりません');
+      return;
+    }
+
+    try {
+      const { blob, dataUrl } = await this.renderBoardToCanvas(canvas);
+
+      if (this.isIPhoneSafari()) {
+        window.open(dataUrl, '_blank');
+        this.renderer.showMessage('画像を新しいタブで開きました。長押ししてコピーしてください');
+        return;
+      }
+
+      if (this.canUseClipboardImage()) {
+        try {
+          const ClipboardItemCtor = (window as any).ClipboardItem;
+          const item = new ClipboardItemCtor({ [blob.type]: blob });
+          await navigator.clipboard.write([item]);
+          this.renderer.showMessage('盤面画像をコピーしました');
+        } catch (error) {
+          console.error('クリップボードへの画像コピーに失敗しました', error);
+          window.open(dataUrl, '_blank');
+          this.renderer.showMessage('クリップボードにコピーできませんでした。新しいタブで開きました');
+        }
+      } else {
+        window.open(dataUrl, '_blank');
+        this.renderer.showMessage('クリップボードにコピーできませんでした。新しいタブで開きました');
+      }
+    } catch (error) {
+      console.error('盤面画像の保存に失敗しました', error);
+      this.renderer.showMessage('盤面画像の生成に失敗しました');
+    }
+  }
+
+  private renderBoardToCanvas(canvas: HTMLCanvasElement): Promise<{ blob: Blob; dataUrl: string }> {
+    const svgElement = this.elements.svg;
+    const viewBox = svgElement.viewBox.baseVal;
+    const defaultSize = DEFAULT_CONFIG.CELL_SIZE * (this.state.boardSize - 1) + DEFAULT_CONFIG.MARGIN * 2;
+    const width = Math.max(1, Math.round(viewBox?.width || defaultSize));
+    const height = Math.max(1, Math.round(viewBox?.height || defaultSize));
+    const background = getComputedStyle(this.elements.boardWrapper).backgroundColor || '#f4d27a';
+
+    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+    const existingStyle = clonedSvg.getAttribute('style');
+    const styleValue = existingStyle ? `${existingStyle};background:${background}` : `background:${background}`;
+    clonedSvg.setAttribute('style', styleValue);
+    clonedSvg.setAttribute('width', width.toString());
+    clonedSvg.setAttribute('height', height.toString());
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    const serializer = new XMLSerializer();
+    const svgData = serializer.serializeToString(clonedSvg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas 2Dコンテキストを取得できませんでした'));
+          return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = background;
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/png');
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('PNGの生成に失敗しました'));
+            return;
+          }
+          resolve({ blob, dataUrl });
+        }, 'image/png');
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('SVG画像の読み込みに失敗しました'));
+      };
+
+      img.src = url;
+    });
+  }
+
+  private canUseClipboardImage(): boolean {
+    return typeof navigator !== 'undefined' &&
+      !!navigator.clipboard &&
+      typeof navigator.clipboard.write === 'function' &&
+      typeof (window as any).ClipboardItem !== 'undefined';
+  }
+
+  private isIPhoneSafari(): boolean {
+    if (typeof navigator === 'undefined') {
+      return false;
+    }
+
+    const ua = navigator.userAgent || '';
+    const isIPhone = /iPhone/.test(ua);
+    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+    return isIPhone && isSafari;
   }
 
   private updateAnswerButtonDisplay(): void {

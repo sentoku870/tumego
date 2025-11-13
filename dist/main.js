@@ -28,17 +28,19 @@ function createInitialState() {
 function getUIElements() {
     const svg = document.getElementById('goban');
     const boardWrapper = document.getElementById('board-wrapper');
+    const boardCanvas = document.getElementById('boardCanvas');
     const infoEl = document.getElementById('info');
     const sliderEl = document.getElementById('move-slider');
     const movesEl = document.getElementById('moves');
     const msgEl = document.getElementById('msg');
     // 必須要素の存在確認
-    if (!svg || !boardWrapper) {
-        throw new Error('必要なDOM要素が見つかりません (svg, boardWrapper)');
+    if (!svg || !boardWrapper || !boardCanvas) {
+        throw new Error('必要なDOM要素が見つかりません (svg, boardWrapper, boardCanvas)');
     }
     return {
         svg,
         boardWrapper,
+        boardCanvas,
         infoEl,
         sliderEl,
         movesEl,
