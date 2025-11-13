@@ -16,6 +16,7 @@ export class UIController {
         };
         this.boardHasFocus = false;
         this.touchStartY = 0;
+        this.activeDropdown = null;
         this.engine = new GoEngine(state);
         this.renderer = new Renderer(state, elements);
         this.sgfParser = new SGFParser();
@@ -311,13 +312,21 @@ export class UIController {
             featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
         }
         featureBtn === null || featureBtn === void 0 ? void 0 : featureBtn.addEventListener('click', (e) => {
-            var _a;
             e.stopPropagation();
-            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.toggle('show');
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            const fileDropdown = document.getElementById('file-dropdown');
+            const isOpen = featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.contains('show');
+            this.hideDropdown(fileDropdown);
+            if (featureDropdown && featureBtn) {
+                if (isOpen) {
+                    this.hideDropdown(featureDropdown);
+                }
+                else {
+                    this.openDropdown(featureBtn, featureDropdown);
+                }
+            }
         });
         document.addEventListener('click', () => {
-            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+            this.hideDropdown(featureDropdown);
         });
         featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -326,15 +335,15 @@ export class UIController {
             isHorizontal = !isHorizontal;
             document.body.classList.toggle('horizontal', isHorizontal);
             featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+            this.hideDropdown(featureDropdown);
             this.renderer.updateBoardSize();
         });
         featureRotateBtn === null || featureRotateBtn === void 0 ? void 0 : featureRotateBtn.addEventListener('click', () => {
             this.rotateBoardView();
-            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+            this.hideDropdown(featureDropdown);
         });
         featureHandicapBtn === null || featureHandicapBtn === void 0 ? void 0 : featureHandicapBtn.addEventListener('click', () => {
-            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+            this.hideDropdown(featureDropdown);
             this.showHandicapDialog();
         });
         const answerStepsBtn = document.getElementById('btn-answer-steps');
@@ -402,13 +411,21 @@ export class UIController {
         const fileBtn = document.getElementById('btn-file');
         const fileDropdown = document.getElementById('file-dropdown');
         fileBtn === null || fileBtn === void 0 ? void 0 : fileBtn.addEventListener('click', (e) => {
-            var _a;
             e.stopPropagation();
-            fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.toggle('show');
-            (_a = document.getElementById('feature-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            const featureDropdown = document.getElementById('feature-dropdown');
+            const isOpen = fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.contains('show');
+            this.hideDropdown(featureDropdown);
+            if (fileDropdown && fileBtn) {
+                if (isOpen) {
+                    this.hideDropdown(fileDropdown);
+                }
+                else {
+                    this.openDropdown(fileBtn, fileDropdown);
+                }
+            }
         });
         document.addEventListener('click', () => {
-            fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.remove('show');
+            this.hideDropdown(fileDropdown);
         });
         fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -420,10 +437,10 @@ export class UIController {
         // SGFファイル選択
         const sgfInput = document.getElementById('sgf-input');
         const fileSelectBtn = document.getElementById('btn-file-select');
+        const fileDropdown = document.getElementById('file-dropdown');
         fileSelectBtn === null || fileSelectBtn === void 0 ? void 0 : fileSelectBtn.addEventListener('click', () => {
-            var _a;
             sgfInput === null || sgfInput === void 0 ? void 0 : sgfInput.click();
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
         });
         sgfInput === null || sgfInput === void 0 ? void 0 : sgfInput.addEventListener('change', async (e) => {
             var _a;
@@ -443,8 +460,7 @@ export class UIController {
         // SGF読み込み（クリップボード）
         const fileLoadBtn = document.getElementById('btn-file-load');
         fileLoadBtn === null || fileLoadBtn === void 0 ? void 0 : fileLoadBtn.addEventListener('click', async () => {
-            var _a;
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
             try {
                 const result = await this.sgfParser.loadFromClipboard();
                 this.applySGFResult(result);
@@ -471,8 +487,7 @@ export class UIController {
         // SGFコピー
         const fileCopyBtn = document.getElementById('btn-file-copy');
         fileCopyBtn === null || fileCopyBtn === void 0 ? void 0 : fileCopyBtn.addEventListener('click', async () => {
-            var _a;
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
             const sgfData = this.sgfParser.export(this.state);
             const sgfTextarea = document.getElementById('sgf-text');
             if (sgfTextarea)
@@ -488,8 +503,7 @@ export class UIController {
         // SGF保存
         const fileSaveBtn = document.getElementById('btn-file-save');
         fileSaveBtn === null || fileSaveBtn === void 0 ? void 0 : fileSaveBtn.addEventListener('click', async () => {
-            var _a;
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
             const sgfData = this.sgfParser.export(this.state);
             try {
                 await this.sgfParser.saveToFile(sgfData);
@@ -502,14 +516,12 @@ export class UIController {
         // QR共有ボタン
         const fileQRBtn = document.getElementById('btn-file-qr');
         fileQRBtn === null || fileQRBtn === void 0 ? void 0 : fileQRBtn.addEventListener('click', () => {
-            var _a;
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
             this.qrManager.createSGFQRCode(this.state);
         });
         const fileDiscordBtn = document.getElementById('btn-file-discord');
         fileDiscordBtn === null || fileDiscordBtn === void 0 ? void 0 : fileDiscordBtn.addEventListener('click', () => {
-            var _a;
-            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+            this.hideDropdown(fileDropdown);
             this.qrManager.createDiscordShareLink(this.state);
         });
     }
@@ -663,15 +675,91 @@ export class UIController {
         const button = document.querySelector(selector);
         button === null || button === void 0 ? void 0 : button.click();
     }
+    openDropdown(trigger, dropdown) {
+        dropdown.classList.add('show');
+        dropdown.style.visibility = 'hidden';
+        this.positionDropdown(trigger, dropdown);
+        dropdown.style.visibility = '';
+        this.activeDropdown = { trigger, dropdown };
+    }
+    hideDropdown(dropdown) {
+        var _a;
+        if (!dropdown)
+            return;
+        dropdown.classList.remove('show');
+        dropdown.style.removeProperty('left');
+        dropdown.style.removeProperty('top');
+        dropdown.style.removeProperty('right');
+        dropdown.style.removeProperty('bottom');
+        dropdown.style.removeProperty('position');
+        dropdown.style.removeProperty('visibility');
+        dropdown.style.removeProperty('width');
+        if (((_a = this.activeDropdown) === null || _a === void 0 ? void 0 : _a.dropdown) === dropdown) {
+            this.activeDropdown = null;
+        }
+    }
+    positionDropdown(trigger, dropdown) {
+        const margin = 8;
+        const triggerRect = trigger.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.left = '0px';
+        dropdown.style.top = '0px';
+        dropdown.style.right = '';
+        dropdown.style.bottom = '';
+        let dropdownRect = dropdown.getBoundingClientRect();
+        const availableWidth = Math.max(window.innerWidth - margin * 2, 0);
+        if (dropdownRect.width > availableWidth && availableWidth > 0) {
+            dropdown.style.width = `${availableWidth}px`;
+            dropdownRect = dropdown.getBoundingClientRect();
+        }
+        else {
+            dropdown.style.removeProperty('width');
+        }
+        const dropdownHeight = dropdownRect.height;
+        const dropdownWidth = dropdownRect.width;
+        let left = triggerRect.left;
+        const maxLeft = window.innerWidth - dropdownWidth - margin;
+        if (maxLeft < margin) {
+            left = margin;
+        }
+        else {
+            left = Math.min(Math.max(left, margin), maxLeft);
+        }
+        let top = triggerRect.bottom + margin;
+        const maxTop = window.innerHeight - dropdownHeight - margin;
+        if (maxTop < margin) {
+            top = margin;
+        }
+        else if (top > maxTop) {
+            const alternateTop = triggerRect.top - margin - dropdownHeight;
+            top = Math.max(alternateTop, margin);
+        }
+        dropdown.style.left = `${left}px`;
+        dropdown.style.top = `${top}px`;
+    }
+    repositionActiveDropdown() {
+        if (!this.activeDropdown)
+            return;
+        const { trigger, dropdown } = this.activeDropdown;
+        if (!dropdown.classList.contains('show')) {
+            this.activeDropdown = null;
+            return;
+        }
+        dropdown.style.visibility = 'hidden';
+        this.positionDropdown(trigger, dropdown);
+        dropdown.style.visibility = '';
+    }
     // ============ リサイズ対応 ============
     initResizeEvents() {
         window.addEventListener('orientationchange', () => {
             this.renderer.updateBoardSize();
             setTimeout(() => this.renderer.render(), 200);
+            this.repositionActiveDropdown();
         });
         window.addEventListener('resize', () => {
             this.renderer.updateBoardSize();
             setTimeout(() => this.renderer.render(), 200);
+            this.repositionActiveDropdown();
         });
     }
     // ============ 盤面回転機能 ============

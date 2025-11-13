@@ -222,9 +222,8 @@ body:not(.horizontal) .msg {
   z-index: 1000;
   border-radius: 8px;
   overflow: hidden;
-  bottom: 0%;
-  right: 0%;
-  margin-top: 4px;
+  top: calc(100% + 4px);
+  left: 0;
 }
 
 .menu-dropdown.show {

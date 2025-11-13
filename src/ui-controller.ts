@@ -19,6 +19,7 @@ export class UIController {
   };
   private boardHasFocus = false;
   private touchStartY = 0;
+  private activeDropdown: { trigger: HTMLElement; dropdown: HTMLElement } | null = null;
 
   constructor(
     private state: GameState,
@@ -345,8 +346,8 @@ export class UIController {
     });
 
     // 機能メニュー
-    const featureBtn = document.getElementById('btn-feature');
-    const featureDropdown = document.getElementById('feature-dropdown');
+    const featureBtn = document.getElementById('btn-feature') as HTMLButtonElement | null;
+    const featureDropdown = document.getElementById('feature-dropdown') as HTMLElement | null;
     const featureLayoutBtn = document.getElementById('btn-feature-layout');
     const featureRotateBtn = document.getElementById('btn-feature-rotate');
     const featureHandicapBtn = document.getElementById('btn-feature-handicap');
@@ -358,12 +359,20 @@ export class UIController {
 
     featureBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      featureDropdown?.classList.toggle('show');
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      const fileDropdown = document.getElementById('file-dropdown') as HTMLElement | null;
+      const isOpen = featureDropdown?.classList.contains('show');
+      this.hideDropdown(fileDropdown);
+      if (featureDropdown && featureBtn) {
+        if (isOpen) {
+          this.hideDropdown(featureDropdown);
+        } else {
+          this.openDropdown(featureBtn, featureDropdown);
+        }
+      }
     });
 
     document.addEventListener('click', () => {
-      featureDropdown?.classList.remove('show');
+      this.hideDropdown(featureDropdown);
     });
 
     featureDropdown?.addEventListener('click', (e) => {
@@ -374,17 +383,17 @@ export class UIController {
       isHorizontal = !isHorizontal;
       document.body.classList.toggle('horizontal', isHorizontal);
       featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-      featureDropdown?.classList.remove('show');
+      this.hideDropdown(featureDropdown);
       this.renderer.updateBoardSize();
     });
 
     featureRotateBtn?.addEventListener('click', () => {
       this.rotateBoardView();
-      featureDropdown?.classList.remove('show');
+      this.hideDropdown(featureDropdown);
     });
 
     featureHandicapBtn?.addEventListener('click', () => {
-      featureDropdown?.classList.remove('show');
+      this.hideDropdown(featureDropdown);
       this.showHandicapDialog();
     });
 
@@ -456,17 +465,25 @@ export class UIController {
 
   private initFileButtons(): void {
     // ファイルメニュー
-    const fileBtn = document.getElementById('btn-file');
-    const fileDropdown = document.getElementById('file-dropdown');
-    
+    const fileBtn = document.getElementById('btn-file') as HTMLButtonElement | null;
+    const fileDropdown = document.getElementById('file-dropdown') as HTMLElement | null;
+
     fileBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
-      fileDropdown?.classList.toggle('show');
-      document.getElementById('feature-dropdown')?.classList.remove('show');
+      const featureDropdown = document.getElementById('feature-dropdown') as HTMLElement | null;
+      const isOpen = fileDropdown?.classList.contains('show');
+      this.hideDropdown(featureDropdown);
+      if (fileDropdown && fileBtn) {
+        if (isOpen) {
+          this.hideDropdown(fileDropdown);
+        } else {
+          this.openDropdown(fileBtn, fileDropdown);
+        }
+      }
     });
 
     document.addEventListener('click', () => {
-      fileDropdown?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
     });
 
     fileDropdown?.addEventListener('click', (e) => {
@@ -481,10 +498,11 @@ export class UIController {
     // SGFファイル選択
     const sgfInput = document.getElementById('sgf-input') as HTMLInputElement;
     const fileSelectBtn = document.getElementById('btn-file-select');
-    
+    const fileDropdown = document.getElementById('file-dropdown') as HTMLElement | null;
+
     fileSelectBtn?.addEventListener('click', () => {
       sgfInput?.click();
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
     });
 
     sgfInput?.addEventListener('change', async (e) => {
@@ -504,7 +522,7 @@ export class UIController {
     // SGF読み込み（クリップボード）
     const fileLoadBtn = document.getElementById('btn-file-load');
     fileLoadBtn?.addEventListener('click', async () => {
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
       try {
         const result = await this.sgfParser.loadFromClipboard();
         this.applySGFResult(result);
@@ -529,7 +547,7 @@ export class UIController {
     // SGFコピー
     const fileCopyBtn = document.getElementById('btn-file-copy');
     fileCopyBtn?.addEventListener('click', async () => {
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
       const sgfData = this.sgfParser.export(this.state);
       const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
       if (sgfTextarea) sgfTextarea.value = sgfData;
@@ -545,7 +563,7 @@ export class UIController {
     // SGF保存
     const fileSaveBtn = document.getElementById('btn-file-save');
     fileSaveBtn?.addEventListener('click', async () => {
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
       const sgfData = this.sgfParser.export(this.state);
       
       try {
@@ -559,13 +577,13 @@ export class UIController {
     // QR共有ボタン
     const fileQRBtn = document.getElementById('btn-file-qr');
     fileQRBtn?.addEventListener('click', () => {
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
       this.qrManager.createSGFQRCode(this.state);
     });
 
     const fileDiscordBtn = document.getElementById('btn-file-discord');
     fileDiscordBtn?.addEventListener('click', () => {
-      document.getElementById('file-dropdown')?.classList.remove('show');
+      this.hideDropdown(fileDropdown);
       this.qrManager.createDiscordShareLink(this.state);
     });
   }
@@ -745,16 +763,99 @@ export class UIController {
     button?.click();
   }
 
+  private openDropdown(trigger: HTMLElement, dropdown: HTMLElement): void {
+    dropdown.classList.add('show');
+    dropdown.style.visibility = 'hidden';
+    this.positionDropdown(trigger, dropdown);
+    dropdown.style.visibility = '';
+    this.activeDropdown = { trigger, dropdown };
+  }
+
+  private hideDropdown(dropdown: HTMLElement | null | undefined): void {
+    if (!dropdown) return;
+    dropdown.classList.remove('show');
+    dropdown.style.removeProperty('left');
+    dropdown.style.removeProperty('top');
+    dropdown.style.removeProperty('right');
+    dropdown.style.removeProperty('bottom');
+    dropdown.style.removeProperty('position');
+    dropdown.style.removeProperty('visibility');
+    dropdown.style.removeProperty('width');
+
+    if (this.activeDropdown?.dropdown === dropdown) {
+      this.activeDropdown = null;
+    }
+  }
+
+  private positionDropdown(trigger: HTMLElement, dropdown: HTMLElement): void {
+    const margin = 8;
+    const triggerRect = trigger.getBoundingClientRect();
+
+    dropdown.style.position = 'fixed';
+    dropdown.style.left = '0px';
+    dropdown.style.top = '0px';
+    dropdown.style.right = '';
+    dropdown.style.bottom = '';
+
+    let dropdownRect = dropdown.getBoundingClientRect();
+    const availableWidth = Math.max(window.innerWidth - margin * 2, 0);
+
+    if (dropdownRect.width > availableWidth && availableWidth > 0) {
+      dropdown.style.width = `${availableWidth}px`;
+      dropdownRect = dropdown.getBoundingClientRect();
+    } else {
+      dropdown.style.removeProperty('width');
+    }
+
+    const dropdownHeight = dropdownRect.height;
+    const dropdownWidth = dropdownRect.width;
+
+    let left = triggerRect.left;
+    const maxLeft = window.innerWidth - dropdownWidth - margin;
+    if (maxLeft < margin) {
+      left = margin;
+    } else {
+      left = Math.min(Math.max(left, margin), maxLeft);
+    }
+
+    let top = triggerRect.bottom + margin;
+    const maxTop = window.innerHeight - dropdownHeight - margin;
+    if (maxTop < margin) {
+      top = margin;
+    } else if (top > maxTop) {
+      const alternateTop = triggerRect.top - margin - dropdownHeight;
+      top = Math.max(alternateTop, margin);
+    }
+
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${top}px`;
+  }
+
+  private repositionActiveDropdown(): void {
+    if (!this.activeDropdown) return;
+    const { trigger, dropdown } = this.activeDropdown;
+    if (!dropdown.classList.contains('show')) {
+      this.activeDropdown = null;
+      return;
+    }
+
+    dropdown.style.visibility = 'hidden';
+    this.positionDropdown(trigger, dropdown);
+    dropdown.style.visibility = '';
+  }
+
   // ============ リサイズ対応 ============
   private initResizeEvents(): void {
     window.addEventListener('orientationchange', () => {
       this.renderer.updateBoardSize();
       setTimeout(() => this.renderer.render(), 200);
+      this.repositionActiveDropdown();
     });
 
     window.addEventListener('resize', () => {
       this.renderer.updateBoardSize();
       setTimeout(() => this.renderer.render(), 200);
+      this.repositionActiveDropdown();
     });
   }
 

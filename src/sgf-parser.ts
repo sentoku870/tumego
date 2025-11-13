@@ -228,12 +228,49 @@ export class SGFParser {
   }
 
   async copyToClipboard(sgfData: string): Promise<void> {
+    const canUseClipboardApi = typeof navigator !== 'undefined' &&
+                               navigator.clipboard &&
+                               typeof navigator.clipboard.writeText === 'function';
+
+    if (canUseClipboardApi) {
+      try {
+        await navigator.clipboard.writeText(sgfData);
+        console.log('SGF をクリップボードにコピーしました');
+        return;
+      } catch (error) {
+        console.warn('クリップボードAPIでのコピーに失敗。フォールバックを試みます:', error);
+      }
+    }
+
+    if (this.copyToClipboardFallback(sgfData)) {
+      console.log('フォールバックでクリップボードにコピーしました');
+      return;
+    }
+
+    throw new Error('クリップボードにコピーできませんでした');
+  }
+
+  private copyToClipboardFallback(text: string): boolean {
     try {
-      await navigator.clipboard.writeText(sgfData);
-      console.log('SGF をクリップボードにコピーしました');
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.setAttribute('readonly', '');
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, text.length);
+
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful;
     } catch (error) {
-      console.error('クリップボードコピー失敗:', error);
-      throw error;
+      console.error('フォールバックコピーに失敗:', error);
+      return false;
     }
   }
 
