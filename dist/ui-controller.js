@@ -558,21 +558,32 @@ export class UIController {
         }
     }
     async handleBoardSave() {
+        var _a;
         const svgElement = this.elements.svg;
         if (!svgElement) {
             throw new Error('SVG要素が見つかりません');
         }
-        const pngBlob = await this.convertSvgToPng(svgElement);
+        const canvasElement = this.getBoardCaptureCanvas();
+        const pngBlob = await this.convertSvgToPng(svgElement, canvasElement);
+        const clipboardWritable = typeof ((_a = navigator.clipboard) === null || _a === void 0 ? void 0 : _a.write) === 'function';
+        const clipboardItemCtor = window.ClipboardItem;
+        if (clipboardWritable && clipboardItemCtor) {
+            try {
+                const item = new clipboardItemCtor({ 'image/png': pngBlob });
+                await navigator.clipboard.write([item]);
+                this.renderer.showMessage('コピーしました');
+                return;
+            }
+            catch (error) {
+                console.error('クリップボードへの書き込みに失敗しました', error);
+                alert('クリップボードにコピーできなかったため画像を表示します');
+            }
+        }
         const dataUrl = await this.blobToDataUrl(pngBlob);
         if (!dataUrl) {
             throw new Error('PNGの生成に失敗しました');
         }
-        const previewImage = document.getElementById('board-image-preview');
-        if (!previewImage) {
-            throw new Error('盤面プレビュー用の画像要素が見つかりません');
-        }
-        previewImage.src = dataUrl;
-        previewImage.style.display = 'block';
+        this.showBoardPreviewModal(dataUrl);
     }
     async blobToDataUrl(blob) {
         return new Promise((resolve) => {
@@ -587,7 +598,67 @@ export class UIController {
             reader.readAsDataURL(blob);
         });
     }
-    async convertSvgToPng(svgElement) {
+    getBoardCaptureCanvas() {
+        let canvas = document.getElementById('goban-canvas');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'goban-canvas';
+            canvas.style.display = 'none';
+            document.body.appendChild(canvas);
+        }
+        return canvas;
+    }
+    showBoardPreviewModal(imageUrl) {
+        const existingOverlay = document.getElementById('board-preview-overlay');
+        existingOverlay === null || existingOverlay === void 0 ? void 0 : existingOverlay.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'board-preview-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '1000';
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+        container.style.backgroundColor = '#ffffff';
+        container.style.padding = '16px';
+        container.style.borderRadius = '12px';
+        container.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.25)';
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '閉じる';
+        closeButton.style.position = 'absolute';
+        closeButton.style.top = '8px';
+        closeButton.style.right = '8px';
+        closeButton.style.padding = '6px 12px';
+        closeButton.style.backgroundColor = '#333';
+        closeButton.style.color = '#fff';
+        closeButton.style.border = 'none';
+        closeButton.style.borderRadius = '4px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.addEventListener('click', () => {
+            overlay.remove();
+        });
+        const image = document.createElement('img');
+        image.id = 'board-preview';
+        image.src = imageUrl;
+        image.alt = '盤面プレビュー';
+        image.style.display = 'block';
+        image.style.maxWidth = '90vw';
+        image.style.maxHeight = '80vh';
+        image.style.borderRadius = '8px';
+        container.appendChild(closeButton);
+        container.appendChild(image);
+        overlay.appendChild(container);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                overlay.remove();
+            }
+        });
+        document.body.appendChild(overlay);
+    }
+    async convertSvgToPng(svgElement, canvas) {
         const inlineSvg = svgElement.cloneNode(true);
         const rootStyle = getComputedStyle(document.documentElement);
         const { width, height } = this.getSvgRenderSize(svgElement);
@@ -618,7 +689,6 @@ export class UIController {
             const revokeUrl = () => URL.revokeObjectURL(url);
             image.onload = () => {
                 try {
-                    const canvas = document.createElement('canvas');
                     canvas.width = width;
                     canvas.height = height;
                     const context = canvas.getContext('2d');
@@ -628,6 +698,7 @@ export class UIController {
                         return;
                     }
                     const boardColor = rootStyle.getPropertyValue('--board').trim() || '#ffffff';
+                    context.clearRect(0, 0, width, height);
                     context.fillStyle = boardColor;
                     context.fillRect(0, 0, width, height);
                     context.drawImage(image, 0, 0, width, height);
