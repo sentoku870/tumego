@@ -1,6 +1,7 @@
 // ============ メインエントリーポイント ============
 import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
+import { copyOrShareBoardCanvas } from './share-board.js';
 
 // ============ グローバル状態初期化 ============
 function createInitialState(): GameState {
@@ -69,9 +70,16 @@ function initializeApp(): void {
     
     // 初期化完了
     uiController.initialize();
-    
+
+    const saveBoardButton = document.getElementById('btn-save-board');
+    if (saveBoardButton) {
+      saveBoardButton.onclick = () => {
+        void copyOrShareBoardCanvas();
+      };
+    }
+
     console.log('Tumego TypeScript版 初期化完了！');
-    
+
   } catch (error) {
     console.error('初期化エラー:', error);
     alert('アプリケーションの初期化に失敗しました: ' + (error as Error).message);
