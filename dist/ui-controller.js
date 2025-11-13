@@ -584,7 +584,14 @@ export class UIController {
                 textarea.focus();
                 textarea.select();
                 textarea.setSelectionRange(0, spoilerText.length);
-                const success = document.execCommand('copy');
+                let success = false;
+                try {
+                    success = document.execCommand('copy');
+                }
+                catch (error) {
+                    console.error(error);
+                    success = false;
+                }
                 document.body.removeChild(textarea);
                 if (!success) {
                     throw new Error('Copy command failed');
@@ -598,21 +605,27 @@ export class UIController {
         }
     }
     async copyBoardImage() {
-        var _a;
+        var _a, _b;
         const svgElement = this.elements.svg;
         if (!svgElement)
             return;
         const viewBox = (_a = svgElement.getAttribute('viewBox')) === null || _a === void 0 ? void 0 : _a.split(' ').map(Number);
-        let width = Math.ceil(svgElement.clientWidth);
-        let height = Math.ceil(svgElement.clientHeight);
+        const rect = svgElement.getBoundingClientRect();
+        let width = Math.ceil(rect.width || svgElement.clientWidth);
+        let height = Math.ceil(rect.height || svgElement.clientHeight);
         if (viewBox && viewBox.length === 4) {
             width = Math.ceil(viewBox[2]);
             height = Math.ceil(viewBox[3]);
+        }
+        if (!width || !height) {
+            width = 600;
+            height = 600;
         }
         const clonedSvg = svgElement.cloneNode(true);
         clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         clonedSvg.setAttribute('width', width.toString());
         clonedSvg.setAttribute('height', height.toString());
+        this.embedSvgStyles(clonedSvg);
         const serializer = new XMLSerializer();
         const svgData = serializer.serializeToString(clonedSvg);
         const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -620,11 +633,15 @@ export class UIController {
         try {
             const image = await this.loadImage(url);
             const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
+            const ratio = window.devicePixelRatio || 1;
+            canvas.width = Math.round(width * ratio);
+            canvas.height = Math.round(height * ratio);
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
             const ctx = canvas.getContext('2d');
             if (!ctx)
                 throw new Error('Canvas context is unavailable');
+            ctx.scale(ratio, ratio);
             const boardStyle = getComputedStyle(this.elements.boardWrapper);
             const background = boardStyle.backgroundColor || '#f1d49c';
             ctx.fillStyle = background;
@@ -634,9 +651,13 @@ export class UIController {
             if (!pngBlob)
                 throw new Error('Failed to generate image blob');
             const ClipboardItemCtor = window.ClipboardItem;
-            if (!this.isIOS() && navigator.clipboard && 'write' in navigator.clipboard && ClipboardItemCtor) {
+            if (!this.isIOS() && navigator.clipboard && typeof navigator.clipboard.write === 'function' && ClipboardItemCtor) {
                 const clipboardItem = new ClipboardItemCtor({ 'image/png': pngBlob });
                 await navigator.clipboard.write([clipboardItem]);
+                this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
+            }
+            else if (!this.isIOS() && ((_b = document.queryCommandSupported) === null || _b === void 0 ? void 0 : _b.call(document, 'copy'))) {
+                await this.copyImageWithExecCommand(canvas);
                 this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
             }
             else if (this.isIOS() && navigator.share && typeof navigator.canShare === 'function') {
@@ -649,14 +670,7 @@ export class UIController {
                 throw new Error('Share API is not available');
             }
             else {
-                const dataUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = dataUrl;
-                link.download = 'goban.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                this.renderer.showMessage('碁盤画像をダウンロードしました');
+                throw new Error('Clipboard API is not available');
             }
         }
         catch (error) {
@@ -666,6 +680,98 @@ export class UIController {
         finally {
             URL.revokeObjectURL(url);
         }
+    }
+    embedSvgStyles(targetSvg) {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const boardStyle = getComputedStyle(this.elements.boardWrapper);
+        const boardColor = (boardStyle.backgroundColor || rootStyle.getPropertyValue('--board') || '#f1d49c').trim();
+        const replacements = {
+            '--line': (rootStyle.getPropertyValue('--line') || '#000').trim(),
+            '--coord': (rootStyle.getPropertyValue('--coord') || '#333').trim(),
+            '--star': (rootStyle.getPropertyValue('--star') || '#000').trim(),
+            '--board': boardColor,
+            '--black': (rootStyle.getPropertyValue('--black') || '#000').trim(),
+            '--white': (rootStyle.getPropertyValue('--white') || '#fff').trim()
+        };
+        targetSvg.querySelectorAll('*').forEach((element) => {
+            Array.from(element.attributes).forEach((attr) => {
+                if (attr.value.includes('var(')) {
+                    element.setAttribute(attr.name, this.resolveCSSVariables(attr.value, replacements));
+                }
+            });
+        });
+        const fontFamily = (rootStyle.getPropertyValue('font-family') || 'system-ui, sans-serif').trim();
+        targetSvg.querySelectorAll('text.coord').forEach((text) => {
+            text.setAttribute('fill', replacements['--coord']);
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-family', fontFamily);
+        });
+        targetSvg.querySelectorAll('text.move-num').forEach((text) => {
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('stroke', boardColor);
+            text.setAttribute('stroke-width', '3');
+            text.setAttribute('paint-order', 'stroke fill');
+            text.setAttribute('font-family', fontFamily);
+        });
+        targetSvg.querySelectorAll('circle.star').forEach((circle) => {
+            circle.setAttribute('fill', replacements['--star']);
+        });
+        targetSvg.querySelectorAll('circle.stone').forEach((circle) => {
+            const fill = circle.getAttribute('fill');
+            if (fill) {
+                circle.setAttribute('fill', this.resolveCSSVariables(fill, replacements));
+            }
+        });
+        const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+        styleElement.textContent = `svg { background: ${boardColor}; }`;
+        targetSvg.insertBefore(styleElement, targetSvg.firstChild);
+    }
+    resolveCSSVariables(value, replacements) {
+        return value.replace(/var\((--[^)]+)\)/g, (_, name) => { var _a; return (_a = replacements[name.trim()]) !== null && _a !== void 0 ? _a : value; });
+    }
+    copyImageWithExecCommand(canvas) {
+        return new Promise((resolve, reject) => {
+            const dataUrl = canvas.toDataURL('image/png');
+            const img = new Image();
+            img.onload = () => {
+                const container = document.createElement('div');
+                container.contentEditable = 'true';
+                container.style.position = 'fixed';
+                container.style.pointerEvents = 'none';
+                container.style.opacity = '0';
+                container.style.top = '0';
+                container.style.left = '0';
+                container.appendChild(img);
+                document.body.appendChild(container);
+                const range = document.createRange();
+                range.selectNodeContents(container);
+                const selection = window.getSelection();
+                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
+                selection === null || selection === void 0 ? void 0 : selection.addRange(range);
+                let success = false;
+                try {
+                    success = document.execCommand('copy');
+                }
+                catch (error) {
+                    console.error(error);
+                    success = false;
+                }
+                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
+                document.body.removeChild(container);
+                if (success) {
+                    resolve();
+                }
+                else {
+                    reject(new Error('Copy command failed'));
+                }
+            };
+            img.onerror = () => reject(new Error('画像の準備に失敗しました'));
+            img.src = dataUrl;
+        });
     }
     loadImage(src) {
         return new Promise((resolve, reject) => {
