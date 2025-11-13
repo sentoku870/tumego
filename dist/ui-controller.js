@@ -605,7 +605,7 @@ export class UIController {
         }
     }
     async copyBoardImage() {
-        var _a, _b;
+        var _a;
         const svgElement = this.elements.svg;
         if (!svgElement)
             return;
@@ -650,28 +650,14 @@ export class UIController {
             const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
             if (!pngBlob)
                 throw new Error('Failed to generate image blob');
+            const clipboard = navigator.clipboard;
             const ClipboardItemCtor = window.ClipboardItem;
-            if (!this.isIOS() && navigator.clipboard && typeof navigator.clipboard.write === 'function' && ClipboardItemCtor) {
-                const clipboardItem = new ClipboardItemCtor({ 'image/png': pngBlob });
-                await navigator.clipboard.write([clipboardItem]);
-                this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
-            }
-            else if (!this.isIOS() && ((_b = document.queryCommandSupported) === null || _b === void 0 ? void 0 : _b.call(document, 'copy'))) {
-                await this.copyImageWithExecCommand(canvas);
-                this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
-            }
-            else if (this.isIOS() && navigator.share && typeof navigator.canShare === 'function') {
-                const file = new File([pngBlob], 'goban.png', { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: '碁盤画像' });
-                    this.renderer.showMessage('共有メニューを開きました');
-                    return;
-                }
-                throw new Error('Share API is not available');
-            }
-            else {
+            if (!clipboard || typeof clipboard.write !== 'function' || !ClipboardItemCtor) {
                 throw new Error('Clipboard API is not available');
             }
+            const clipboardItem = new ClipboardItemCtor({ 'image/png': pngBlob });
+            await clipboard.write([clipboardItem]);
+            this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
         }
         catch (error) {
             console.error(error);
@@ -732,46 +718,6 @@ export class UIController {
     }
     resolveCSSVariables(value, replacements) {
         return value.replace(/var\((--[^)]+)\)/g, (_, name) => { var _a; return (_a = replacements[name.trim()]) !== null && _a !== void 0 ? _a : value; });
-    }
-    copyImageWithExecCommand(canvas) {
-        return new Promise((resolve, reject) => {
-            const dataUrl = canvas.toDataURL('image/png');
-            const img = new Image();
-            img.onload = () => {
-                const container = document.createElement('div');
-                container.contentEditable = 'true';
-                container.style.position = 'fixed';
-                container.style.pointerEvents = 'none';
-                container.style.opacity = '0';
-                container.style.top = '0';
-                container.style.left = '0';
-                container.appendChild(img);
-                document.body.appendChild(container);
-                const range = document.createRange();
-                range.selectNodeContents(container);
-                const selection = window.getSelection();
-                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
-                selection === null || selection === void 0 ? void 0 : selection.addRange(range);
-                let success = false;
-                try {
-                    success = document.execCommand('copy');
-                }
-                catch (error) {
-                    console.error(error);
-                    success = false;
-                }
-                selection === null || selection === void 0 ? void 0 : selection.removeAllRanges();
-                document.body.removeChild(container);
-                if (success) {
-                    resolve();
-                }
-                else {
-                    reject(new Error('Copy command failed'));
-                }
-            };
-            img.onerror = () => reject(new Error('画像の準備に失敗しました'));
-            img.src = dataUrl;
-        });
     }
     loadImage(src) {
         return new Promise((resolve, reject) => {
