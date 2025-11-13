@@ -1,0 +1,404 @@
+// ============ ツリー構造ナビゲーター ============
+import { GameState, SGFNode, GameTree, Position } from './types.js';
+
+export interface TreeNode {
+  id: string;
+  nodeId: string;
+  moveNumber: number;
+  move?: {
+    col: number;
+    row: number;
+    color: 1 | 2;
+  };
+  label: string;
+  description: string;
+  isMainLine: boolean;
+  isCurrent: boolean;
+  depth: number;
+  children: TreeNode[];
+  parent?: TreeNode;
+  isExpanded: boolean;
+  hasChildren: boolean;
+}
+
+export class TreeNavigator {
+  constructor(private state: GameState) {}
+
+  // ============ ツリー構造生成 ============
+  generateTree(): TreeNode | null {
+    if (!this.state.gameTree) return null;
+
+    const rootNode = this.state.gameTree.rootNode;
+    const currentNode = this.state.gameTree.currentNode;
+    
+    return this.buildTreeNode(rootNode, null, 0, currentNode);
+  }
+
+  private buildTreeNode(
+    sgfNode: SGFNode, 
+    parent: TreeNode | null, 
+    depth: number, 
+    currentSGFNode: SGFNode
+  ): TreeNode {
+    const moveNumber = this.calculateMoveNumber(sgfNode, parent);
+    const isCurrent = sgfNode === currentSGFNode;
+    
+    const treeNode: TreeNode = {
+      id: `tree_${sgfNode.id}`,
+      nodeId: sgfNode.id,
+      moveNumber,
+      move: sgfNode.move,
+      label: this.generateNodeLabel(sgfNode, moveNumber),
+      description: sgfNode.comment || '',
+      isMainLine: sgfNode.mainLine || false,
+      isCurrent,
+      depth,
+      children: [],
+      parent: parent || undefined,
+      isExpanded: depth < 3 || this.isOnCurrentPath(sgfNode, currentSGFNode), // 最初3階層まで展開
+      hasChildren: sgfNode.children.length > 0
+    };
+
+    // 子ノードを再帰的に構築
+    treeNode.children = sgfNode.children.map(child => 
+      this.buildTreeNode(child, treeNode, depth + 1, currentSGFNode)
+    );
+
+    return treeNode;
+  }
+
+  private calculateMoveNumber(sgfNode: SGFNode, parent: TreeNode | null): number {
+    if (!sgfNode.move) return parent ? parent.moveNumber : 0;
+    return parent ? parent.moveNumber + 1 : 1;
+  }
+
+  private generateNodeLabel(sgfNode: SGFNode, moveNumber: number): string {
+    // このメソッドは元のラベル生成ロジックを維持し、
+    // 丸い手番表示はrenderTreeNodeで行う
+    if (!sgfNode.move) {
+      return sgfNode.label || 'ルート';
+    }
+
+    const letters = 'ABCDEFGHJKLMNOPQRSTUV';
+    const col = letters[sgfNode.move.col] || '?';
+    const row = this.state.boardSize - sgfNode.move.row;
+    // const colorSymbol = sgfNode.move.color === 1 ? '●' : '○'; // ここでは使わない
+
+    let label = `${col}${row}`; // 手数は別途表示するので、ここでは座標のみ
+    
+    if (sgfNode.label) {
+      label += ` (${sgfNode.label})`;
+    }
+    
+    return label;
+  }
+
+  private isOnCurrentPath(sgfNode: SGFNode, currentSGFNode: SGFNode): boolean {
+    let node: SGFNode | undefined = currentSGFNode;
+    while (node) {
+      if (node === sgfNode) return true;
+      node = node.parent;
+    }
+    return false;
+  }
+
+  // ============ HTML生成とDOM更新のためのメソッドを追加 ============
+
+  // ツリーの内容をDOMコンテナにレンダリング
+  public updateTreeContent(container: HTMLElement, treeRoot: TreeNode): void {
+    container.innerHTML = this.generateTreeHTML(treeRoot);
+  }
+
+  // 生成したツリーHTMLにイベントリスナーをアタッチ
+  public attachTreeEventListeners(container: HTMLElement, selectNodeCallback: (nodeId: string) => void): void {
+    // 展開/折りたたみアイコンのイベント
+    container.querySelectorAll('.tree-expand-icon').forEach(icon => {
+      icon.addEventListener('click', (e) => {
+        const nodeId = (e.target as HTMLElement).dataset.nodeId;
+        if (nodeId && this.state.gameTree) {
+          const currentTree = this.generateTree(); // 最新のツリーデータを再生成
+          if (currentTree && this.toggleNode(nodeId.replace('tree_', ''), currentTree)) { // 'tree_' を削除
+            this.updateTreeContent(container, currentTree); // DOMを更新
+            this.attachTreeEventListeners(container, selectNodeCallback); // イベントリスナーを再アタッチ
+            this.scrollToCurrentNode(container); // 現在ノードにスクロール
+          }
+        }
+      });
+    });
+
+    // ノードラベルのクリックイベント (ノード選択)
+    container.querySelectorAll('.tree-node-label, .move-number-circle').forEach(element => { // 丸い数字もクリック対象に
+      element.addEventListener('click', (e) => {
+        const targetNode = e.target as HTMLElement;
+        let nodeId: string | undefined;
+        // 親要素を辿ってdata-node-idを探す
+        let currentElement: HTMLElement | null = targetNode;
+        while (currentElement && !nodeId) {
+          nodeId = currentElement.dataset.nodeId;
+          currentElement = currentElement.parentElement;
+        }
+
+        if (nodeId) {
+          selectNodeCallback(nodeId); // UIControllerのselectNodeByIdを呼び出す
+        }
+      });
+    });
+
+    // 「全て折りたたむ」「全て展開」ボタンのイベント
+    const collapseAllBtn = container.querySelector('#tree-collapse-all');
+    const expandAllBtn = container.querySelector('#tree-expand-all');
+
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener('click', () => {
+            if (this.state.gameTree) {
+                const currentTree = this.generateTree();
+                if (currentTree) {
+                    this.collapseAll(currentTree);
+                    this.updateTreeContent(container, currentTree);
+                    this.attachTreeEventListeners(container, selectNodeCallback);
+                    this.scrollToCurrentNode(container);
+                }
+            }
+        });
+    }
+
+    if (expandAllBtn) {
+        expandAllBtn.addEventListener('click', () => {
+            if (this.state.gameTree) {
+                const currentTree = this.generateTree();
+                if (currentTree) {
+                    this.expandAll(currentTree);
+                    this.updateTreeContent(container, currentTree);
+                    this.attachTreeEventListeners(container, selectNodeCallback);
+                    this.scrollToCurrentNode(container);
+                }
+            }
+        });
+    }
+  }
+
+  // 現在のノードまでツリービューをスクロール
+  public scrollToCurrentNode(container: HTMLElement): void {
+    const currentElement = container.querySelector('.tree-node.current') as HTMLElement;
+    if (currentElement) {
+      currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  // ツリーの内容をクリア
+  public clear(container: HTMLElement): void {
+    container.innerHTML = '<div class="tree-empty">ツリーデータがありません</div>';
+  }
+
+  // ツリー構造全体をHTML文字列として生成
+  public generateTreeHTML(treeNode: TreeNode): string {
+    if (!treeNode) return '<div class="tree-empty">ツリーデータがありません</div>';
+
+    return `
+      <div class="tree-container">
+        <div class="tree-header">
+          <strong>🌳 手順ツリー</strong>
+          <div>
+            <button class="tree-collapse-all" id="tree-collapse-all">全て折りたたむ</button>
+            <button class="tree-expand-all" id="tree-expand-all">全て展開</button>
+          </div>
+        </div>
+        <div class="tree-content">
+          ${this.renderTreeNode(treeNode)}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderTreeNode(node: TreeNode): string {
+    const isCurrentClass = node.isCurrent ? ' current' : '';
+    const isMainLineClass = node.isMainLine ? ' main-line' : '';
+    const hasChildrenClass = node.hasChildren ? ' has-children' : '';
+    const expandedClass = node.isExpanded ? ' expanded' : '';
+    
+    const expandIcon = node.hasChildren ? 
+      (node.isExpanded ? '▼' : '▶') : ' '; // 空白で揃える
+    
+    // 手番を表すクラス
+    const moveColorClass = node.move ? (node.move.color === 1 ? 'black-move-circle' : 'white-move-circle') : '';
+    // ルートノードの最初のアイコン
+    const rootIcon = node.moveNumber === 0 && node.children.length > 0 ? `<span class="tree-expand-icon" data-node-id="${node.nodeId}">+</span>` : '';
+    
+
+    let nodeHTML = `
+      <div class="tree-node${isCurrentClass}${isMainLineClass}${hasChildrenClass}${expandedClass}"
+           data-node-id="${node.nodeId}" 
+           data-depth="${node.depth}"
+           style="--tree-depth: ${node.depth};"> <!-- CSS変数を追加 -->
+        <div class="tree-node-content">
+          ${node.moveNumber === 0 ? rootIcon : ''} <!-- ルートノードのみ+アイコン -->
+    `;
+
+    if (node.moveNumber > 0) { // ルートノード以外で手数を表示
+      nodeHTML += `
+          <div class="move-number-circle ${moveColorClass}${node.isCurrent ? ' current-move-circle' : ''}" data-node-id="${node.nodeId}">
+            ${node.moveNumber}
+          </div>
+      `;
+    } else if (node.moveNumber === 0 && !node.children.length) { // 手数のないルートノードで子ノードがない場合
+      nodeHTML += `<span class="tree-expand-placeholder">●</span>`;
+    }
+
+    if (node.moveNumber > 0) { // ルートノード以外でラベルを表示
+      nodeHTML += `
+          <span class="tree-node-label" data-node-id="${node.nodeId}">
+            ${node.label}
+          </span>
+      `;
+    } else { // ルートノードのラベル
+      nodeHTML += `
+          <span class="tree-node-label root-label" data-node-id="${node.nodeId}">
+            ${node.label}
+          </span>
+      `;
+    }
+
+    if (node.isMainLine && node.moveNumber > 0) {
+      nodeHTML += `<span class="main-line-badge">本譜</span>`;
+    }
+
+    if (node.description) {
+      nodeHTML += `
+        <span class="tree-node-desc">${node.description}</span>
+      `;
+    }
+
+    nodeHTML += `
+        </div>
+      </div>
+    `;
+
+    // 子ノードを展開状態に応じて表示
+    if (node.hasChildren && node.isExpanded) {
+      for (const child of node.children) {
+        nodeHTML += this.renderTreeNode(child);
+      }
+    }
+
+    return nodeHTML;
+  }
+
+  // ============ ツリー操作 ============
+  // ツリーデータを操作するメソッドは、UI表示ロジックからは切り離されている
+  // generateTree()で現在のUIStateに基づいてツリーデータを生成し直す
+  public toggleNode(nodeId: string, treeRoot: TreeNode): boolean {
+    const node = this.findNodeById(treeRoot, nodeId); // treeRootに対して操作
+    if (node && node.hasChildren) {
+      node.isExpanded = !node.isExpanded;
+      return true;
+    }
+    return false;
+  }
+
+  public expandAll(treeRoot: TreeNode): void {
+    this.setAllExpanded(treeRoot, true);
+  }
+
+  public collapseAll(treeRoot: TreeNode): void {
+    this.setAllExpanded(treeRoot, false);
+  }
+
+  private setAllExpanded(node: TreeNode, expanded: boolean): void {
+    if (node.hasChildren) {
+      node.isExpanded = expanded;
+    }
+    
+    for (const child of node.children) {
+      this.setAllExpanded(child, expanded);
+    }
+  }
+
+  private findNodeById(treeNode: TreeNode, nodeId: string): TreeNode | null {
+    if (treeNode.nodeId === nodeId) return treeNode;
+    
+    for (const child of treeNode.children) {
+      const found = this.findNodeById(child, nodeId);
+      if (found) return found;
+    }
+    
+    return null;
+  }
+
+  // ============ 分岐候補手取得 ============
+  getNextMoveCandidates(): Array<{position: Position, branchIndex: number, label: string}> {
+    if (!this.state.gameTree) return [];
+
+    const currentNode = this.state.gameTree.currentNode;
+    const candidates: Array<{position: Position, branchIndex: number, label: string}> = [];
+
+    currentNode.children.forEach((childNode, index) => {
+      if (childNode.move) {
+        const letters = 'ABCDEFGHJKLMNOPQRSTUV';
+        const label = letters[index] || `${index + 1}`;
+        
+        candidates.push({
+          position: { col: childNode.move.col, row: childNode.move.row },
+          branchIndex: index,
+          label
+        });
+      }
+    });
+
+    return candidates;
+  }
+
+  // ============ ノード選択 ============
+  // このメソッドはSGFNodeレベルでゲームツリーの状態を更新する
+  selectNodeById(nodeId: string): boolean {
+    if (!this.state.gameTree) return false;
+
+    const targetNode = this.findSGFNodeById(this.state.gameTree.rootNode, nodeId);
+    if (!targetNode) return false;
+
+    // 現在ノードを更新
+    this.state.gameTree.currentNode = targetNode;
+    
+    // 経路を更新
+    this.updateCurrentPath(targetNode);
+    
+    return true;
+  }
+
+  private findSGFNodeById(node: SGFNode, nodeId: string): SGFNode | null {
+    if (node.id === nodeId) return node;
+    
+    for (const child of node.children) {
+      const found = this.findSGFNodeById(child, nodeId);
+      if (found) return found;
+    }
+    
+    return null;
+  }
+
+  private updateCurrentPath(targetNode: SGFNode): void {
+    if (!this.state.gameTree) return;
+    
+    const path: SGFNode[] = [];
+    let node: SGFNode | undefined = targetNode;
+    
+    while (node) {
+      path.unshift(node);
+      node = node.parent;
+    }
+    
+    this.state.gameTree.currentPath = path;
+  }
+
+  // ============ 分岐選択（盤面マーカーから） ============
+  selectBranchByIndex(branchIndex: number): boolean {
+    if (!this.state.gameTree) return false;
+
+    const currentNode = this.state.gameTree.currentNode;
+    if (branchIndex < 0 || branchIndex >= currentNode.children.length) {
+      return false;
+    }
+
+    const targetNode = currentNode.children[branchIndex];
+    return this.selectNodeById(targetNode.id);
+  }
+}
