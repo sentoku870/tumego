@@ -1,5 +1,14 @@
 // ============ 描画エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
+export function getCircleNumber(n) {
+    if (n >= 1 && n <= 20)
+        return String.fromCharCode(0x2460 + n - 1);
+    if (n >= 21 && n <= 35)
+        return String.fromCharCode(0x3251 + n - 21);
+    if (n >= 36 && n <= 50)
+        return String.fromCharCode(0x32b1 + n - 36);
+    return n.toString();
+}
 export class Renderer {
     constructor(state, elements) {
         this.state = state;
@@ -208,7 +217,7 @@ export class Renderer {
                 const col = letters[move.col];
                 const row = this.state.boardSize - move.row;
                 const mark = move.color === 1 ? '■' : '□';
-                const num = this.getCircleNumber(i - start + 1);
+                const num = getCircleNumber(i - start + 1);
                 sequence.push(`${mark}${num} ${col}${row}`);
             }
             this.elements.movesEl.textContent = sequence.join(' ');
@@ -216,15 +225,6 @@ export class Renderer {
         else {
             this.elements.movesEl.textContent = '';
         }
-    }
-    getCircleNumber(n) {
-        if (n >= 1 && n <= 20)
-            return String.fromCharCode(0x2460 + n - 1);
-        if (n >= 21 && n <= 35)
-            return String.fromCharCode(0x3251 + n - 21);
-        if (n >= 36 && n <= 50)
-            return String.fromCharCode(0x32b1 + n - 36);
-        return n.toString();
     }
     getCurrentColor() {
         if (this.state.numberMode) {

@@ -1,7 +1,7 @@
 // ============ UI制御エンジン ============
 import { GameState, Position, StoneColor, DragState, UIElements, KeyBindings, DEFAULT_CONFIG } from './types.js';
 import { GoEngine } from './go-engine.js';
-import { Renderer } from './renderer.js';
+import { Renderer, getCircleNumber } from './renderer.js';
 import { SGFParser } from './sgf-parser.js';
 import { QRManager } from './qr-manager.js';
 import { HistoryManager } from './history-manager.js';
@@ -344,28 +344,69 @@ export class UIController {
       this.updateUI();
     });
 
-    // 置石ボタン
-    const handicapBtn = document.getElementById('btn-handicap');
-    handicapBtn?.addEventListener('click', () => {
+    // 機能メニュー
+    const featureBtn = document.getElementById('btn-feature');
+    const featureDropdown = document.getElementById('feature-dropdown');
+    const featureLayoutBtn = document.getElementById('btn-feature-layout');
+    const featureRotateBtn = document.getElementById('btn-feature-rotate');
+    const featureHandicapBtn = document.getElementById('btn-feature-handicap');
+
+    let isHorizontal = document.body.classList.contains('horizontal');
+    if (featureLayoutBtn) {
+      featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+    }
+
+    featureBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      featureDropdown?.classList.toggle('show');
+      document.getElementById('file-dropdown')?.classList.remove('show');
+    });
+
+    document.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
+    });
+
+    featureDropdown?.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    featureLayoutBtn?.addEventListener('click', () => {
+      isHorizontal = !isHorizontal;
+      document.body.classList.toggle('horizontal', isHorizontal);
+      featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+      featureDropdown?.classList.remove('show');
+      this.renderer.updateBoardSize();
+    });
+
+    featureRotateBtn?.addEventListener('click', () => {
+      this.rotateBoardView();
+      featureDropdown?.classList.remove('show');
+    });
+
+    featureHandicapBtn?.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
       this.showHandicapDialog();
     });
 
-    // レイアウト切り替え
-    const layoutBtn = document.getElementById('btn-layout');
-    if (layoutBtn) {
-      let isHorizontal = false;
-      layoutBtn.addEventListener('click', () => {
-        isHorizontal = !isHorizontal;
-        document.body.classList.toggle('horizontal', isHorizontal);
-        layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-        this.renderer.updateBoardSize();
-      });
-    }
+    const answerStepsBtn = document.getElementById('btn-answer-steps');
+    answerStepsBtn?.addEventListener('click', async () => {
+      const sequence = this.buildAnswerSequence();
+      if (!sequence) {
+        this.renderer.showMessage('解答手順がありません');
+        return;
+      }
 
-    // 盤面回転ボタン
-    const rotateBtn = document.getElementById('btn-rotate');
-    rotateBtn?.addEventListener('click', () => {
-      this.rotateBoardView();
+      const spoilerText = `||${sequence}||`;
+      try {
+        await this.sgfParser.copyToClipboard(spoilerText);
+        this.renderer.showMessage('解答手順をコピーしました');
+      } catch (error) {
+        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
+        if (sgfTextarea) {
+          sgfTextarea.value = spoilerText;
+        }
+        this.renderer.showMessage('クリップボードにコピーできませんでしたがテキストエリアに表示しました');
+      }
     });
 
     // 履歴ボタン
@@ -421,6 +462,7 @@ export class UIController {
     fileBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       fileDropdown?.classList.toggle('show');
+      document.getElementById('feature-dropdown')?.classList.remove('show');
     });
 
     document.addEventListener('click', () => {
@@ -551,6 +593,37 @@ export class UIController {
       eraseBtn?.classList.remove('active');
       this.renderer.showMessage('');
     }
+  }
+
+  private buildAnswerSequence(): string | null {
+    if (!this.state.numberMode || this.state.sgfMoves.length === 0) {
+      return null;
+    }
+
+    const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, this.state.boardSize).split('');
+    const startIndex = this.state.numberStartIndex || 0;
+    const endIndex = this.state.sgfIndex;
+
+    if (endIndex <= startIndex) {
+      return null;
+    }
+
+    const sequence: string[] = [];
+    for (let i = startIndex; i < endIndex; i++) {
+      const move = this.state.sgfMoves[i];
+      if (!move) continue;
+
+      const col = letters[move.col];
+      const row = this.state.boardSize - move.row;
+      const mark = move.color === 1 ? '■' : '□';
+      const num = getCircleNumber(i - startIndex + 1);
+
+      if (col) {
+        sequence.push(`${mark}${num} ${col}${row}`);
+      }
+    }
+
+    return sequence.length ? sequence.join(' ') : null;
   }
 
   private updateAnswerButtonDisplay(): void {

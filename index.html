@@ -50,15 +50,13 @@
         <button class="ctrl-btn size-btn" data-size="9">9路</button>
         <button class="ctrl-btn size-btn" data-size="13">13路</button>
         <button class="ctrl-btn size-btn" data-size="19">19路</button>
-        
-        <!-- 置石・解答 -->
-        <button class="ctrl-btn" id="btn-handicap">置石</button>
+
+        <!-- 解答・ファイル -->
         <button class="ctrl-btn answer-btn" id="btn-answer">🔥 黒先</button>
-        
-        <!-- ファイル操作 -->
-        <div class="file-menu">
+
+        <div class="menu-container file-menu">
           <button class="ctrl-btn" id="btn-file">📁 ファイル</button>
-          <div class="file-dropdown" id="file-dropdown">
+          <div class="menu-dropdown file-dropdown" id="file-dropdown">
             <button id="btn-file-select">📂 SGF選択</button>
             <button id="btn-file-load">📋 SGF読込</button>
             <button id="btn-file-copy">📄 SGFコピー</button>
@@ -67,12 +65,21 @@
             <button id="btn-file-discord">💬 Discord共有</button>
           </div>
         </div>
-        
-        <!-- レイアウト・履歴 -->
-        <button class="ctrl-btn" id="btn-layout">横レイアウト</button>
-        <button class="ctrl-btn" id="btn-rotate">🔄 回転</button>
+
         <button class="ctrl-btn history-btn" id="btn-history">📜 履歴</button>
         <button class="ctrl-btn" id="btn-problem">🧩 問題図</button>
+
+        <div class="menu-container feature-menu">
+          <button class="ctrl-btn" id="btn-feature">🛠️ 機能</button>
+          <div class="menu-dropdown feature-dropdown" id="feature-dropdown">
+            <button id="btn-feature-layout">横レイアウト</button>
+            <button id="btn-feature-rotate">🔄 回転</button>
+            <button id="btn-feature-handicap">置石</button>
+          </div>
+        </div>
+
+        <button class="ctrl-btn" id="btn-answer-steps">解答手順</button>
+        <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
       </div>
       
       <!-- 隠しファイル入力 -->

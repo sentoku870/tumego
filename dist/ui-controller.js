@@ -1,7 +1,7 @@
 // ============ UI制御エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
 import { GoEngine } from './go-engine.js';
-import { Renderer } from './renderer.js';
+import { Renderer, getCircleNumber } from './renderer.js';
 import { SGFParser } from './sgf-parser.js';
 import { QRManager } from './qr-manager.js';
 import { HistoryManager } from './history-manager.js';
@@ -300,26 +300,62 @@ export class UIController {
             this.updateAnswerButtonDisplay();
             this.updateUI();
         });
-        // 置石ボタン
-        const handicapBtn = document.getElementById('btn-handicap');
-        handicapBtn === null || handicapBtn === void 0 ? void 0 : handicapBtn.addEventListener('click', () => {
+        // 機能メニュー
+        const featureBtn = document.getElementById('btn-feature');
+        const featureDropdown = document.getElementById('feature-dropdown');
+        const featureLayoutBtn = document.getElementById('btn-feature-layout');
+        const featureRotateBtn = document.getElementById('btn-feature-rotate');
+        const featureHandicapBtn = document.getElementById('btn-feature-handicap');
+        let isHorizontal = document.body.classList.contains('horizontal');
+        if (featureLayoutBtn) {
+            featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+        }
+        featureBtn === null || featureBtn === void 0 ? void 0 : featureBtn.addEventListener('click', (e) => {
+            var _a;
+            e.stopPropagation();
+            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.toggle('show');
+            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+        });
+        document.addEventListener('click', () => {
+            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+        });
+        featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        featureLayoutBtn === null || featureLayoutBtn === void 0 ? void 0 : featureLayoutBtn.addEventListener('click', () => {
+            isHorizontal = !isHorizontal;
+            document.body.classList.toggle('horizontal', isHorizontal);
+            featureLayoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+            this.renderer.updateBoardSize();
+        });
+        featureRotateBtn === null || featureRotateBtn === void 0 ? void 0 : featureRotateBtn.addEventListener('click', () => {
+            this.rotateBoardView();
+            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
+        });
+        featureHandicapBtn === null || featureHandicapBtn === void 0 ? void 0 : featureHandicapBtn.addEventListener('click', () => {
+            featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.classList.remove('show');
             this.showHandicapDialog();
         });
-        // レイアウト切り替え
-        const layoutBtn = document.getElementById('btn-layout');
-        if (layoutBtn) {
-            let isHorizontal = false;
-            layoutBtn.addEventListener('click', () => {
-                isHorizontal = !isHorizontal;
-                document.body.classList.toggle('horizontal', isHorizontal);
-                layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-                this.renderer.updateBoardSize();
-            });
-        }
-        // 盤面回転ボタン
-        const rotateBtn = document.getElementById('btn-rotate');
-        rotateBtn === null || rotateBtn === void 0 ? void 0 : rotateBtn.addEventListener('click', () => {
-            this.rotateBoardView();
+        const answerStepsBtn = document.getElementById('btn-answer-steps');
+        answerStepsBtn === null || answerStepsBtn === void 0 ? void 0 : answerStepsBtn.addEventListener('click', async () => {
+            const sequence = this.buildAnswerSequence();
+            if (!sequence) {
+                this.renderer.showMessage('解答手順がありません');
+                return;
+            }
+            const spoilerText = `||${sequence}||`;
+            try {
+                await this.sgfParser.copyToClipboard(spoilerText);
+                this.renderer.showMessage('解答手順をコピーしました');
+            }
+            catch (error) {
+                const sgfTextarea = document.getElementById('sgf-text');
+                if (sgfTextarea) {
+                    sgfTextarea.value = spoilerText;
+                }
+                this.renderer.showMessage('クリップボードにコピーできませんでしたがテキストエリアに表示しました');
+            }
         });
         // 履歴ボタン
         const historyBtn = document.getElementById('btn-history');
@@ -366,8 +402,10 @@ export class UIController {
         const fileBtn = document.getElementById('btn-file');
         const fileDropdown = document.getElementById('file-dropdown');
         fileBtn === null || fileBtn === void 0 ? void 0 : fileBtn.addEventListener('click', (e) => {
+            var _a;
             e.stopPropagation();
             fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.toggle('show');
+            (_a = document.getElementById('feature-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
         });
         document.addEventListener('click', () => {
             fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.remove('show');
@@ -495,6 +533,31 @@ export class UIController {
             eraseBtn === null || eraseBtn === void 0 ? void 0 : eraseBtn.classList.remove('active');
             this.renderer.showMessage('');
         }
+    }
+    buildAnswerSequence() {
+        if (!this.state.numberMode || this.state.sgfMoves.length === 0) {
+            return null;
+        }
+        const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, this.state.boardSize).split('');
+        const startIndex = this.state.numberStartIndex || 0;
+        const endIndex = this.state.sgfIndex;
+        if (endIndex <= startIndex) {
+            return null;
+        }
+        const sequence = [];
+        for (let i = startIndex; i < endIndex; i++) {
+            const move = this.state.sgfMoves[i];
+            if (!move)
+                continue;
+            const col = letters[move.col];
+            const row = this.state.boardSize - move.row;
+            const mark = move.color === 1 ? '■' : '□';
+            const num = getCircleNumber(i - startIndex + 1);
+            if (col) {
+                sequence.push(`${mark}${num} ${col}${row}`);
+            }
+        }
+        return sequence.length ? sequence.join(' ') : null;
     }
     updateAnswerButtonDisplay() {
         const answerBtn = document.getElementById('btn-answer');
