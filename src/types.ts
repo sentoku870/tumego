@@ -16,6 +16,23 @@ export interface Move {
   color: StoneColor;
 }
 
+// ============ SGFノードとゲームツリー ============
+export interface SGFNode {
+  id: string;
+  move?: Move;
+  comment?: string;
+  label?: string;
+  mainLine?: boolean;
+  parent?: SGFNode;
+  children: SGFNode[];
+}
+
+export interface GameTree {
+  rootNode: SGFNode;
+  currentNode: SGFNode;
+  currentPath: SGFNode[];
+}
+
 // ============ 設定定数 ============
 export interface GameConfig {
   readonly CELL_SIZE: number;
@@ -50,6 +67,7 @@ export interface GameState {
   problemDiagramSet: boolean;
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
+  gameTree: GameTree | null;
 }
 
 // ============ UI要素 ============

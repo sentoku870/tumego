@@ -23,7 +23,8 @@ function createInitialState(): GameState {
     answerMode: 'black',
     problemDiagramSet: false,
     problemDiagramBlack: [],
-    problemDiagramWhite: []
+    problemDiagramWhite: [],
+    gameTree: null
   };
 }
 

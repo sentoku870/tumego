@@ -1,5 +1,5 @@
 // ============ 履歴管理 ============
-import { GameState, HistorySnapshot, HistoryItem, CellState } from './types.js';
+import { GameState, HistorySnapshot, HistoryItem, CellState, GameTree, SGFNode, Move } from './types.js';
 
 export class HistoryManager {
   private snapshots: HistorySnapshot[] = [];
@@ -46,7 +46,8 @@ export class HistoryManager {
       problemDiagramBlack: [...savedState.problemDiagramBlack],
       problemDiagramWhite: [...savedState.problemDiagramWhite],
       turn: savedState.turn,
-      eraseMode: false // 復元時は消去モードを無効化
+      eraseMode: false, // 復元時は消去モードを無効化
+      gameTree: savedState.gameTree ? this.cloneGameTree(savedState.gameTree) : null
     });
 
     console.log(`履歴復元: ${snapshot.description}`);
@@ -176,12 +177,46 @@ export class HistoryManager {
       sgfMoves: [...state.sgfMoves],
       handicapPositions: [...state.handicapPositions],
       problemDiagramBlack: [...state.problemDiagramBlack],
-      problemDiagramWhite: [...state.problemDiagramWhite]
+      problemDiagramWhite: [...state.problemDiagramWhite],
+      gameTree: state.gameTree ? this.cloneGameTree(state.gameTree) : null
     };
   }
 
   private cloneBoard(board: CellState[][]): CellState[][] {
     return board.map(row => [...row]) as CellState[][];
+  }
+
+  private cloneGameTree(tree: GameTree): GameTree {
+    const nodeMap = new Map<SGFNode, SGFNode>();
+
+    const cloneNode = (node: SGFNode, parent?: SGFNode): SGFNode => {
+      const clonedMove = node.move ? { ...node.move } as Move : undefined;
+      const clonedNode: SGFNode = {
+        id: node.id,
+        move: clonedMove,
+        comment: node.comment,
+        label: node.label,
+        mainLine: node.mainLine,
+        parent,
+        children: []
+      };
+
+      nodeMap.set(node, clonedNode);
+      clonedNode.children = node.children.map(child => cloneNode(child, clonedNode));
+      return clonedNode;
+    };
+
+    const rootClone = cloneNode(tree.rootNode);
+    const currentClone = nodeMap.get(tree.currentNode) || rootClone;
+    const pathClone = tree.currentPath
+      .map(node => nodeMap.get(node))
+      .filter((node): node is SGFNode => Boolean(node));
+
+    return {
+      rootNode: rootClone,
+      currentNode: currentClone,
+      currentPath: pathClone
+    };
   }
 
   private escapeHtml(unsafe: string): string {
