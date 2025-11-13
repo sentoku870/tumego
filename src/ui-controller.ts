@@ -19,6 +19,7 @@ export class UIController {
   };
   private boardHasFocus = false;
   private touchStartY = 0;
+  private isHorizontalLayout = false;
 
   constructor(
     private state: GameState,
@@ -29,11 +30,17 @@ export class UIController {
     this.sgfParser = new SGFParser();
     this.qrManager = new QRManager();
     this.historyManager = new HistoryManager();
-    
+
     // エンジンに履歴管理を設定
     this.engine.setHistoryManager(this.historyManager);
-    
+
     this.initEventListeners();
+
+    this.isHorizontalLayout = document.body.classList.contains('horizontal');
+    const featureLayoutBtn = document.getElementById('btn-feature-layout');
+    if (featureLayoutBtn) {
+      featureLayoutBtn.textContent = this.isHorizontalLayout ? '縦レイアウト' : '横レイアウト';
+    }
   }
 
   // ============ イベントリスナー初期化 ============
@@ -252,6 +259,7 @@ export class UIController {
     this.initBasicButtons();
     this.initGameButtons();
     this.initFileButtons();
+    this.initFeatureButtons();
   }
 
   private initBasicButtons(): void {
@@ -305,7 +313,7 @@ export class UIController {
 
   private initGameButtons(): void {
     // 手順移動
-    const prevBtn = document.getElementById('btn-prev-move');
+    const prevBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     prevBtn?.addEventListener('click', () => {
       if (this.state.sgfIndex > 0) {
         this.engine.setMoveIndex(this.state.sgfIndex - 1);
@@ -313,7 +321,7 @@ export class UIController {
       }
     });
 
-    const nextBtn = document.getElementById('btn-next-move');
+    const nextBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     nextBtn?.addEventListener('click', () => {
       if (this.state.sgfIndex < this.state.sgfMoves.length) {
         this.engine.setMoveIndex(this.state.sgfIndex + 1);
@@ -321,9 +329,25 @@ export class UIController {
       }
     });
 
-    // 解答ボタン
-    const answerBtn = document.getElementById('btn-answer');
-    answerBtn?.addEventListener('click', () => {
+    const preventDoubleTapZoom = (button: HTMLButtonElement | null) => {
+      if (!button) return;
+      let lastTouchTime = 0;
+      button.addEventListener('touchend', (event) => {
+        const now = Date.now();
+        if (now - lastTouchTime < 300) {
+          event.preventDefault();
+          button.click();
+        }
+        lastTouchTime = now;
+      }, { passive: false });
+    };
+
+    preventDoubleTapZoom(prevBtn);
+    preventDoubleTapZoom(nextBtn);
+
+    // 解答モード切り替え
+    const answerModeBtn = document.getElementById('btn-answer-mode');
+    answerModeBtn?.addEventListener('click', () => {
       this.disableEraseMode();
 
       if (!this.state.numberMode) {
@@ -344,28 +368,14 @@ export class UIController {
       this.updateUI();
     });
 
-    // 置石ボタン
-    const handicapBtn = document.getElementById('btn-handicap');
-    handicapBtn?.addEventListener('click', () => {
-      this.showHandicapDialog();
+    const answerCopyBtn = document.getElementById('btn-answer-copy');
+    answerCopyBtn?.addEventListener('click', () => {
+      void this.copyAnswerSequence();
     });
 
-    // レイアウト切り替え
-    const layoutBtn = document.getElementById('btn-layout');
-    if (layoutBtn) {
-      let isHorizontal = false;
-      layoutBtn.addEventListener('click', () => {
-        isHorizontal = !isHorizontal;
-        document.body.classList.toggle('horizontal', isHorizontal);
-        layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
-        this.renderer.updateBoardSize();
-      });
-    }
-
-    // 盤面回転ボタン
-    const rotateBtn = document.getElementById('btn-rotate');
-    rotateBtn?.addEventListener('click', () => {
-      this.rotateBoardView();
+    const boardImageBtn = document.getElementById('btn-board-image');
+    boardImageBtn?.addEventListener('click', () => {
+      void this.copyBoardImage();
     });
 
     // 履歴ボタン
@@ -417,7 +427,7 @@ export class UIController {
     // ファイルメニュー
     const fileBtn = document.getElementById('btn-file');
     const fileDropdown = document.getElementById('file-dropdown');
-    
+
     fileBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       fileDropdown?.classList.toggle('show');
@@ -433,6 +443,42 @@ export class UIController {
 
     // SGF操作
     this.initSGFButtons();
+  }
+
+  private initFeatureButtons(): void {
+    const featureBtn = document.getElementById('btn-feature');
+    const featureDropdown = document.getElementById('feature-dropdown');
+
+    featureBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      featureDropdown?.classList.toggle('show');
+    });
+
+    featureDropdown?.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    document.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
+    });
+
+    const featureHandicapBtn = document.getElementById('btn-feature-handicap');
+    featureHandicapBtn?.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
+      this.showHandicapDialog();
+    });
+
+    const featureLayoutBtn = document.getElementById('btn-feature-layout');
+    featureLayoutBtn?.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
+      this.toggleLayoutOrientation();
+    });
+
+    const featureRotateBtn = document.getElementById('btn-feature-rotate');
+    featureRotateBtn?.addEventListener('click', () => {
+      featureDropdown?.classList.remove('show');
+      this.rotateBoardView();
+    });
   }
 
   private initSGFButtons(): void {
@@ -554,14 +600,14 @@ export class UIController {
   }
 
   private updateAnswerButtonDisplay(): void {
-    const answerBtn = document.getElementById('btn-answer');
+    const answerBtn = document.getElementById('btn-answer-mode');
     if (!answerBtn) return;
 
     if (this.state.answerMode === 'white') {
-      answerBtn.textContent = '⚪ 白先';
+      answerBtn.textContent = '白先';
       answerBtn.classList.add('white-mode');
     } else {
-      answerBtn.textContent = '🔥 黒先';
+      answerBtn.textContent = '黒先';
       answerBtn.classList.remove('white-mode');
     }
   }
@@ -571,9 +617,147 @@ export class UIController {
     element.classList.add('active');
   }
 
+  private toggleLayoutOrientation(): void {
+    this.isHorizontalLayout = !this.isHorizontalLayout;
+    document.body.classList.toggle('horizontal', this.isHorizontalLayout);
+    this.renderer.updateBoardSize();
+
+    const message = this.isHorizontalLayout ? '横レイアウトに切り替えました' : '縦レイアウトに切り替えました';
+    this.renderer.showMessage(message);
+
+    const featureLayoutBtn = document.getElementById('btn-feature-layout');
+    if (featureLayoutBtn) {
+      featureLayoutBtn.textContent = this.isHorizontalLayout ? '縦レイアウト' : '横レイアウト';
+    }
+  }
+
+  private async copyAnswerSequence(): Promise<void> {
+    const movesText = this.elements.movesEl?.textContent?.trim();
+    if (!movesText) {
+      this.renderer.showMessage('解答手順がありません');
+      return;
+    }
+
+    const spoilerText = `||${movesText}||`;
+
+    try {
+      if (!this.isIOS() && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(spoilerText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = spoilerText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.setAttribute('readonly', '');
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        textarea.setSelectionRange(0, spoilerText.length);
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!success) {
+          throw new Error('Copy command failed');
+        }
+      }
+
+      this.renderer.showMessage('解答手順をコピーしました');
+    } catch (error) {
+      console.error(error);
+      this.renderer.showMessage('解答手順のコピーに失敗しました');
+    }
+  }
+
+  private async copyBoardImage(): Promise<void> {
+    const svgElement = this.elements.svg;
+    if (!svgElement) return;
+
+    const viewBox = svgElement.getAttribute('viewBox')?.split(' ').map(Number);
+    let width = Math.ceil(svgElement.clientWidth);
+    let height = Math.ceil(svgElement.clientHeight);
+
+    if (viewBox && viewBox.length === 4) {
+      width = Math.ceil(viewBox[2]);
+      height = Math.ceil(viewBox[3]);
+    }
+
+    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clonedSvg.setAttribute('width', width.toString());
+    clonedSvg.setAttribute('height', height.toString());
+
+    const serializer = new XMLSerializer();
+    const svgData = serializer.serializeToString(clonedSvg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    try {
+      const image = await this.loadImage(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context is unavailable');
+
+      const boardStyle = getComputedStyle(this.elements.boardWrapper);
+      const background = boardStyle.backgroundColor || '#f1d49c';
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(image, 0, 0, width, height);
+
+      const pngBlob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+
+      if (!pngBlob) throw new Error('Failed to generate image blob');
+
+      const ClipboardItemCtor = (window as unknown as { ClipboardItem?: typeof ClipboardItem }).ClipboardItem;
+
+      if (!this.isIOS() && navigator.clipboard && 'write' in navigator.clipboard && ClipboardItemCtor) {
+        const clipboardItem = new ClipboardItemCtor({ 'image/png': pngBlob });
+        await navigator.clipboard.write([clipboardItem]);
+        this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
+      } else if (this.isIOS() && navigator.share && typeof navigator.canShare === 'function') {
+        const file = new File([pngBlob], 'goban.png', { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: '碁盤画像' });
+          this.renderer.showMessage('共有メニューを開きました');
+          return;
+        }
+        throw new Error('Share API is not available');
+      } else {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'goban.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        this.renderer.showMessage('碁盤画像をダウンロードしました');
+      }
+    } catch (error) {
+      console.error(error);
+      this.renderer.showMessage('碁盤画像のコピーに失敗しました');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = src;
+    });
+  }
+
+  private isIOS(): boolean {
+    return /iP(hone|ad|od)/i.test(navigator.userAgent);
+  }
+
   private applySGFResult(result: { moves: any[], gameInfo: Partial<any> }): void {
     // SGF読み込み前に履歴保存
-    if (this.state.sgfMoves.length > 0 || this.state.handicapStones > 0 || 
+    if (this.state.sgfMoves.length > 0 || this.state.handicapStones > 0 ||
         this.state.board.some(row => row.some(cell => cell !== 0))) {
       this.historyManager.save(`SGF読み込み前（${this.state.sgfMoves.length}手）`, this.state);
     }
