@@ -563,129 +563,16 @@ export class UIController {
             throw new Error('SVG要素が見つかりません');
         }
         const pngBlob = await this.convertSvgToPng(svgElement);
-        const platform = this.detectPlatform();
-        if (platform === 'ios') {
-            const shared = await this.shareImageOniOS(pngBlob);
-            if (!shared) {
-                alert('共有機能に対応していません');
-            }
-            return;
+        const dataUrl = await this.blobToDataUrl(pngBlob);
+        if (!dataUrl) {
+            throw new Error('PNGの生成に失敗しました');
         }
-        if (platform === 'android') {
-            const copied = await this.tryWriteImageToClipboard(pngBlob);
-            if (copied) {
-                alert('盤面をクリップボードにコピーしました');
-                return;
-            }
-            const shared = await this.shareImageOnAndroid(pngBlob);
-            if (!shared) {
-                alert('共有機能に対応していません');
-            }
-            return;
+        const previewImage = document.getElementById('board-image-preview');
+        if (!previewImage) {
+            throw new Error('盤面プレビュー用の画像要素が見つかりません');
         }
-        const copied = await this.tryWriteImageToClipboard(pngBlob);
-        if (copied) {
-            alert('盤面をクリップボードにコピーしました');
-        }
-        else {
-            alert('このデバイスはクリップボードへの書き込みに対応していません');
-        }
-    }
-    detectPlatform() {
-        const ua = navigator.userAgent;
-        const isiOS = /iPhone|iPad|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
-        if (isiOS) {
-            return 'ios';
-        }
-        if (/Android/.test(ua)) {
-            return 'android';
-        }
-        return 'desktop';
-    }
-    canUseClipboard() {
-        const clipboard = navigator.clipboard;
-        return !!clipboard && typeof clipboard.write === 'function' && typeof ClipboardItem !== 'undefined';
-    }
-    async tryWriteImageToClipboard(blob) {
-        if (!this.canUseClipboard()) {
-            return false;
-        }
-        try {
-            const clipboardItem = new ClipboardItem({ 'image/png': blob });
-            await navigator.clipboard.write([clipboardItem]);
-            return true;
-        }
-        catch (error) {
-            console.warn('クリップボードへの書き込みに失敗しました', error);
-            return false;
-        }
-    }
-    async shareImageOnAndroid(blob) {
-        if (typeof navigator.share !== 'function') {
-            return false;
-        }
-        const file = new File([blob], 'goban.png', { type: 'image/png' });
-        const shareData = {
-            files: [file],
-            title: '現在の盤面',
-            text: '現在の局面を共有します。'
-        };
-        if (typeof navigator.canShare === 'function') {
-            try {
-                if (!navigator.canShare(shareData)) {
-                    return false;
-                }
-            }
-            catch (error) {
-                console.warn('navigator.canShare の判定に失敗しました', error);
-                return false;
-            }
-        }
-        try {
-            await navigator.share(shareData);
-            return true;
-        }
-        catch (error) {
-            console.warn('Android での共有に失敗しました', error);
-            return false;
-        }
-    }
-    async shareImageOniOS(blob) {
-        if (typeof navigator.share !== 'function') {
-            return false;
-        }
-        const title = '現在の盤面';
-        const text = '現在の局面を共有します。';
-        const file = new File([blob], 'goban.png', { type: 'image/png' });
-        const fileShareData = { files: [file], title, text };
-        if (typeof navigator.canShare === 'function') {
-            try {
-                if (navigator.canShare(fileShareData)) {
-                    try {
-                        await navigator.share(fileShareData);
-                        return true;
-                    }
-                    catch (error) {
-                        console.warn('iOS でのファイル共有に失敗しました', error);
-                    }
-                }
-            }
-            catch (error) {
-                console.warn('iOS の navigator.canShare 判定に失敗しました', error);
-            }
-        }
-        try {
-            const dataUrl = await this.blobToDataUrl(blob);
-            if (!dataUrl) {
-                return false;
-            }
-            await navigator.share({ title, text, url: dataUrl });
-            return true;
-        }
-        catch (error) {
-            console.warn('iOS での DataURL 共有に失敗しました', error);
-            return false;
-        }
+        previewImage.src = dataUrl;
+        previewImage.style.display = 'block';
     }
     async blobToDataUrl(blob) {
         return new Promise((resolve) => {
