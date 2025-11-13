@@ -40,7 +40,8 @@ export class HistoryManager {
             problemDiagramBlack: [...savedState.problemDiagramBlack],
             problemDiagramWhite: [...savedState.problemDiagramWhite],
             turn: savedState.turn,
-            eraseMode: false // 復元時は消去モードを無効化
+            eraseMode: false, // 復元時は消去モードを無効化
+            gameTree: savedState.gameTree ? this.cloneGameTree(savedState.gameTree) : null
         });
         console.log(`履歴復元: ${snapshot.description}`);
         return true;
@@ -156,11 +157,40 @@ export class HistoryManager {
             sgfMoves: [...state.sgfMoves],
             handicapPositions: [...state.handicapPositions],
             problemDiagramBlack: [...state.problemDiagramBlack],
-            problemDiagramWhite: [...state.problemDiagramWhite]
+            problemDiagramWhite: [...state.problemDiagramWhite],
+            gameTree: state.gameTree ? this.cloneGameTree(state.gameTree) : null
         };
     }
     cloneBoard(board) {
         return board.map(row => [...row]);
+    }
+    cloneGameTree(tree) {
+        const nodeMap = new Map();
+        const cloneNode = (node, parent) => {
+            const clonedMove = node.move ? { ...node.move } : undefined;
+            const clonedNode = {
+                id: node.id,
+                move: clonedMove,
+                comment: node.comment,
+                label: node.label,
+                mainLine: node.mainLine,
+                parent,
+                children: []
+            };
+            nodeMap.set(node, clonedNode);
+            clonedNode.children = node.children.map(child => cloneNode(child, clonedNode));
+            return clonedNode;
+        };
+        const rootClone = cloneNode(tree.rootNode);
+        const currentClone = nodeMap.get(tree.currentNode) || rootClone;
+        const pathClone = tree.currentPath
+            .map(node => nodeMap.get(node))
+            .filter((node) => Boolean(node));
+        return {
+            rootNode: rootClone,
+            currentNode: currentClone,
+            currentPath: pathClone
+        };
     }
     escapeHtml(unsafe) {
         return unsafe

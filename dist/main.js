@@ -21,7 +21,8 @@ function createInitialState() {
         answerMode: 'black',
         problemDiagramSet: false,
         problemDiagramBlack: [],
-        problemDiagramWhite: []
+        problemDiagramWhite: [],
+        gameTree: null
     };
 }
 // ============ DOM要素の取得 ============
