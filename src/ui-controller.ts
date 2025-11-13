@@ -253,6 +253,7 @@ export class UIController {
     this.initBasicButtons();
     this.initGameButtons();
     this.initFileButtons();
+    this.initBoardSaveButton();
   }
 
   private initBasicButtons(): void {
@@ -494,6 +495,17 @@ export class UIController {
     this.initSGFButtons();
   }
 
+  private initBoardSaveButton(): void {
+    const saveBtn = document.getElementById('btn-save-board');
+    saveBtn?.addEventListener('click', () => {
+      this.handleBoardSave().catch((error) => {
+        console.error(error);
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`盤面保存に失敗しました: ${message}`);
+      });
+    });
+  }
+
   private initSGFButtons(): void {
     // SGFファイル選択
     const sgfInput = document.getElementById('sgf-input') as HTMLInputElement;
@@ -611,6 +623,169 @@ export class UIController {
       eraseBtn?.classList.remove('active');
       this.renderer.showMessage('');
     }
+  }
+
+  private async handleBoardSave(): Promise<void> {
+    const svgElement = this.elements.svg;
+    if (!svgElement) {
+      throw new Error('SVG要素が見つかりません');
+    }
+
+    const pngBlob = await this.convertSvgToPng(svgElement);
+    const platform = this.detectPlatform();
+
+    if (platform === 'ios') {
+      await this.shareImage(pngBlob);
+      return;
+    }
+
+    if (platform === 'android') {
+      if (this.canUseClipboard()) {
+        try {
+          await this.writeImageToClipboard(pngBlob);
+          alert('盤面をクリップボードにコピーしました');
+          return;
+        } catch (error) {
+          console.warn('Android でのクリップボード書き込みに失敗しました', error);
+        }
+      }
+
+      await this.shareImage(pngBlob);
+      return;
+    }
+
+    await this.writeImageToClipboard(pngBlob);
+    alert('盤面をクリップボードにコピーしました');
+  }
+
+  private detectPlatform(): 'android' | 'ios' | 'desktop' {
+    const ua = navigator.userAgent.toLowerCase();
+    if (/iphone|ipad|ipod/.test(ua)) {
+      return 'ios';
+    }
+    if (/android/.test(ua)) {
+      return 'android';
+    }
+    return 'desktop';
+  }
+
+  private canUseClipboard(): boolean {
+    const clipboard = navigator.clipboard;
+    return !!clipboard && typeof clipboard.write === 'function' && typeof ClipboardItem !== 'undefined';
+  }
+
+  private async writeImageToClipboard(blob: Blob): Promise<void> {
+    if (!this.canUseClipboard()) {
+      throw new Error('クリップボードへの書き込みに対応していません');
+    }
+
+    const clipboardItem = new ClipboardItem({ 'image/png': blob });
+    await navigator.clipboard.write([clipboardItem]);
+  }
+
+  private async shareImage(blob: Blob): Promise<void> {
+    if (typeof navigator.share !== 'function') {
+      throw new Error('共有機能に対応していません');
+    }
+
+    const file = new File([blob], 'goban.png', { type: 'image/png' });
+    const shareData: ShareData = { files: [file], title: '現在の盤面', text: '現在の局面を共有します。' };
+
+    if (navigator.canShare && !navigator.canShare(shareData)) {
+      throw new Error('このデバイスは画像ファイルの共有に対応していません');
+    }
+
+    await navigator.share(shareData);
+  }
+
+  private async convertSvgToPng(svgElement: SVGSVGElement): Promise<Blob> {
+    const inlineSvg = svgElement.cloneNode(true) as SVGSVGElement;
+    const rootStyle = getComputedStyle(document.documentElement);
+    const { width, height } = this.getSvgRenderSize(svgElement);
+
+    if (!width || !height) {
+      throw new Error('SVGのサイズを取得できません');
+    }
+
+    inlineSvg.setAttribute('width', width.toString());
+    inlineSvg.setAttribute('height', height.toString());
+    const cssVariables = ['--board', '--line', '--star', '--coord', '--black', '--white'];
+    cssVariables.forEach((name) => {
+      const value = rootStyle.getPropertyValue(name);
+      if (value) {
+        inlineSvg.style.setProperty(name, value.trim());
+      }
+    });
+
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(inlineSvg);
+
+    if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    if (!svgString.includes('xmlns:xlink="http://www.w3.org/1999/xlink"')) {
+      svgString = svgString.replace('<svg', '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      const image = new Image();
+      const revokeUrl = () => URL.revokeObjectURL(url);
+
+      image.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext('2d');
+
+          if (!context) {
+            revokeUrl();
+            reject(new Error('Canvas コンテキストを取得できません'));
+            return;
+          }
+
+          const boardColor = rootStyle.getPropertyValue('--board').trim() || '#ffffff';
+          context.fillStyle = boardColor;
+          context.fillRect(0, 0, width, height);
+          context.drawImage(image, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            revokeUrl();
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('PNG生成に失敗しました'));
+            }
+          }, 'image/png');
+        } catch (error) {
+          revokeUrl();
+          reject(error as Error);
+        }
+      };
+
+      image.onerror = () => {
+        revokeUrl();
+        reject(new Error('SVG画像の読み込みに失敗しました'));
+      };
+
+      image.src = url;
+    });
+
+    return pngBlob;
+  }
+
+  private getSvgRenderSize(svgElement: SVGSVGElement): { width: number; height: number } {
+    const viewBox = svgElement.viewBox?.baseVal;
+    const rect = svgElement.getBoundingClientRect();
+    const widthCandidate = viewBox?.width ?? svgElement.clientWidth ?? rect.width ?? Number(svgElement.getAttribute('width'));
+    const heightCandidate = viewBox?.height ?? svgElement.clientHeight ?? rect.height ?? Number(svgElement.getAttribute('height'));
+
+    const width = Number.isFinite(widthCandidate) ? Math.round(widthCandidate) : 0;
+    const height = Number.isFinite(heightCandidate) ? Math.round(heightCandidate) : 0;
+
+    return { width, height };
   }
 
   private buildAnswerSequence(): string | null {
