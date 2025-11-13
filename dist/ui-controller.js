@@ -16,10 +16,10 @@ export class UIController {
         };
         this.boardHasFocus = false;
         this.touchStartY = 0;
-        this.boardLongPressTimer = null;
-        this.boardLongPressPointerId = null;
-        this.boardLongPressStart = null;
-        this.boardLongPressTarget = null;
+        this.boardLastTapTime = 0;
+        this.boardLastTapPosition = null;
+        this.boardLastTapPointerType = null;
+        this.boardLastTapTarget = null;
         this.iosCopyOverlay = null;
         this.engine = new GoEngine(state);
         this.renderer = new Renderer(state, elements);
@@ -74,23 +74,19 @@ export class UIController {
     // ============ SVGイベント ============
     initSVGEvents() {
         this.elements.svg.addEventListener('pointerdown', (e) => {
-            this.startBoardLongPress(e);
+            if (this.handleBoardDoubleTap(e)) {
+                return;
+            }
             this.handlePointerDown(e);
         });
         this.elements.svg.addEventListener('pointermove', (e) => {
-            this.handleBoardLongPressMove(e);
             this.handlePointerMove(e);
         });
         this.elements.svg.addEventListener('pointerup', (e) => {
             this.handlePointerEnd(e);
-            this.resetBoardLongPressState();
         });
         this.elements.svg.addEventListener('pointercancel', (e) => {
             this.handlePointerEnd(e);
-            this.resetBoardLongPressState();
-        });
-        this.elements.svg.addEventListener('pointerleave', () => {
-            this.cancelBoardLongPressTimer();
         });
         this.elements.svg.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -161,65 +157,44 @@ export class UIController {
         this.dragState.lastPos = null;
         this.elements.svg.releasePointerCapture(e.pointerId);
     }
-    startBoardLongPress(event) {
-        if (this.boardLongPressTimer !== null) {
-            window.clearTimeout(this.boardLongPressTimer);
-            this.boardLongPressTimer = null;
-        }
-        if (event.pointerType === 'mouse' && event.button !== 0) {
-            return;
+    handleBoardDoubleTap(event) {
+        const pointerType = event.pointerType || 'mouse';
+        if (pointerType === 'mouse' && event.button !== 0) {
+            return false;
         }
         const target = event.target;
         if (!target || !target.classList.contains('stone')) {
-            this.boardLongPressTarget = null;
-            return;
+            this.boardLastTapTime = 0;
+            this.boardLastTapTarget = null;
+            this.boardLastTapPosition = null;
+            this.boardLastTapPointerType = null;
+            return false;
         }
-        this.boardLongPressPointerId = event.pointerId;
-        this.boardLongPressStart = { x: event.clientX, y: event.clientY };
-        this.boardLongPressTarget = target;
-        this.boardLongPressTimer = window.setTimeout(() => {
-            this.boardLongPressTimer = null;
-            void this.handleBoardImageLongPress();
-        }, 650);
+        const now = Date.now();
+        const isSameTarget = this.boardLastTapTarget === target;
+        const withinTime = now - this.boardLastTapTime < 350;
+        const withinDistance = this.boardLastTapPosition ?
+            Math.abs(event.clientX - this.boardLastTapPosition.x) < 20 &&
+                Math.abs(event.clientY - this.boardLastTapPosition.y) < 20 :
+            false;
+        const samePointerType = this.boardLastTapPointerType === pointerType;
+        if (isSameTarget && withinTime && withinDistance && samePointerType) {
+            this.boardLastTapTime = 0;
+            this.boardLastTapTarget = null;
+            this.boardLastTapPosition = null;
+            this.boardLastTapPointerType = null;
+            event.preventDefault();
+            event.stopPropagation();
+            void this.copyBoardImage();
+            return true;
+        }
+        this.boardLastTapTime = now;
+        this.boardLastTapTarget = target;
+        this.boardLastTapPointerType = pointerType;
+        this.boardLastTapPosition = { x: event.clientX, y: event.clientY };
+        return false;
     }
-    handleBoardLongPressMove(event) {
-        if (this.boardLongPressTimer === null || !this.boardLongPressStart) {
-            return;
-        }
-        const deltaX = Math.abs(event.clientX - this.boardLongPressStart.x);
-        const deltaY = Math.abs(event.clientY - this.boardLongPressStart.y);
-        if (Math.max(deltaX, deltaY) > 10) {
-            this.cancelBoardLongPressTimer();
-        }
-    }
-    cancelBoardLongPressTimer() {
-        if (this.boardLongPressTimer !== null) {
-            window.clearTimeout(this.boardLongPressTimer);
-            this.boardLongPressTimer = null;
-        }
-    }
-    resetBoardLongPressState() {
-        this.cancelBoardLongPressTimer();
-        this.boardLongPressPointerId = null;
-        this.boardLongPressStart = null;
-        this.boardLongPressTarget = null;
-    }
-    async handleBoardImageLongPress() {
-        if (!this.boardLongPressTarget) {
-            return;
-        }
-        this.dragState.dragging = false;
-        this.dragState.dragColor = null;
-        this.dragState.lastPos = null;
-        if (this.boardLongPressPointerId !== null) {
-            try {
-                this.elements.svg.releasePointerCapture(this.boardLongPressPointerId);
-            }
-            catch (error) {
-                console.warn('Pointer capture release failed:', error);
-            }
-            this.boardLongPressPointerId = null;
-        }
+    async copyBoardImage() {
         try {
             const blob = await this.renderer.exportBoardAsPNG();
             if (this.isIOSDevice()) {
@@ -242,9 +217,6 @@ export class UIController {
         catch (error) {
             console.error('碁盤画像コピーに失敗しました:', error);
             this.renderer.showMessage('碁盤画像のコピーに失敗しました');
-        }
-        finally {
-            this.boardLongPressTarget = null;
         }
     }
     blobToDataUrl(blob) {
@@ -302,15 +274,10 @@ export class UIController {
         const movesEl = this.elements.movesEl;
         if (!movesEl)
             return;
-        let longPressTimer = null;
-        let longPressArmed = false;
-        const clearTimer = () => {
-            if (longPressTimer !== null) {
-                window.clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-            longPressArmed = false;
-        };
+        movesEl.style.touchAction = 'manipulation';
+        let lastTapTime = 0;
+        let lastTapPosition = null;
+        let lastPointerType = null;
         const copyMoves = async () => {
             var _a, _b;
             const targetText = (_a = movesEl.textContent) === null || _a === void 0 ? void 0 : _a.trim();
@@ -355,37 +322,42 @@ export class UIController {
                 }
             }
         };
-        const startPress = (event) => {
+        const handleDoubleTap = (event) => {
             var _a;
             const text = (_a = movesEl.textContent) === null || _a === void 0 ? void 0 : _a.trim();
             if (!text) {
                 return;
             }
-            if (event.pointerType === 'mouse' && event.button !== 0) {
+            const pointerType = event.pointerType || 'mouse';
+            if (pointerType === 'mouse' && event.button !== 0) {
                 return;
             }
-            event.preventDefault();
-            clearTimer();
-            longPressTimer = window.setTimeout(() => {
-                longPressTimer = null;
-                longPressArmed = true;
-            }, 600);
-        };
-        const handlePressEnd = (event) => {
-            if (longPressArmed) {
+            const now = Date.now();
+            const withinTime = now - lastTapTime < 350;
+            const withinDistance = lastTapPosition ?
+                Math.abs(event.clientX - lastTapPosition.x) < 20 &&
+                    Math.abs(event.clientY - lastTapPosition.y) < 20 :
+                false;
+            const samePointerType = lastPointerType === pointerType;
+            if (withinTime && withinDistance && samePointerType) {
+                lastTapTime = 0;
+                lastTapPosition = null;
+                lastPointerType = null;
                 event.preventDefault();
+                event.stopPropagation();
                 const performCopy = async () => {
                     const success = await copyMoves();
                     this.renderer.showMessage(success ? '解答手順をコピーしました' : '解答手順のコピーに失敗しました');
                 };
-                performCopy();
+                void performCopy();
             }
-            clearTimer();
+            else {
+                lastTapTime = now;
+                lastTapPosition = { x: event.clientX, y: event.clientY };
+                lastPointerType = pointerType;
+            }
         };
-        movesEl.addEventListener('pointerdown', startPress);
-        movesEl.addEventListener('pointerup', handlePressEnd);
-        movesEl.addEventListener('pointercancel', handlePressEnd);
-        movesEl.addEventListener('pointerleave', clearTimer);
+        movesEl.addEventListener('pointerdown', handleDoubleTap);
         movesEl.addEventListener('contextmenu', (event) => event.preventDefault());
     }
     setupDoubleTapZoomBlock(button) {
