@@ -219,10 +219,12 @@ body:not(.horizontal) .msg {
   background-color: white;
   width: fit-content;
   min-width: 0;
+  padding: 4px 0;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 1000;
   border-radius: 8px;
   overflow: hidden;
+  white-space: nowrap;
   top: calc(100% + 4px);
   left: 0;
 }
@@ -234,9 +236,8 @@ body:not(.horizontal) .msg {
 .menu-dropdown button {
   background: none;
   border: none;
-  padding: 4px 8px;
+  padding: 4px 6px;
   text-align: left;
-  width: 100%;
   cursor: pointer;
   font-size: 14px;
   line-height: 1.4;
