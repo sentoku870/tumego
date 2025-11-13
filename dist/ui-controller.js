@@ -278,6 +278,18 @@ export class UIController {
                 this.updateUI();
             }
         });
+        // 機能ドロップダウン
+        const functionBtn = document.getElementById('btn-function');
+        const functionDropdown = document.getElementById('function-dropdown');
+        functionBtn === null || functionBtn === void 0 ? void 0 : functionBtn.addEventListener('click', (e) => {
+            var _a;
+            e.stopPropagation();
+            functionDropdown === null || functionDropdown === void 0 ? void 0 : functionDropdown.classList.toggle('show');
+            (_a = document.getElementById('file-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
+        });
+        functionDropdown === null || functionDropdown === void 0 ? void 0 : functionDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
         // 解答ボタン
         const answerBtn = document.getElementById('btn-answer');
         answerBtn === null || answerBtn === void 0 ? void 0 : answerBtn.addEventListener('click', () => {
@@ -303,6 +315,7 @@ export class UIController {
         // 置石ボタン
         const handicapBtn = document.getElementById('btn-handicap');
         handicapBtn === null || handicapBtn === void 0 ? void 0 : handicapBtn.addEventListener('click', () => {
+            functionDropdown === null || functionDropdown === void 0 ? void 0 : functionDropdown.classList.remove('show');
             this.showHandicapDialog();
         });
         // レイアウト切り替え
@@ -313,12 +326,14 @@ export class UIController {
                 isHorizontal = !isHorizontal;
                 document.body.classList.toggle('horizontal', isHorizontal);
                 layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+                functionDropdown === null || functionDropdown === void 0 ? void 0 : functionDropdown.classList.remove('show');
                 this.renderer.updateBoardSize();
             });
         }
         // 盤面回転ボタン
         const rotateBtn = document.getElementById('btn-rotate');
         rotateBtn === null || rotateBtn === void 0 ? void 0 : rotateBtn.addEventListener('click', () => {
+            functionDropdown === null || functionDropdown === void 0 ? void 0 : functionDropdown.classList.remove('show');
             this.rotateBoardView();
         });
         // 履歴ボタン
@@ -330,6 +345,14 @@ export class UIController {
                     this.renderer.showMessage(`履歴を復元しました`);
                 }
             });
+        });
+        const answerCopyBtn = document.getElementById('btn-answer-copy');
+        answerCopyBtn === null || answerCopyBtn === void 0 ? void 0 : answerCopyBtn.addEventListener('click', async () => {
+            await this.copyAnswerSequence();
+        });
+        const boardImageBtn = document.getElementById('btn-board-image');
+        boardImageBtn === null || boardImageBtn === void 0 ? void 0 : boardImageBtn.addEventListener('click', async () => {
+            await this.copyBoardImage();
         });
         const problemBtn = document.getElementById('btn-problem');
         problemBtn === null || problemBtn === void 0 ? void 0 : problemBtn.addEventListener('click', () => {
@@ -366,11 +389,15 @@ export class UIController {
         const fileBtn = document.getElementById('btn-file');
         const fileDropdown = document.getElementById('file-dropdown');
         fileBtn === null || fileBtn === void 0 ? void 0 : fileBtn.addEventListener('click', (e) => {
+            var _a;
             e.stopPropagation();
             fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.toggle('show');
+            (_a = document.getElementById('function-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
         });
         document.addEventListener('click', () => {
+            var _a;
             fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.classList.remove('show');
+            (_a = document.getElementById('function-dropdown')) === null || _a === void 0 ? void 0 : _a.classList.remove('show');
         });
         fileDropdown === null || fileDropdown === void 0 ? void 0 : fileDropdown.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -501,11 +528,11 @@ export class UIController {
         if (!answerBtn)
             return;
         if (this.state.answerMode === 'white') {
-            answerBtn.textContent = '⚪ 白先';
+            answerBtn.textContent = '白先';
             answerBtn.classList.add('white-mode');
         }
         else {
-            answerBtn.textContent = '🔥 黒先';
+            answerBtn.textContent = '黒先';
             answerBtn.classList.remove('white-mode');
         }
     }
@@ -541,6 +568,159 @@ export class UIController {
             sgfTextarea.value = this.sgfParser.export(this.state);
         }
         this.updateAnswerButtonDisplay();
+    }
+    async copyAnswerSequence() {
+        var _a, _b;
+        const movesText = (_b = (_a = this.elements.movesEl) === null || _a === void 0 ? void 0 : _a.textContent) === null || _b === void 0 ? void 0 : _b.trim();
+        if (!movesText) {
+            this.renderer.showMessage('解答手順がありません');
+            return;
+        }
+        const spoilerText = `||${movesText}||`;
+        try {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                await navigator.clipboard.writeText(spoilerText);
+                this.renderer.showMessage('解答手順をコピーしました');
+                return;
+            }
+        }
+        catch (error) {
+            console.warn('クリップボードへの書き込みに失敗しました', error);
+        }
+        const textarea = document.createElement('textarea');
+        textarea.value = spoilerText;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            const success = document.execCommand('copy');
+            if (success) {
+                this.renderer.showMessage('解答手順をコピーしました');
+            }
+            else {
+                this.renderer.showMessage(`解答手順: ${spoilerText}`);
+            }
+        }
+        catch (error) {
+            console.warn('execCommandによるコピーに失敗しました', error);
+            this.renderer.showMessage(`解答手順: ${spoilerText}`);
+        }
+        finally {
+            document.body.removeChild(textarea);
+        }
+    }
+    async copyBoardImage() {
+        const boardWrapper = this.elements.boardWrapper;
+        const svgEl = this.elements.svg;
+        if (!boardWrapper || !svgEl) {
+            this.renderer.showMessage('碁盤が見つかりません');
+            return;
+        }
+        const rect = boardWrapper.getBoundingClientRect();
+        const width = Math.round(rect.width);
+        const height = Math.round(rect.height);
+        if (!width || !height) {
+            this.renderer.showMessage('碁盤画像の作成に失敗しました');
+            return;
+        }
+        const serializer = new XMLSerializer();
+        const svgClone = svgEl.cloneNode(true);
+        const viewBox = svgEl.getAttribute('viewBox');
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        svgClone.setAttribute('width', `${width}`);
+        svgClone.setAttribute('height', `${height}`);
+        if (viewBox) {
+            svgClone.setAttribute('viewBox', viewBox);
+        }
+        const backgroundColor = getComputedStyle(boardWrapper).backgroundColor || '#f1d49c';
+        const backgroundRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        backgroundRect.setAttribute('x', '0');
+        backgroundRect.setAttribute('y', '0');
+        backgroundRect.setAttribute('width', '100%');
+        backgroundRect.setAttribute('height', '100%');
+        backgroundRect.setAttribute('fill', backgroundColor);
+        svgClone.insertBefore(backgroundRect, svgClone.firstChild);
+        const svgString = serializer.serializeToString(svgClone);
+        const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        try {
+            const image = await this.loadImage(url);
+            const scale = window.devicePixelRatio || 1;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(width * scale);
+            canvas.height = Math.round(height * scale);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                this.renderer.showMessage('碁盤画像の作成に失敗しました');
+                return;
+            }
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.setTransform(scale, 0, 0, scale, 0, 0);
+            ctx.drawImage(image, 0, 0, width, height);
+            const blob = await new Promise((resolve) => {
+                canvas.toBlob((result) => resolve(result), 'image/png');
+            });
+            if (!blob) {
+                this.renderer.showMessage('碁盤画像の作成に失敗しました');
+                return;
+            }
+            const isIPhone = /iPhone/i.test(navigator.userAgent);
+            if (isIPhone) {
+                const dataUrl = canvas.toDataURL('image/png');
+                this.showImageOverlay(dataUrl, '長押しでコピーしてください（iPhone）');
+                this.renderer.showMessage('碁盤画像を表示しました');
+                return;
+            }
+            if (navigator.clipboard && 'write' in navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                try {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    await navigator.clipboard.write([item]);
+                    this.renderer.showMessage('碁盤画像をコピーしました');
+                    return;
+                }
+                catch (error) {
+                    console.warn('画像のクリップボードコピーに失敗しました', error);
+                }
+            }
+            const dataUrl = canvas.toDataURL('image/png');
+            this.showImageOverlay(dataUrl, '画像を表示しました。保存またはコピーしてください');
+            this.renderer.showMessage('碁盤画像を表示しました');
+        }
+        finally {
+            URL.revokeObjectURL(url);
+        }
+    }
+    loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+            image.src = url;
+        });
+    }
+    showImageOverlay(dataUrl, message) {
+        var _a;
+        (_a = document.querySelector('.ios-copy-overlay')) === null || _a === void 0 ? void 0 : _a.remove();
+        const overlay = document.createElement('div');
+        overlay.className = 'ios-copy-overlay';
+        overlay.innerHTML = `
+      <div class="ios-copy-overlay__content">
+        <p>${message}</p>
+        <img src="${dataUrl}" alt="碁盤画像" class="ios-copy-overlay__preview" />
+        <button type="button" class="ios-copy-overlay__close">閉じる</button>
+      </div>
+    `;
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                overlay.remove();
+            }
+        });
+        const closeBtn = overlay.querySelector('.ios-copy-overlay__close');
+        closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.addEventListener('click', () => overlay.remove());
+        document.body.appendChild(overlay);
     }
     showHandicapDialog() {
         // 既存のポップアップがあれば削除

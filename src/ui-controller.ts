@@ -321,6 +321,20 @@ export class UIController {
       }
     });
 
+    // 機能ドロップダウン
+    const functionBtn = document.getElementById('btn-function');
+    const functionDropdown = document.getElementById('function-dropdown');
+
+    functionBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      functionDropdown?.classList.toggle('show');
+      document.getElementById('file-dropdown')?.classList.remove('show');
+    });
+
+    functionDropdown?.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
     // 解答ボタン
     const answerBtn = document.getElementById('btn-answer');
     answerBtn?.addEventListener('click', () => {
@@ -347,6 +361,7 @@ export class UIController {
     // 置石ボタン
     const handicapBtn = document.getElementById('btn-handicap');
     handicapBtn?.addEventListener('click', () => {
+      functionDropdown?.classList.remove('show');
       this.showHandicapDialog();
     });
 
@@ -358,6 +373,7 @@ export class UIController {
         isHorizontal = !isHorizontal;
         document.body.classList.toggle('horizontal', isHorizontal);
         layoutBtn.textContent = isHorizontal ? '縦レイアウト' : '横レイアウト';
+        functionDropdown?.classList.remove('show');
         this.renderer.updateBoardSize();
       });
     }
@@ -365,6 +381,7 @@ export class UIController {
     // 盤面回転ボタン
     const rotateBtn = document.getElementById('btn-rotate');
     rotateBtn?.addEventListener('click', () => {
+      functionDropdown?.classList.remove('show');
       this.rotateBoardView();
     });
 
@@ -377,6 +394,16 @@ export class UIController {
           this.renderer.showMessage(`履歴を復元しました`);
         }
       });
+    });
+
+    const answerCopyBtn = document.getElementById('btn-answer-copy');
+    answerCopyBtn?.addEventListener('click', async () => {
+      await this.copyAnswerSequence();
+    });
+
+    const boardImageBtn = document.getElementById('btn-board-image');
+    boardImageBtn?.addEventListener('click', async () => {
+      await this.copyBoardImage();
     });
 
     const problemBtn = document.getElementById('btn-problem');
@@ -417,14 +444,16 @@ export class UIController {
     // ファイルメニュー
     const fileBtn = document.getElementById('btn-file');
     const fileDropdown = document.getElementById('file-dropdown');
-    
+
     fileBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       fileDropdown?.classList.toggle('show');
+      document.getElementById('function-dropdown')?.classList.remove('show');
     });
 
     document.addEventListener('click', () => {
       fileDropdown?.classList.remove('show');
+      document.getElementById('function-dropdown')?.classList.remove('show');
     });
 
     fileDropdown?.addEventListener('click', (e) => {
@@ -558,10 +587,10 @@ export class UIController {
     if (!answerBtn) return;
 
     if (this.state.answerMode === 'white') {
-      answerBtn.textContent = '⚪ 白先';
+      answerBtn.textContent = '白先';
       answerBtn.classList.add('white-mode');
     } else {
-      answerBtn.textContent = '🔥 黒先';
+      answerBtn.textContent = '黒先';
       answerBtn.classList.remove('white-mode');
     }
   }
@@ -573,7 +602,7 @@ export class UIController {
 
   private applySGFResult(result: { moves: any[], gameInfo: Partial<any> }): void {
     // SGF読み込み前に履歴保存
-    if (this.state.sgfMoves.length > 0 || this.state.handicapStones > 0 || 
+    if (this.state.sgfMoves.length > 0 || this.state.handicapStones > 0 ||
         this.state.board.some(row => row.some(cell => cell !== 0))) {
       this.historyManager.save(`SGF読み込み前（${this.state.sgfMoves.length}手）`, this.state);
     }
@@ -606,6 +635,180 @@ export class UIController {
     }
 
     this.updateAnswerButtonDisplay();
+  }
+
+  private async copyAnswerSequence(): Promise<void> {
+    const movesText = this.elements.movesEl?.textContent?.trim();
+    if (!movesText) {
+      this.renderer.showMessage('解答手順がありません');
+      return;
+    }
+
+    const spoilerText = `||${movesText}||`;
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(spoilerText);
+        this.renderer.showMessage('解答手順をコピーしました');
+        return;
+      }
+    } catch (error) {
+      console.warn('クリップボードへの書き込みに失敗しました', error);
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = spoilerText;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      const success = document.execCommand('copy');
+      if (success) {
+        this.renderer.showMessage('解答手順をコピーしました');
+      } else {
+        this.renderer.showMessage(`解答手順: ${spoilerText}`);
+      }
+    } catch (error) {
+      console.warn('execCommandによるコピーに失敗しました', error);
+      this.renderer.showMessage(`解答手順: ${spoilerText}`);
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+
+  private async copyBoardImage(): Promise<void> {
+    const boardWrapper = this.elements.boardWrapper;
+    const svgEl = this.elements.svg;
+
+    if (!boardWrapper || !svgEl) {
+      this.renderer.showMessage('碁盤が見つかりません');
+      return;
+    }
+
+    const rect = boardWrapper.getBoundingClientRect();
+    const width = Math.round(rect.width);
+    const height = Math.round(rect.height);
+
+    if (!width || !height) {
+      this.renderer.showMessage('碁盤画像の作成に失敗しました');
+      return;
+    }
+
+    const serializer = new XMLSerializer();
+    const svgClone = svgEl.cloneNode(true) as SVGElement;
+    const viewBox = svgEl.getAttribute('viewBox');
+
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    svgClone.setAttribute('width', `${width}`);
+    svgClone.setAttribute('height', `${height}`);
+    if (viewBox) {
+      svgClone.setAttribute('viewBox', viewBox);
+    }
+
+    const backgroundColor = getComputedStyle(boardWrapper).backgroundColor || '#f1d49c';
+    const backgroundRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    backgroundRect.setAttribute('x', '0');
+    backgroundRect.setAttribute('y', '0');
+    backgroundRect.setAttribute('width', '100%');
+    backgroundRect.setAttribute('height', '100%');
+    backgroundRect.setAttribute('fill', backgroundColor);
+    svgClone.insertBefore(backgroundRect, svgClone.firstChild);
+
+    const svgString = serializer.serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    try {
+      const image = await this.loadImage(url);
+      const scale = window.devicePixelRatio || 1;
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        this.renderer.showMessage('碁盤画像の作成に失敗しました');
+        return;
+      }
+
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.drawImage(image, 0, 0, width, height);
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((result) => resolve(result), 'image/png');
+      });
+
+      if (!blob) {
+        this.renderer.showMessage('碁盤画像の作成に失敗しました');
+        return;
+      }
+
+      const isIPhone = /iPhone/i.test(navigator.userAgent);
+
+      if (isIPhone) {
+        const dataUrl = canvas.toDataURL('image/png');
+        this.showImageOverlay(dataUrl, '長押しでコピーしてください（iPhone）');
+        this.renderer.showMessage('碁盤画像を表示しました');
+        return;
+      }
+
+      if (navigator.clipboard && 'write' in navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        try {
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          this.renderer.showMessage('碁盤画像をコピーしました');
+          return;
+        } catch (error) {
+          console.warn('画像のクリップボードコピーに失敗しました', error);
+        }
+      }
+
+      const dataUrl = canvas.toDataURL('image/png');
+      this.showImageOverlay(dataUrl, '画像を表示しました。保存またはコピーしてください');
+      this.renderer.showMessage('碁盤画像を表示しました');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  private loadImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
+      image.src = url;
+    });
+  }
+
+  private showImageOverlay(dataUrl: string, message: string): void {
+    document.querySelector('.ios-copy-overlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'ios-copy-overlay';
+
+    overlay.innerHTML = `
+      <div class="ios-copy-overlay__content">
+        <p>${message}</p>
+        <img src="${dataUrl}" alt="碁盤画像" class="ios-copy-overlay__preview" />
+        <button type="button" class="ios-copy-overlay__close">閉じる</button>
+      </div>
+    `;
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        overlay.remove();
+      }
+    });
+
+    const closeBtn = overlay.querySelector<HTMLButtonElement>('.ios-copy-overlay__close');
+    closeBtn?.addEventListener('click', () => overlay.remove());
+
+    document.body.appendChild(overlay);
   }
 
   private showHandicapDialog(): void {
