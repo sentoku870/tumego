@@ -274,15 +274,91 @@ export class Renderer {
   // ============ スライダー更新 ============
   updateSlider(): void {
     if (!this.elements.sliderEl) return;
-    
+
     this.elements.sliderEl.max = this.state.sgfMoves.length.toString();
     this.elements.sliderEl.value = this.state.sgfIndex.toString();
+  }
+
+  async exportBoardAsPNG(): Promise<Blob> {
+    const svgElement = this.elements.svg;
+    const viewBox = svgElement.getAttribute('viewBox');
+
+    if (!viewBox) {
+      throw new Error('SVG に viewBox が設定されていません');
+    }
+
+    const [, , widthStr, heightStr] = viewBox.split(' ');
+    const width = Math.round(parseFloat(widthStr));
+    const height = Math.round(parseFloat(heightStr));
+
+    const clone = svgElement.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', width.toString());
+    clone.setAttribute('height', height.toString());
+
+    const rootStyle = getComputedStyle(document.documentElement);
+    ['--board', '--line', '--star', '--coord', '--black', '--white'].forEach(variable => {
+      const value = rootStyle.getPropertyValue(variable);
+      if (value) {
+        clone.style.setProperty(variable, value.trim());
+      }
+    });
+
+    const serializer = new XMLSerializer();
+    let svgContent = serializer.serializeToString(clone);
+
+    if (!svgContent.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svgContent = svgContent.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const svgBlob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    try {
+      const img = await this.loadImage(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas コンテキストを取得できません');
+      }
+
+      const boardStyle = getComputedStyle(this.elements.boardWrapper);
+      const backgroundColor = boardStyle.backgroundColor || '#f4d19b';
+
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      return await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('PNG 生成に失敗しました'));
+          }
+        }, 'image/png');
+      });
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  private loadImage(src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('SVG を画像として読み込めませんでした'));
+      img.src = src;
+    });
   }
 
   // ============ ユーティリティ ============
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    
+
     for (const [key, value] of Object.entries(attributes)) {
       element.setAttribute(key, value);
     }

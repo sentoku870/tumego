@@ -16,6 +16,11 @@ export class UIController {
         };
         this.boardHasFocus = false;
         this.touchStartY = 0;
+        this.boardLongPressTimer = null;
+        this.boardLongPressPointerId = null;
+        this.boardLongPressStart = null;
+        this.boardLongPressTarget = null;
+        this.iosCopyOverlay = null;
         this.engine = new GoEngine(state);
         this.renderer = new Renderer(state, elements);
         this.sgfParser = new SGFParser();
@@ -32,6 +37,7 @@ export class UIController {
         this.initButtonEvents();
         this.initKeyboardEvents();
         this.initResizeEvents();
+        this.initMovesCopyListener();
     }
     // ============ 盤面イベント ============
     initBoardEvents() {
@@ -68,16 +74,23 @@ export class UIController {
     // ============ SVGイベント ============
     initSVGEvents() {
         this.elements.svg.addEventListener('pointerdown', (e) => {
+            this.startBoardLongPress(e);
             this.handlePointerDown(e);
         });
         this.elements.svg.addEventListener('pointermove', (e) => {
+            this.handleBoardLongPressMove(e);
             this.handlePointerMove(e);
         });
         this.elements.svg.addEventListener('pointerup', (e) => {
             this.handlePointerEnd(e);
+            this.resetBoardLongPressState();
         });
         this.elements.svg.addEventListener('pointercancel', (e) => {
             this.handlePointerEnd(e);
+            this.resetBoardLongPressState();
+        });
+        this.elements.svg.addEventListener('pointerleave', () => {
+            this.cancelBoardLongPressTimer();
         });
         this.elements.svg.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -87,6 +100,7 @@ export class UIController {
     handlePointerDown(e) {
         this.boardHasFocus = true;
         this.elements.boardWrapper.focus();
+        this.removeIOSCopyOverlay();
         if (e.button === 2)
             e.preventDefault();
         if (this.state.eraseMode) {
@@ -146,6 +160,251 @@ export class UIController {
         this.dragState.dragColor = null;
         this.dragState.lastPos = null;
         this.elements.svg.releasePointerCapture(e.pointerId);
+    }
+    startBoardLongPress(event) {
+        if (this.boardLongPressTimer !== null) {
+            window.clearTimeout(this.boardLongPressTimer);
+            this.boardLongPressTimer = null;
+        }
+        if (event.pointerType === 'mouse' && event.button !== 0) {
+            return;
+        }
+        const target = event.target;
+        if (!target || !target.classList.contains('stone')) {
+            this.boardLongPressTarget = null;
+            return;
+        }
+        this.boardLongPressPointerId = event.pointerId;
+        this.boardLongPressStart = { x: event.clientX, y: event.clientY };
+        this.boardLongPressTarget = target;
+        this.boardLongPressTimer = window.setTimeout(() => {
+            this.boardLongPressTimer = null;
+            void this.handleBoardImageLongPress();
+        }, 650);
+    }
+    handleBoardLongPressMove(event) {
+        if (this.boardLongPressTimer === null || !this.boardLongPressStart) {
+            return;
+        }
+        const deltaX = Math.abs(event.clientX - this.boardLongPressStart.x);
+        const deltaY = Math.abs(event.clientY - this.boardLongPressStart.y);
+        if (Math.max(deltaX, deltaY) > 10) {
+            this.cancelBoardLongPressTimer();
+        }
+    }
+    cancelBoardLongPressTimer() {
+        if (this.boardLongPressTimer !== null) {
+            window.clearTimeout(this.boardLongPressTimer);
+            this.boardLongPressTimer = null;
+        }
+    }
+    resetBoardLongPressState() {
+        this.cancelBoardLongPressTimer();
+        this.boardLongPressPointerId = null;
+        this.boardLongPressStart = null;
+        this.boardLongPressTarget = null;
+    }
+    async handleBoardImageLongPress() {
+        if (!this.boardLongPressTarget) {
+            return;
+        }
+        this.dragState.dragging = false;
+        this.dragState.dragColor = null;
+        this.dragState.lastPos = null;
+        if (this.boardLongPressPointerId !== null) {
+            try {
+                this.elements.svg.releasePointerCapture(this.boardLongPressPointerId);
+            }
+            catch (error) {
+                console.warn('Pointer capture release failed:', error);
+            }
+            this.boardLongPressPointerId = null;
+        }
+        try {
+            const blob = await this.renderer.exportBoardAsPNG();
+            if (this.isIOSDevice()) {
+                const dataUrl = await this.blobToDataUrl(blob);
+                this.showIOSCopyOverlay(dataUrl);
+                this.renderer.showMessage('画像を長押しでコピーしてください');
+            }
+            else if (navigator.clipboard && 'write' in navigator.clipboard) {
+                if (typeof ClipboardItem === 'undefined') {
+                    throw new Error('ClipboardItem がサポートされていません');
+                }
+                const item = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([item]);
+                this.renderer.showMessage('碁盤画像をクリップボードにコピーしました');
+            }
+            else {
+                throw new Error('クリップボード API が利用できません');
+            }
+        }
+        catch (error) {
+            console.error('碁盤画像コピーに失敗しました:', error);
+            this.renderer.showMessage('碁盤画像のコピーに失敗しました');
+        }
+        finally {
+            this.boardLongPressTarget = null;
+        }
+    }
+    blobToDataUrl(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('画像データの作成に失敗しました'));
+            reader.readAsDataURL(blob);
+        });
+    }
+    isIOSDevice() {
+        if (typeof navigator === 'undefined') {
+            return false;
+        }
+        const ua = navigator.userAgent;
+        return /iP(hone|od|ad)/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
+    }
+    showIOSCopyOverlay(dataUrl) {
+        this.removeIOSCopyOverlay();
+        const overlay = document.createElement('div');
+        overlay.className = 'ios-copy-overlay';
+        const content = document.createElement('div');
+        content.className = 'ios-copy-overlay__content';
+        const message = document.createElement('p');
+        message.className = 'ios-copy-overlay__message';
+        message.textContent = '画像を長押しするとコピーできます';
+        const image = document.createElement('img');
+        image.className = 'ios-copy-overlay__image';
+        image.src = dataUrl;
+        image.alt = '碁盤の画像';
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'ios-copy-overlay__close';
+        closeBtn.textContent = '閉じる';
+        closeBtn.addEventListener('click', () => this.removeIOSCopyOverlay());
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                this.removeIOSCopyOverlay();
+            }
+        });
+        content.appendChild(message);
+        content.appendChild(image);
+        content.appendChild(closeBtn);
+        overlay.appendChild(content);
+        this.elements.boardWrapper.appendChild(overlay);
+        this.iosCopyOverlay = overlay;
+    }
+    removeIOSCopyOverlay() {
+        if (this.iosCopyOverlay) {
+            this.iosCopyOverlay.remove();
+            this.iosCopyOverlay = null;
+        }
+    }
+    initMovesCopyListener() {
+        const movesEl = this.elements.movesEl;
+        if (!movesEl)
+            return;
+        let longPressTimer = null;
+        let longPressArmed = false;
+        const clearTimer = () => {
+            if (longPressTimer !== null) {
+                window.clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            longPressArmed = false;
+        };
+        const copyMoves = async () => {
+            var _a, _b;
+            const targetText = (_a = movesEl.textContent) === null || _a === void 0 ? void 0 : _a.trim();
+            if (!targetText)
+                return false;
+            const textToCopy = `||${targetText}||`;
+            try {
+                if (!((_b = navigator.clipboard) === null || _b === void 0 ? void 0 : _b.writeText)) {
+                    throw new Error('クリップボード API が利用できません');
+                }
+                await navigator.clipboard.writeText(textToCopy);
+                return true;
+            }
+            catch (clipboardError) {
+                try {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = textToCopy;
+                    textarea.setAttribute('readonly', 'true');
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    textarea.style.pointerEvents = 'none';
+                    textarea.style.top = '0';
+                    textarea.style.left = '0';
+                    document.body.appendChild(textarea);
+                    try {
+                        textarea.focus({ preventScroll: true });
+                    }
+                    catch (_c) {
+                        textarea.focus();
+                    }
+                    textarea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    if (!successful) {
+                        throw clipboardError;
+                    }
+                    return true;
+                }
+                catch (fallbackError) {
+                    console.error('解答手順のコピーに失敗しました:', fallbackError);
+                    return false;
+                }
+            }
+        };
+        const startPress = (event) => {
+            var _a;
+            const text = (_a = movesEl.textContent) === null || _a === void 0 ? void 0 : _a.trim();
+            if (!text) {
+                return;
+            }
+            if (event.pointerType === 'mouse' && event.button !== 0) {
+                return;
+            }
+            event.preventDefault();
+            clearTimer();
+            longPressTimer = window.setTimeout(() => {
+                longPressTimer = null;
+                longPressArmed = true;
+            }, 600);
+        };
+        const handlePressEnd = (event) => {
+            if (longPressArmed) {
+                event.preventDefault();
+                const performCopy = async () => {
+                    const success = await copyMoves();
+                    this.renderer.showMessage(success ? '解答手順をコピーしました' : '解答手順のコピーに失敗しました');
+                };
+                performCopy();
+            }
+            clearTimer();
+        };
+        movesEl.addEventListener('pointerdown', startPress);
+        movesEl.addEventListener('pointerup', handlePressEnd);
+        movesEl.addEventListener('pointercancel', handlePressEnd);
+        movesEl.addEventListener('pointerleave', clearTimer);
+        movesEl.addEventListener('contextmenu', (event) => event.preventDefault());
+    }
+    setupDoubleTapZoomBlock(button) {
+        if (!button)
+            return;
+        button.style.touchAction = 'manipulation';
+        let lastTap = 0;
+        button.addEventListener('touchend', (event) => {
+            if (event.touches.length > 0 || event.changedTouches.length !== 1) {
+                lastTap = Date.now();
+                return;
+            }
+            const now = Date.now();
+            if (now - lastTap < 350) {
+                event.preventDefault();
+                button.click();
+            }
+            lastTap = now;
+        }, { passive: false });
     }
     // ============ 着手処理 ============
     placeAtEvent(event) {
@@ -271,6 +530,7 @@ export class UIController {
                 this.updateUI();
             }
         });
+        this.setupDoubleTapZoomBlock(prevBtn);
         const nextBtn = document.getElementById('btn-next-move');
         nextBtn === null || nextBtn === void 0 ? void 0 : nextBtn.addEventListener('click', () => {
             if (this.state.sgfIndex < this.state.sgfMoves.length) {
@@ -278,6 +538,7 @@ export class UIController {
                 this.updateUI();
             }
         });
+        this.setupDoubleTapZoomBlock(nextBtn);
         // 解答ボタン
         const answerBtn = document.getElementById('btn-answer');
         answerBtn === null || answerBtn === void 0 ? void 0 : answerBtn.addEventListener('click', () => {
