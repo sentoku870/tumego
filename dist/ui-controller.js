@@ -565,32 +565,39 @@ export class UIController {
         const pngBlob = await this.convertSvgToPng(svgElement);
         const platform = this.detectPlatform();
         if (platform === 'ios') {
-            await this.shareImage(pngBlob);
+            const shared = await this.shareImageOniOS(pngBlob);
+            if (!shared) {
+                alert('共有機能に対応していません');
+            }
             return;
         }
         if (platform === 'android') {
-            if (this.canUseClipboard()) {
-                try {
-                    await this.writeImageToClipboard(pngBlob);
-                    alert('盤面をクリップボードにコピーしました');
-                    return;
-                }
-                catch (error) {
-                    console.warn('Android でのクリップボード書き込みに失敗しました', error);
-                }
+            const copied = await this.tryWriteImageToClipboard(pngBlob);
+            if (copied) {
+                alert('盤面をクリップボードにコピーしました');
+                return;
             }
-            await this.shareImage(pngBlob);
+            const shared = await this.shareImageOnAndroid(pngBlob);
+            if (!shared) {
+                alert('共有機能に対応していません');
+            }
             return;
         }
-        await this.writeImageToClipboard(pngBlob);
-        alert('盤面をクリップボードにコピーしました');
+        const copied = await this.tryWriteImageToClipboard(pngBlob);
+        if (copied) {
+            alert('盤面をクリップボードにコピーしました');
+        }
+        else {
+            alert('このデバイスはクリップボードへの書き込みに対応していません');
+        }
     }
     detectPlatform() {
-        const ua = navigator.userAgent.toLowerCase();
-        if (/iphone|ipad|ipod/.test(ua)) {
+        const ua = navigator.userAgent;
+        const isiOS = /iPhone|iPad|iPod/.test(ua) || (ua.includes('Mac') && 'ontouchend' in document);
+        if (isiOS) {
             return 'ios';
         }
-        if (/android/.test(ua)) {
+        if (/Android/.test(ua)) {
             return 'android';
         }
         return 'desktop';
@@ -599,23 +606,99 @@ export class UIController {
         const clipboard = navigator.clipboard;
         return !!clipboard && typeof clipboard.write === 'function' && typeof ClipboardItem !== 'undefined';
     }
-    async writeImageToClipboard(blob) {
+    async tryWriteImageToClipboard(blob) {
         if (!this.canUseClipboard()) {
-            throw new Error('クリップボードへの書き込みに対応していません');
+            return false;
         }
-        const clipboardItem = new ClipboardItem({ 'image/png': blob });
-        await navigator.clipboard.write([clipboardItem]);
+        try {
+            const clipboardItem = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([clipboardItem]);
+            return true;
+        }
+        catch (error) {
+            console.warn('クリップボードへの書き込みに失敗しました', error);
+            return false;
+        }
     }
-    async shareImage(blob) {
+    async shareImageOnAndroid(blob) {
         if (typeof navigator.share !== 'function') {
-            throw new Error('共有機能に対応していません');
+            return false;
         }
         const file = new File([blob], 'goban.png', { type: 'image/png' });
-        const shareData = { files: [file], title: '現在の盤面', text: '現在の局面を共有します。' };
-        if (navigator.canShare && !navigator.canShare(shareData)) {
-            throw new Error('このデバイスは画像ファイルの共有に対応していません');
+        const shareData = {
+            files: [file],
+            title: '現在の盤面',
+            text: '現在の局面を共有します。'
+        };
+        if (typeof navigator.canShare === 'function') {
+            try {
+                if (!navigator.canShare(shareData)) {
+                    return false;
+                }
+            }
+            catch (error) {
+                console.warn('navigator.canShare の判定に失敗しました', error);
+                return false;
+            }
         }
-        await navigator.share(shareData);
+        try {
+            await navigator.share(shareData);
+            return true;
+        }
+        catch (error) {
+            console.warn('Android での共有に失敗しました', error);
+            return false;
+        }
+    }
+    async shareImageOniOS(blob) {
+        if (typeof navigator.share !== 'function') {
+            return false;
+        }
+        const title = '現在の盤面';
+        const text = '現在の局面を共有します。';
+        const file = new File([blob], 'goban.png', { type: 'image/png' });
+        const fileShareData = { files: [file], title, text };
+        if (typeof navigator.canShare === 'function') {
+            try {
+                if (navigator.canShare(fileShareData)) {
+                    try {
+                        await navigator.share(fileShareData);
+                        return true;
+                    }
+                    catch (error) {
+                        console.warn('iOS でのファイル共有に失敗しました', error);
+                    }
+                }
+            }
+            catch (error) {
+                console.warn('iOS の navigator.canShare 判定に失敗しました', error);
+            }
+        }
+        try {
+            const dataUrl = await this.blobToDataUrl(blob);
+            if (!dataUrl) {
+                return false;
+            }
+            await navigator.share({ title, text, url: dataUrl });
+            return true;
+        }
+        catch (error) {
+            console.warn('iOS での DataURL 共有に失敗しました', error);
+            return false;
+        }
+    }
+    async blobToDataUrl(blob) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                resolve(typeof reader.result === 'string' ? reader.result : null);
+            };
+            reader.onerror = () => {
+                console.warn('DataURL の生成に失敗しました', reader.error);
+                resolve(null);
+            };
+            reader.readAsDataURL(blob);
+        });
     }
     async convertSvgToPng(svgElement) {
         const inlineSvg = svgElement.cloneNode(true);
