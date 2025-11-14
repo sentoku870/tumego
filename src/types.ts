@@ -88,12 +88,11 @@ export interface HistorySnapshot {
 }
 
 export interface OperationHistory {
-  snapshots: HistorySnapshot[];
-  maxSnapshots: number;
-  save(description: string): void;
-  restore(index: number): boolean;
+  save(description: string, state: GameState): void;
+  restore(index: number, currentState: GameState): boolean;
   getList(): HistoryItem[];
   clear(): void;
+  showHistoryDialog(onRestore: (index: number) => void): void;
 }
 
 export interface HistoryItem {
