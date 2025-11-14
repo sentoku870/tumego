@@ -217,6 +217,7 @@ export class GoEngine {
         this.state.problemDiagramSet = false;
         this.state.problemDiagramBlack = [];
         this.state.problemDiagramWhite = [];
+        this.state.gameTree = null;
     }
     hasGameData() {
         return this.state.sgfMoves.length > 0 ||
@@ -445,6 +446,8 @@ export class GoEngine {
         // 問題図は一般配置として扱うため、置石情報はリセットする
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
+        // 新しい問題図に基づく状態のため、既存のゲームツリーは破棄する
+        this.state.gameTree = null;
         // 解答着手は問題図から開始する
         this.state.sgfMoves = [];
         this.state.sgfIndex = 0;

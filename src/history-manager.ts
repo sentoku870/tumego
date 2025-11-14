@@ -1,7 +1,7 @@
 // ============ 履歴管理 ============
-import { GameState, HistorySnapshot, HistoryItem, CellState, GameTree, SGFNode, Move } from './types.js';
+import { GameState, HistorySnapshot, HistoryItem, CellState, GameTree, SGFNode, Move, OperationHistory } from './types.js';
 
-export class HistoryManager {
+export class HistoryManager implements OperationHistory {
   private snapshots: HistorySnapshot[] = [];
   private readonly maxSnapshots = 5;
 
