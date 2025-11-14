@@ -8,12 +8,30 @@ export class GameStore {
         this.state = state;
         this.engine = engine;
         this.history = history;
+        this.performanceDebug = false;
+        this.performanceMetrics = {
+            rebuildBoardFromMoves: this.createRebuildMetrics()
+        };
     }
     get snapshot() {
         return this.state;
     }
     get historyManager() {
         return this.history;
+    }
+    setPerformanceDebugging(enabled, reset = true) {
+        this.performanceDebug = enabled;
+        if (reset) {
+            this.resetPerformanceMetrics();
+        }
+    }
+    resetPerformanceMetrics() {
+        this.performanceMetrics.rebuildBoardFromMoves = this.createRebuildMetrics();
+    }
+    getPerformanceMetrics() {
+        return {
+            rebuildBoardFromMoves: { ...this.performanceMetrics.rebuildBoardFromMoves }
+        };
     }
     tryMove(pos, color, record = true) {
         const result = this.engine.playMove(this.state, pos, color);
@@ -243,6 +261,15 @@ export class GameStore {
         this.state.board = board;
     }
     rebuildBoardFromMoves(limit) {
+        const profiling = this.performanceDebug;
+        let startTime = 0;
+        let appliedMoves = 0;
+        if (profiling) {
+            startTime = this.getTimestamp();
+            const metrics = this.performanceMetrics.rebuildBoardFromMoves;
+            metrics.callCount++;
+            metrics.lastLimit = limit;
+        }
         this.state.history = [];
         this.state.turn = 0;
         this.applyInitialSetup();
@@ -254,12 +281,20 @@ export class GameStore {
             this.pushHistorySnapshot();
             this.state.board = result.board;
             this.state.turn++;
+            appliedMoves++;
         }
         if (this.state.numberMode) {
             this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
         }
         else {
             this.state.turn = limit;
+        }
+        if (profiling) {
+            const metrics = this.performanceMetrics.rebuildBoardFromMoves;
+            const duration = this.getTimestamp() - startTime;
+            metrics.totalDurationMs += duration;
+            metrics.lastDurationMs = duration;
+            metrics.lastAppliedMoves = appliedMoves;
         }
     }
     findLastMoveIndex(pos, color) {
@@ -294,6 +329,21 @@ export class GameStore {
     }
     saveToHistory(description) {
         this.history.save(description, this.state);
+    }
+    createRebuildMetrics() {
+        return {
+            callCount: 0,
+            totalDurationMs: 0,
+            lastDurationMs: 0,
+            lastLimit: 0,
+            lastAppliedMoves: 0
+        };
+    }
+    getTimestamp() {
+        if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+            return performance.now();
+        }
+        return Date.now();
     }
     isValidPosition(pos) {
         return pos.col >= 0 && pos.col < this.state.boardSize &&
