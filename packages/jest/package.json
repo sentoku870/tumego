@@ -1,0 +1,8 @@
+{
+  "name": "jest",
+  "version": "0.0.0",
+  "description": "Lightweight local Jest runner for offline testing",
+  "bin": {
+    "jest": "./bin/jest.js"
+  }
+}
