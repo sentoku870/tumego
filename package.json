@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "tumego-core.js",
-"scripts": {
-  "build": "tsc",
-  "dev": "tsc --watch",
-  "clean": "rmdir /s /q dist 2>nul || echo cleaned",
-  "backup": "xcopy *.js original\\ /Y 2>nul || echo backed up",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rmdir /s /q dist 2>nul || echo cleaned",
+    "backup": "xcopy *.js original\\\\ /Y 2>nul || echo backed up",
+    "test": "npm run build && jest"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sentoku870/tumego.git"
@@ -23,6 +23,7 @@
   "homepage": "https://github.com/sentoku870/tumego#readme",
   "devDependencies": {
     "@types/node": "^24.0.4",
+    "jest": "file:packages/jest",
     "typescript": "^5.8.3"
   }
 }
