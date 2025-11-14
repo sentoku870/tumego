@@ -130,6 +130,68 @@ export interface KeyBindings {
 // ============ ユーティリティ型 ============
 export type Board = CellState[][];
 
+// ============ レンダリング用ビュー型 ============
+export interface BoardRenderGeometry {
+  readonly boardSize: number;
+  readonly cellSize: number;
+  readonly margin: number;
+  readonly viewBoxSize: number;
+  readonly coordFontSize: number;
+  readonly moveNumberFontSize: number;
+  readonly letters: string[];
+  coordinateAt(index: number): number;
+  toPixel(pos: Position): { cx: number; cy: number };
+}
+
+export interface CoordinateLabel {
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly fontSize: number;
+  readonly className: string;
+}
+
+export interface StoneRenderInfo {
+  readonly position: Position;
+  readonly cx: number;
+  readonly cy: number;
+  readonly radius: number;
+  readonly fill: string;
+  readonly strokeWidth: number;
+}
+
+export interface MoveNumberRenderInfo {
+  readonly cx: number;
+  readonly cy: number;
+  readonly fontSize: number;
+  readonly fill: string;
+  readonly text: string;
+}
+
+export interface BoardRenderModel {
+  readonly geometry: BoardRenderGeometry;
+  readonly stars: Position[];
+  readonly coordinates: CoordinateLabel[];
+  readonly stones: StoneRenderInfo[];
+  readonly moveNumbers: MoveNumberRenderInfo[];
+  readonly showMoveNumbers: boolean;
+}
+
+export interface InfoRenderModel {
+  readonly infoText: string;
+  readonly movesText: string;
+}
+
+export interface SliderRenderModel {
+  readonly max: number;
+  readonly value: number;
+}
+
+// ============ エンジン関連 ============
+export interface MoveResult {
+  readonly board: Board;
+}
+
 // ============ 定数 ============
 export const DEFAULT_CONFIG: GameConfig = {
   CELL_SIZE: 60,

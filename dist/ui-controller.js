@@ -19,13 +19,12 @@ export class UIController {
     constructor(state, elements) {
         this.state = state;
         this.elements = elements;
-        this.engine = new GoEngine(state);
-        this.renderer = new Renderer(state, elements);
+        this.engine = new GoEngine();
         this.sgfParser = new SGFParser();
         this.qrManager = new QRManager();
         this.historyManager = new HistoryManager();
-        this.engine.setHistoryManager(this.historyManager);
         this.store = new GameStore(state, this.engine, this.historyManager);
+        this.renderer = new Renderer(this.store, elements);
         this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
         this.sgfService = new SGFService(this.sgfParser, this.store);
         this.uiState = new UIInteractionState();
