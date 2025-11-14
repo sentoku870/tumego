@@ -919,6 +919,7 @@ export class UIController {
     this.state.numberMode = false;
     this.state.numberStartIndex = 0;
     this.state.handicapStones = 0;
+    this.state.gameTree = null;
     this.state.handicapPositions = [];
     this.state.problemDiagramSet = false;
     this.state.problemDiagramBlack = [];
