@@ -639,6 +639,9 @@ export class UIController {
       ClipboardItem?: new (items: Record<string, Blob | Promise<Blob>>) => ClipboardItem;
     }).ClipboardItem;
 
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                  (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+
     if (clipboardWritable && clipboardItemCtor) {
       try {
         const item = new clipboardItemCtor({ 'image/png': pngBlob });
@@ -647,7 +650,9 @@ export class UIController {
         return;
       } catch (error) {
         console.error('クリップボードへの書き込みに失敗しました', error);
-        alert('クリップボードにコピーできなかったため画像を表示します');
+        if (!isIOS) {
+          alert('クリップボードにコピーできなかったため画像を表示します');
+        }
       }
     }
 
