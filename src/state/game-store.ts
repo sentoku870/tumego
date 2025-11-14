@@ -9,14 +9,34 @@ import {
 import { GoEngine } from '../go-engine.js';
 import { HistoryManager } from '../history-manager.js';
 
+interface RebuildMetrics {
+  callCount: number;
+  totalDurationMs: number;
+  lastDurationMs: number;
+  lastLimit: number;
+  lastAppliedMoves: number;
+}
+
+interface PerformanceMetrics {
+  rebuildBoardFromMoves: RebuildMetrics;
+}
+
 /**
  * Centralizes all mutations against {@link GameState}. Rendering and UI layers
  * interact through this class to keep domain logic encapsulated.
  */
 export class GameStore {
+  // === Cache-related fields (from PR57) ===
   private cachedBoardState: Board | null = null;
   private cachedAppliedMoveIndex: number | null = null;
   private cachedBoardTimeline: Board[] = [];
+
+  // === Performance metrics (from main branch) ===
+  private performanceDebug = false;
+  private performanceMetrics: PerformanceMetrics = {
+    rebuildBoardFromMoves: this.createRebuildMetrics()
+  };
+
 
   constructor(
     private readonly state: GameState,
@@ -30,6 +50,23 @@ export class GameStore {
 
   get historyManager(): HistoryManager {
     return this.history;
+  }
+
+  setPerformanceDebugging(enabled: boolean, reset = true): void {
+    this.performanceDebug = enabled;
+    if (reset) {
+      this.resetPerformanceMetrics();
+    }
+  }
+
+  resetPerformanceMetrics(): void {
+    this.performanceMetrics.rebuildBoardFromMoves = this.createRebuildMetrics();
+  }
+
+  getPerformanceMetrics(): PerformanceMetrics {
+    return {
+      rebuildBoardFromMoves: { ...this.performanceMetrics.rebuildBoardFromMoves }
+    };
   }
 
   tryMove(pos: Position, color: StoneColor, record = true): boolean {
@@ -337,6 +374,17 @@ export class GameStore {
   }
 
   private rebuildBoardFromMoves(limit: number): void {
+    const profiling = this.performanceDebug;
+    let startTime = 0;
+    let appliedMoves = 0;
+
+    if (profiling) {
+      startTime = this.getTimestamp();
+      const metrics = this.performanceMetrics.rebuildBoardFromMoves;
+      metrics.callCount++;
+      metrics.lastLimit = limit;
+    }
+
     this.state.history = [];
     this.state.turn = 0;
     this.applyInitialSetup();
@@ -349,12 +397,21 @@ export class GameStore {
       this.pushHistorySnapshot();
       this.state.board = result.board;
       this.state.turn++;
+      appliedMoves++;
     }
 
     if (this.state.numberMode) {
       this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
     } else {
       this.state.turn = limit;
+    }
+
+    if (profiling) {
+      const metrics = this.performanceMetrics.rebuildBoardFromMoves;
+      const duration = this.getTimestamp() - startTime;
+      metrics.totalDurationMs += duration;
+      metrics.lastDurationMs = duration;
+      metrics.lastAppliedMoves = appliedMoves;
     }
   }
 
@@ -508,6 +565,24 @@ export class GameStore {
 
   private saveToHistory(description: string): void {
     this.history.save(description, this.state);
+  }
+
+  private createRebuildMetrics(): RebuildMetrics {
+    return {
+      callCount: 0,
+      totalDurationMs: 0,
+      lastDurationMs: 0,
+      lastLimit: 0,
+      lastAppliedMoves: 0
+    };
+  }
+
+  private getTimestamp(): number {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      return performance.now();
+    }
+
+    return Date.now();
   }
 
   private isValidPosition(pos: Position): boolean {
