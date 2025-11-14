@@ -460,7 +460,7 @@ export class UIController {
             if (file) {
                 try {
                     const result = await this.sgfParser.loadFromFile(file);
-                    this.applySGFResult(result);
+                    this.applySGF(result);
                     this.renderer.showMessage(`SGF読み込み完了 (${result.moves.length}手)`);
                 }
                 catch (error) {
@@ -474,7 +474,7 @@ export class UIController {
             this.hideDropdown(fileDropdown);
             try {
                 const result = await this.sgfParser.loadFromClipboard();
-                this.applySGFResult(result);
+                this.applySGF(result);
                 this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
             }
             catch (error) {
@@ -482,8 +482,7 @@ export class UIController {
                 const sgfTextarea = document.getElementById('sgf-text');
                 if (sgfTextarea === null || sgfTextarea === void 0 ? void 0 : sgfTextarea.value.trim()) {
                     try {
-                        const result = this.sgfParser.parse(sgfTextarea.value.trim());
-                        this.applySGFResult({ moves: result.moves, gameInfo: result.gameInfo });
+                        this.importSGFString(sgfTextarea.value.trim());
                         this.renderer.showMessage('テキストエリアからSGF読み込み完了');
                     }
                     catch (parseError) {
@@ -567,6 +566,8 @@ export class UIController {
         const pngBlob = await this.convertSvgToPng(svgElement, canvasElement);
         const clipboardWritable = typeof ((_a = navigator.clipboard) === null || _a === void 0 ? void 0 : _a.write) === 'function';
         const clipboardItemCtor = window.ClipboardItem;
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+            (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
         if (clipboardWritable && clipboardItemCtor) {
             try {
                 const item = new clipboardItemCtor({ 'image/png': pngBlob });
@@ -576,7 +577,9 @@ export class UIController {
             }
             catch (error) {
                 console.error('クリップボードへの書き込みに失敗しました', error);
-                alert('クリップボードにコピーできなかったため画像を表示します');
+                if (!isIOS) {
+                    alert('クリップボードにコピーできなかったため画像を表示します');
+                }
             }
         }
         const dataUrl = await this.blobToDataUrl(pngBlob);
@@ -777,34 +780,83 @@ export class UIController {
         document.querySelectorAll(`.${groupClass}`).forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
     }
-    applySGFResult(result) {
+    applySGF(result) {
+        const { moves, gameInfo, rawSGF } = result;
+        if (!moves || !Array.isArray(moves) || !gameInfo) {
+            throw new Error('不正なSGF解析結果です');
+        }
         // SGF読み込み前に履歴保存
         if (this.state.sgfMoves.length > 0 || this.state.handicapStones > 0 ||
             this.state.board.some(row => row.some(cell => cell !== 0))) {
             this.historyManager.save(`SGF読み込み前（${this.state.sgfMoves.length}手）`, this.state);
         }
-        // ゲーム情報を適用
-        if (result.gameInfo.boardSize) {
-            this.engine.initBoard(result.gameInfo.boardSize);
+        // 盤サイズの調整
+        if (gameInfo.boardSize && gameInfo.boardSize !== this.state.boardSize) {
+            const newSize = gameInfo.boardSize;
+            this.state.boardSize = newSize;
+            this.state.board = Array.from({ length: newSize }, () => Array.from({ length: newSize }, () => 0));
         }
+        else {
+            const currentSize = this.state.boardSize;
+            this.state.board = Array.from({ length: currentSize }, () => Array.from({ length: currentSize }, () => 0));
+        }
+        // SGF関連状態を初期化
+        this.state.history = [];
+        this.state.turn = 0;
+        this.state.sgfMoves = [];
+        this.state.sgfIndex = 0;
+        this.state.numberMode = false;
+        this.state.numberStartIndex = 0;
+        this.state.handicapStones = 0;
+        this.state.handicapPositions = [];
         this.state.problemDiagramSet = false;
         this.state.problemDiagramBlack = [];
         this.state.problemDiagramWhite = [];
-        Object.assign(this.state, result.gameInfo);
+        this.state.startColor = 1;
+        this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+        // ゲーム情報を適用
+        if (gameInfo.komi !== undefined)
+            this.state.komi = gameInfo.komi;
+        if (gameInfo.startColor !== undefined)
+            this.state.startColor = gameInfo.startColor;
+        if (gameInfo.handicapStones !== undefined)
+            this.state.handicapStones = gameInfo.handicapStones;
+        if (gameInfo.handicapPositions) {
+            this.state.handicapPositions = gameInfo.handicapPositions.map(pos => ({ ...pos }));
+        }
+        if (gameInfo.problemDiagramBlack) {
+            this.state.problemDiagramBlack = gameInfo.problemDiagramBlack.map(pos => ({ ...pos }));
+        }
+        if (gameInfo.problemDiagramWhite) {
+            this.state.problemDiagramWhite = gameInfo.problemDiagramWhite.map(pos => ({ ...pos }));
+        }
+        if (gameInfo.problemDiagramSet !== undefined) {
+            this.state.problemDiagramSet = gameInfo.problemDiagramSet;
+        }
+        else if (this.state.problemDiagramBlack.length > 0 || this.state.problemDiagramWhite.length > 0) {
+            this.state.problemDiagramSet = true;
+        }
         // 着手を設定
-        this.state.sgfMoves = result.moves;
+        this.state.sgfMoves = moves.map(move => ({ ...move }));
         this.state.sgfIndex = 0;
         this.engine.setMoveIndex(0);
-        // 置石がある場合は盤面を再描画
-        if (this.state.handicapPositions.length > 0) {
-            this.updateUI();
-        }
+        // レンダリング更新
+        this.renderer.updateBoardSize();
+        this.updateUI();
         // SGFテキストエリアの更新
         const sgfTextarea = document.getElementById('sgf-text');
         if (sgfTextarea) {
-            sgfTextarea.value = this.sgfParser.export(this.state);
+            sgfTextarea.value = rawSGF !== null && rawSGF !== void 0 ? rawSGF : this.sgfParser.export(this.state);
         }
         this.updateAnswerButtonDisplay();
+    }
+    importSGFString(sgfText) {
+        const trimmed = sgfText.trim();
+        if (!trimmed) {
+            throw new Error('SGF文字列が空です');
+        }
+        const result = this.sgfParser.parse(trimmed);
+        this.applySGF(result);
     }
     showHandicapDialog() {
         // 既存のポップアップがあれば削除
@@ -1001,7 +1053,7 @@ export class UIController {
         // URL からの SGF 読み込み
         const urlResult = this.sgfParser.loadFromURL();
         if (urlResult) {
-            this.applySGFResult(urlResult);
+            this.applySGF(urlResult);
             this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
         }
         // 初期ボタン状態
