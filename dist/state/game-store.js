@@ -8,6 +8,7 @@ export class GameStore {
         this.state = state;
         this.engine = engine;
         this.history = history;
+        this.legacyRemovalFallback = false;
     }
     get snapshot() {
         return this.state;
@@ -38,37 +39,13 @@ export class GameStore {
         if (currentStone === 0) {
             return false;
         }
-        const handicapIndex = this.state.handicapPositions.findIndex(handicap => handicap.col === pos.col && handicap.row === pos.row);
-        if (handicapIndex !== -1) {
-            this.state.handicapPositions.splice(handicapIndex, 1);
-            this.state.handicapStones = this.state.handicapPositions.length;
-            this.rebuildBoardFromMoves(this.state.sgfIndex);
-            return true;
-        }
-        const removeIndex = this.findLastMoveIndex(pos, currentStone);
-        if (removeIndex === -1) {
-            const board = this.cloneBoard();
-            board[pos.row][pos.col] = 0;
-            this.state.board = board;
-            return true;
-        }
-        const updatedMoves = [...this.state.sgfMoves];
-        updatedMoves.splice(removeIndex, 1);
-        if (this.state.numberMode && removeIndex < this.state.numberStartIndex) {
-            this.state.numberStartIndex = Math.max(0, this.state.numberStartIndex - 1);
-        }
-        this.state.sgfMoves = updatedMoves;
-        if (this.state.numberMode) {
-            this.state.numberStartIndex = Math.min(this.state.numberStartIndex, this.state.sgfMoves.length);
-        }
-        if (this.state.sgfIndex > removeIndex) {
-            this.state.sgfIndex = Math.max(removeIndex, this.state.sgfIndex - 1);
-        }
-        else if (this.state.sgfIndex > this.state.sgfMoves.length) {
-            this.state.sgfIndex = this.state.sgfMoves.length;
-        }
-        this.rebuildBoardFromMoves(this.state.sgfIndex);
+        const decision = this.determineRemovalMode(pos, currentStone);
+        const outcome = this.updateHistoryForRemoval(decision);
+        this.updateBoardAfterRemoval(pos, decision, outcome);
         return true;
+    }
+    setLegacyRemovalFallback(enabled) {
+        this.legacyRemovalFallback = enabled;
     }
     initBoard(size) {
         if (this.hasGameData()) {
@@ -298,6 +275,88 @@ export class GameStore {
     isValidPosition(pos) {
         return pos.col >= 0 && pos.col < this.state.boardSize &&
             pos.row >= 0 && pos.row < this.state.boardSize;
+    }
+    determineRemovalMode(pos, stone) {
+        const handicapIndex = this.state.handicapPositions.findIndex(handicap => handicap.col === pos.col && handicap.row === pos.row);
+        if (handicapIndex !== -1) {
+            return { kind: 'handicap', handicapIndex };
+        }
+        const removeIndex = this.findLastMoveIndex(pos, stone);
+        if (removeIndex !== -1) {
+            return { kind: 'move', moveIndex: removeIndex };
+        }
+        return { kind: 'manual' };
+    }
+    updateHistoryForRemoval(decision) {
+        if (decision.kind === 'handicap') {
+            this.state.handicapPositions.splice(decision.handicapIndex, 1);
+            this.state.handicapStones = this.state.handicapPositions.length;
+            return {
+                requiresRebuild: this.state.sgfMoves.length > 0 || this.state.problemDiagramSet
+            };
+        }
+        if (decision.kind === 'manual') {
+            return { requiresRebuild: false };
+        }
+        const originalLength = this.state.sgfMoves.length;
+        const updatedMoves = [...this.state.sgfMoves];
+        updatedMoves.splice(decision.moveIndex, 1);
+        if (this.state.numberMode && decision.moveIndex < this.state.numberStartIndex) {
+            this.state.numberStartIndex = Math.max(0, this.state.numberStartIndex - 1);
+        }
+        this.state.sgfMoves = updatedMoves;
+        if (this.state.numberMode) {
+            this.state.numberStartIndex = Math.min(this.state.numberStartIndex, this.state.sgfMoves.length);
+        }
+        if (this.state.sgfIndex > decision.moveIndex) {
+            this.state.sgfIndex = Math.max(decision.moveIndex, this.state.sgfIndex - 1);
+        }
+        else if (this.state.sgfIndex > this.state.sgfMoves.length) {
+            this.state.sgfIndex = this.state.sgfMoves.length;
+        }
+        const canApplyDiff = !this.state.numberMode &&
+            decision.moveIndex === originalLength - 1 &&
+            this.state.sgfIndex === this.state.sgfMoves.length;
+        return {
+            requiresRebuild: !canApplyDiff,
+            canApplyDiff
+        };
+    }
+    updateBoardAfterRemoval(pos, decision, outcome) {
+        const shouldRebuild = this.legacyRemovalFallback || outcome.requiresRebuild;
+        if (shouldRebuild) {
+            this.rebuildBoardFromMoves(this.state.sgfIndex);
+            return;
+        }
+        switch (decision.kind) {
+            case 'handicap': {
+                const board = this.cloneBoard();
+                board[pos.row][pos.col] = 0;
+                this.state.board = board;
+                break;
+            }
+            case 'manual': {
+                const board = this.cloneBoard();
+                board[pos.row][pos.col] = 0;
+                this.state.board = board;
+                break;
+            }
+            case 'move': {
+                if (!outcome.canApplyDiff) {
+                    this.rebuildBoardFromMoves(this.state.sgfIndex);
+                    return;
+                }
+                const previousBoard = this.state.history[this.state.history.length - 1];
+                if (!previousBoard) {
+                    this.rebuildBoardFromMoves(this.state.sgfIndex);
+                    return;
+                }
+                this.state.history.pop();
+                this.state.board = this.cloneBoard(previousBoard);
+                this.state.turn = Math.max(0, this.state.turn - 1);
+                break;
+            }
+        }
     }
 }
 //# sourceMappingURL=game-store.js.map
