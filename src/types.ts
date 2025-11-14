@@ -120,6 +120,7 @@ export interface GroupInfo {
 export interface SGFParseResult {
   moves: Move[];
   gameInfo: Partial<GameState>;
+  rawSGF?: string;
 }
 
 // ============ イベント関連 ============

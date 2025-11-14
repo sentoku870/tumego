@@ -3,96 +3,104 @@ import { DEFAULT_CONFIG } from './types.js';
 export class SGFParser {
     // ============ SGF解析 ============
     parse(sgfText) {
-        var _a;
-        console.log('SGF解析開始:', sgfText);
+        var _a, _b, _c;
+        const rawText = sgfText.trim();
+        console.log('SGF解析開始:', rawText);
         const moves = [];
-        const gameInfo = {};
+        const gameInfo = {
+            komi: DEFAULT_CONFIG.DEFAULT_KOMI,
+            handicapStones: 0,
+            handicapPositions: [],
+            startColor: 1,
+            problemDiagramSet: false,
+            problemDiagramBlack: [],
+            problemDiagramWhite: []
+        };
         // 盤サイズの解析
-        const sizeMatch = sgfText.match(/SZ\[(\d+)\]/i);
+        const sizeMatch = rawText.match(/SZ\[(\d+)\]/i);
         if (sizeMatch) {
             gameInfo.boardSize = parseInt(sizeMatch[1], 10);
             console.log('盤サイズ:', gameInfo.boardSize);
         }
-        // 初期設定
-        gameInfo.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-        gameInfo.handicapStones = 0;
-        gameInfo.handicapPositions = [];
-        gameInfo.startColor = 1; // デフォルトは黒先
         // コミの解析
-        const komiMatch = sgfText.match(/KM\[([0-9.]+)\]/i);
+        const komiMatch = rawText.match(/KM\[([0-9.]+)\]/i);
         if (komiMatch) {
             gameInfo.komi = parseFloat(komiMatch[1]);
             console.log('コミ:', gameInfo.komi);
         }
         // ハンディキャップ（置石数）の解析
-        const handicapMatch = sgfText.match(/HA\[(\d+)\]/i);
+        const handicapMatch = rawText.match(/HA\[(\d+)\]/i);
         if (handicapMatch) {
             gameInfo.handicapStones = parseInt(handicapMatch[1], 10);
             console.log('置石数:', gameInfo.handicapStones);
         }
-        const blackSetup = [];
-        const whiteSetup = [];
-        // 置石位置（AB: Add Black）の解析
-        const addBlackMatches = sgfText.match(/AB(?:\[[a-z]{2}\])+/gi);
-        if (addBlackMatches) {
-            console.log('置石情報:', addBlackMatches);
-            addBlackMatches.forEach(match => {
-                const coordinates = match.match(/\[([a-z]{2})\]/g);
-                if (coordinates) {
-                    coordinates.forEach(coord => {
-                        const clean = coord.slice(1, -1); // [cc] → cc
-                        const col = clean.charCodeAt(0) - 97;
-                        const row = clean.charCodeAt(1) - 97;
-                        blackSetup.push({ col, row });
-                        console.log('置石位置:', col, row);
-                    });
-                }
+        const initialBlack = [];
+        const initialWhite = [];
+        const collectSetup = (property, target) => {
+            const pattern = new RegExp(`${property}(?:\\[[a-z]{2}\\])+`, 'gi');
+            const matches = rawText.match(pattern);
+            if (!matches)
+                return;
+            matches.forEach(match => {
+                const coords = match.match(/\[([a-z]{2})\]/gi);
+                if (!coords)
+                    return;
+                coords.forEach(coord => {
+                    const clean = coord.slice(1, -1).toLowerCase();
+                    if (clean.length !== 2)
+                        return;
+                    const col = clean.charCodeAt(0) - 97;
+                    const row = clean.charCodeAt(1) - 97;
+                    if (col >= 0 && row >= 0) {
+                        target.push({ col, row });
+                        console.log(`${property} 初期配置:`, col, row);
+                    }
+                });
             });
-        }
-        // 白石初期配置（AW: Add White）の解析
-        const addWhiteMatches = sgfText.match(/AW(?:\[[a-z]{2}\])+/gi);
-        if (addWhiteMatches) {
-            console.log('初期白石情報:', addWhiteMatches);
-            addWhiteMatches.forEach(match => {
-                const coordinates = match.match(/\[([a-z]{2})\]/g);
-                if (coordinates) {
-                    coordinates.forEach(coord => {
-                        const clean = coord.slice(1, -1);
-                        const col = clean.charCodeAt(0) - 97;
-                        const row = clean.charCodeAt(1) - 97;
-                        whiteSetup.push({ col, row });
-                        console.log('初期白石位置:', col, row);
-                    });
-                }
-            });
-        }
-        if (blackSetup.length > 0) {
-            if (gameInfo.handicapStones && gameInfo.handicapStones > 0) {
-                gameInfo.handicapPositions = blackSetup;
+        };
+        collectSetup('AB', initialBlack);
+        collectSetup('AW', initialWhite);
+        if (initialBlack.length > 0) {
+            if ((gameInfo.handicapStones || 0) > 0) {
+                gameInfo.handicapPositions = initialBlack;
                 gameInfo.startColor = 2;
                 console.log('白番開始に設定');
             }
             else {
-                gameInfo.problemDiagramBlack = blackSetup;
+                gameInfo.problemDiagramBlack = initialBlack;
             }
         }
-        if (whiteSetup.length > 0) {
-            gameInfo.problemDiagramWhite = whiteSetup;
+        if (initialWhite.length > 0) {
+            gameInfo.problemDiagramWhite = initialWhite;
         }
-        if ((gameInfo.problemDiagramBlack && gameInfo.problemDiagramBlack.length > 0) ||
-            (gameInfo.problemDiagramWhite && gameInfo.problemDiagramWhite.length > 0)) {
+        if ((((_a = gameInfo.problemDiagramBlack) === null || _a === void 0 ? void 0 : _a.length) || 0) > 0 ||
+            (((_b = gameInfo.problemDiagramWhite) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0) {
             gameInfo.problemDiagramSet = true;
         }
         // 着手の解析
-        const moveMatches = sgfText.matchAll(/;([BW])\[([a-z]{2})\]/g);
+        const moveMatches = rawText.matchAll(/;([BW])\[((?:[a-z]{2})?)\]/gi);
         for (const match of moveMatches) {
-            const color = match[1] === 'B' ? 1 : 2;
-            const col = match[2].charCodeAt(0) - 97;
-            const row = match[2].charCodeAt(1) - 97;
+            const color = match[1].toUpperCase() === 'B' ? 1 : 2;
+            const coord = (match[2] || '').toLowerCase();
+            if (coord.length !== 2) {
+                console.log('パス着手を検出:', match[0]);
+                continue;
+            }
+            const col = coord.charCodeAt(0) - 97;
+            const row = coord.charCodeAt(1) - 97;
+            if (col < 0 || row < 0)
+                continue;
             moves.push({ col, row, color: color });
         }
-        console.log('解析完了 - 着手数:', moves.length, '置石数:', ((_a = gameInfo.handicapPositions) === null || _a === void 0 ? void 0 : _a.length) || 0);
-        return { moves, gameInfo };
+        if (!handicapMatch && moves.length > 0 && !rawText.match(/PL\[(B|W)\]/i)) {
+            gameInfo.startColor = moves[0].color;
+        }
+        const playerMatch = rawText.match(/PL\[(B|W)\]/i);
+        if (playerMatch) {
+            gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
+        }
+        console.log('解析完了 - 着手数:', moves.length, '置石数:', ((_c = gameInfo.handicapPositions) === null || _c === void 0 ? void 0 : _c.length) || 0);
+        return { moves, gameInfo, rawSGF: rawText };
     }
     // ============ SGF出力 ============
     export(state) {
