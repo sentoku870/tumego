@@ -536,6 +536,30 @@ export class UIController {
             this.qrManager.createDiscordShareLink(this.state);
         });
     }
+    importSGFString(sgf, message) {
+        try {
+            const result = this.sgfParser.parse(sgf);
+            this.applySGFResult({ moves: result.moves, gameInfo: result.gameInfo });
+            const sgfTextarea = document.getElementById('sgf-text');
+            if (sgfTextarea) {
+                sgfTextarea.value = sgf;
+            }
+            if (message) {
+                this.renderer.showMessage(message);
+            }
+            else {
+                this.renderer.showMessage('SGFを適用しました');
+            }
+        }
+        catch (error) {
+            console.error('SGF適用エラー:', error);
+            this.renderer.showMessage('SGFの適用に失敗しました');
+            throw error;
+        }
+    }
+    showMessage(message) {
+        this.renderer.showMessage(message);
+    }
     // ============ ヘルパーメソッド ============
     setMode(mode, buttonElement) {
         this.disableEraseMode();
@@ -567,6 +591,8 @@ export class UIController {
         const pngBlob = await this.convertSvgToPng(svgElement, canvasElement);
         const clipboardWritable = typeof ((_a = navigator.clipboard) === null || _a === void 0 ? void 0 : _a.write) === 'function';
         const clipboardItemCtor = window.ClipboardItem;
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+            (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
         if (clipboardWritable && clipboardItemCtor) {
             try {
                 const item = new clipboardItemCtor({ 'image/png': pngBlob });
@@ -576,7 +602,9 @@ export class UIController {
             }
             catch (error) {
                 console.error('クリップボードへの書き込みに失敗しました', error);
-                alert('クリップボードにコピーできなかったため画像を表示します');
+                if (!isIOS) {
+                    alert('クリップボードにコピーできなかったため画像を表示します');
+                }
             }
         }
         const dataUrl = await this.blobToDataUrl(pngBlob);

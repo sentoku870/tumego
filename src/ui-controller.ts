@@ -600,6 +600,32 @@ export class UIController {
     });
   }
 
+  public importSGFString(sgf: string, message?: string): void {
+    try {
+      const result = this.sgfParser.parse(sgf);
+      this.applySGFResult({ moves: result.moves, gameInfo: result.gameInfo });
+
+      const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
+      if (sgfTextarea) {
+        sgfTextarea.value = sgf;
+      }
+
+      if (message) {
+        this.renderer.showMessage(message);
+      } else {
+        this.renderer.showMessage('SGFを適用しました');
+      }
+    } catch (error) {
+      console.error('SGF適用エラー:', error);
+      this.renderer.showMessage('SGFの適用に失敗しました');
+      throw error;
+    }
+  }
+
+  public showMessage(message: string): void {
+    this.renderer.showMessage(message);
+  }
+
   // ============ ヘルパーメソッド ============
   private setMode(mode: 'black' | 'white' | 'alt', buttonElement: Element): void {
     this.disableEraseMode();
