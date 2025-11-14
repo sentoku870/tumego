@@ -1,5 +1,18 @@
 // ============ 描画エンジン ============
-import { GameState, Position, DEFAULT_CONFIG, UIElements } from './types.js';
+import {
+  BoardRenderModel,
+  CoordinateLabel,
+  InfoRenderModel,
+  MoveNumberRenderInfo,
+  Position,
+  Board,
+  GameState,
+  SliderRenderModel,
+  StoneRenderInfo,
+  UIElements,
+  DEFAULT_CONFIG
+} from './types.js';
+import { GameStore } from './state/game-store.js';
 
 export function getCircleNumber(n: number): string {
   if (n >= 1 && n <= 20) return String.fromCharCode(0x2460 + n - 1);
@@ -8,50 +21,331 @@ export function getCircleNumber(n: number): string {
   return n.toString();
 }
 
-export class Renderer {
-  constructor(
-    private state: GameState,
-    private elements: UIElements
-  ) {}
+class RendererGeometry {
+  readonly cellSize: number;
+  readonly margin: number;
+  readonly viewBoxSize: number;
+  readonly coordFontSize: number;
+  readonly moveNumberFontSize: number;
+  readonly letters: string[];
 
-  // ============ メイン描画 ============
+  constructor(readonly boardSize: number) {
+    this.cellSize = DEFAULT_CONFIG.CELL_SIZE;
+    this.margin = DEFAULT_CONFIG.MARGIN;
+    this.viewBoxSize = this.cellSize * (boardSize - 1) + this.margin * 2;
+    this.coordFontSize = this.cellSize * DEFAULT_CONFIG.COORD_FONT_RATIO;
+    this.moveNumberFontSize = this.cellSize * DEFAULT_CONFIG.MOVE_NUM_FONT_RATIO;
+    this.letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, boardSize).split('');
+  }
+
+  coordinateAt(index: number): number {
+    return this.margin + index * this.cellSize;
+  }
+
+  toPixel(pos: Position): { cx: number; cy: number } {
+    return {
+      cx: this.margin + pos.col * this.cellSize,
+      cy: this.margin + pos.row * this.cellSize
+    };
+  }
+}
+
+class RendererViewModelBuilder {
+  constructor(private readonly store: GameStore) {}
+
+  buildBoardModel(): BoardRenderModel {
+    const state = this.store.snapshot;
+    const geometry = new RendererGeometry(state.boardSize);
+
+    return {
+      geometry,
+      stars: this.getStarPositions(state.boardSize),
+      coordinates: this.buildCoordinateLabels(geometry),
+      stones: this.buildStoneModels(state.board, geometry),
+      moveNumbers: state.numberMode ? this.buildMoveNumberModels(state, geometry) : [],
+      showMoveNumbers: state.numberMode
+    };
+  }
+
+  buildInfoModel(): InfoRenderModel {
+    const state = this.store.snapshot;
+    const colorText = { 1: '黒', 2: '白' } as const;
+
+    const modeText = state.numberMode
+      ? '解答モード'
+      : ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[state.mode];
+
+    const moveInfo = state.sgfMoves.length > 0
+      ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}`
+      : '　手数: 0';
+
+    const komiText = `　コミ: ${state.komi}目`;
+
+    let handicapText = '';
+    if (state.handicapStones > 0) {
+      handicapText = `　${state.handicapStones}子局`;
+    } else if (state.komi === 0) {
+      handicapText = '　先番';
+    } else {
+      handicapText = '　互先';
+    }
+
+    const infoText = `盤サイズ: ${state.boardSize}路　モード: ${modeText}${moveInfo}${komiText}${handicapText}　次の手番: ${colorText[this.store.currentColor]}`;
+
+    return {
+      infoText,
+      movesText: this.buildMoveSequenceText(state)
+    };
+  }
+
+  buildSliderModel(): SliderRenderModel {
+    const state = this.store.snapshot;
+    return {
+      max: state.sgfMoves.length,
+      value: state.sgfIndex
+    };
+  }
+
+  private buildStoneModels(board: Board, geometry: RendererGeometry): StoneRenderInfo[] {
+    const stones: StoneRenderInfo[] = [];
+
+    for (let row = 0; row < geometry.boardSize; row++) {
+      for (let col = 0; col < geometry.boardSize; col++) {
+        const cellValue = board[row][col];
+        if (cellValue === 0) continue;
+
+        const { cx, cy } = geometry.toPixel({ col, row });
+        stones.push({
+          position: { col, row },
+          cx,
+          cy,
+          radius: DEFAULT_CONFIG.STONE_RADIUS,
+          fill: cellValue === 1 ? 'var(--black)' : 'var(--white)',
+          strokeWidth: cellValue === 1 ? 0 : 2
+        });
+      }
+    }
+
+    return stones;
+  }
+
+  private buildMoveNumberModels(state: GameState, geometry: RendererGeometry): MoveNumberRenderInfo[] {
+    const start = state.numberStartIndex || 0;
+    const numbers: MoveNumberRenderInfo[] = [];
+
+    for (let i = start; i < state.sgfIndex; i++) {
+      const move = state.sgfMoves[i];
+      const { cx, cy } = geometry.toPixel({ col: move.col, row: move.row });
+      const fill = state.board[move.row][move.col] === 1 ? '#fff' : '#000';
+
+      numbers.push({
+        cx,
+        cy,
+        fontSize: geometry.moveNumberFontSize,
+        fill,
+        text: (i - start + 1).toString()
+      });
+    }
+
+    return numbers;
+  }
+
+  private buildCoordinateLabels(geometry: RendererGeometry): CoordinateLabel[] {
+    const labels: CoordinateLabel[] = [];
+    const margin = geometry.margin;
+    const bottom = geometry.viewBoxSize - margin;
+
+    for (let i = 0; i < geometry.boardSize; i++) {
+      const pos = geometry.coordinateAt(i);
+      const col = geometry.letters[i];
+      const row = geometry.boardSize - i;
+
+      labels.push({
+        text: col,
+        x: pos,
+        y: margin - 15,
+        fontSize: geometry.coordFontSize,
+        className: 'coord'
+      });
+      labels.push({
+        text: col,
+        x: pos,
+        y: bottom + 15,
+        fontSize: geometry.coordFontSize,
+        className: 'coord'
+      });
+      labels.push({
+        text: row.toString(),
+        x: margin - 20,
+        y: pos,
+        fontSize: geometry.coordFontSize,
+        className: 'coord'
+      });
+      labels.push({
+        text: row.toString(),
+        x: bottom + 20,
+        y: pos,
+        fontSize: geometry.coordFontSize,
+        className: 'coord'
+      });
+    }
+
+    return labels;
+  }
+
+  private buildMoveSequenceText(state: GameState): string {
+    if (!state.numberMode || state.sgfMoves.length === 0) {
+      return '';
+    }
+
+    const geometry = new RendererGeometry(state.boardSize);
+    const start = state.numberStartIndex || 0;
+    const sequence: string[] = [];
+
+    for (let i = start; i < state.sgfIndex; i++) {
+      const move = state.sgfMoves[i];
+      const col = geometry.letters[move.col];
+      const row = state.boardSize - move.row;
+      const mark = move.color === 1 ? '■' : '□';
+      const num = getCircleNumber(i - start + 1);
+      sequence.push(`${mark}${num} ${col}${row}`);
+    }
+
+    return sequence.join(' ');
+  }
+
+  private getStarPositions(boardSize: number): Position[] {
+    const starMap: Record<number, number[]> = {
+      9: [2, 4, 6],
+      13: [3, 6, 9],
+      19: [3, 9, 15]
+    };
+
+    const positions = starMap[boardSize] || [];
+    const result: Position[] = [];
+
+    positions.forEach(x => {
+      positions.forEach(y => {
+        result.push({ col: x, row: y });
+      });
+    });
+
+    return result;
+  }
+}
+
+export class Renderer {
+  private readonly viewModelBuilder: RendererViewModelBuilder;
+
+  constructor(
+    private readonly store: GameStore,
+    private readonly elements: UIElements
+  ) {
+    this.viewModelBuilder = new RendererViewModelBuilder(store);
+  }
+
   render(): void {
-    const N = this.state.boardSize;
-    const size = DEFAULT_CONFIG.CELL_SIZE * (N - 1) + DEFAULT_CONFIG.MARGIN * 2;
-    
+    const model = this.viewModelBuilder.buildBoardModel();
+    const size = model.geometry.viewBoxSize;
+
     this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
     this.elements.svg.innerHTML = '';
 
-    this.drawBoardLines(N, size);
-    this.drawStars(N);
-    this.drawCoordinates(N, size);
-    this.drawStones();
-    
-    if (this.state.numberMode) {
-      this.drawMoveNumbers();
+    this.drawBoardLines(model.geometry);
+    this.drawStars(model.geometry, model.stars);
+    this.drawCoordinates(model.coordinates);
+    this.drawStones(model.stones);
+
+    if (model.showMoveNumbers) {
+      this.drawMoveNumbers(model.moveNumbers);
     }
   }
 
-  // ============ 碁盤線描画 ============
-  private drawBoardLines(N: number, size: number): void {
-    for (let i = 0; i < N; i++) {
-      const pos = DEFAULT_CONFIG.MARGIN + i * DEFAULT_CONFIG.CELL_SIZE;
-      
-      // 縦線
+  updateInfo(): void {
+    if (!this.elements.infoEl) return;
+
+    const infoModel = this.viewModelBuilder.buildInfoModel();
+    this.elements.infoEl.textContent = infoModel.infoText;
+
+    if (this.elements.movesEl) {
+      this.elements.movesEl.textContent = infoModel.movesText;
+    }
+  }
+
+  updateSlider(): void {
+    if (!this.elements.sliderEl) return;
+
+    const sliderModel = this.viewModelBuilder.buildSliderModel();
+    this.elements.sliderEl.max = sliderModel.max.toString();
+    this.elements.sliderEl.value = sliderModel.value.toString();
+  }
+
+  showMessage(text: string): void {
+    if (this.elements.msgEl) {
+      this.elements.msgEl.textContent = text;
+    }
+  }
+
+  updateBoardSize(): void {
+    if (!this.elements.boardWrapper) return;
+
+    const state = this.store.snapshot;
+    const isHorizontal = document.body.classList.contains('horizontal');
+    const isMobile = window.innerWidth <= 768;
+
+    if (isHorizontal) {
+      const availableWidth = window.innerWidth - (isMobile ? 250 : 350);
+      const availableHeight = window.innerHeight * 0.95;
+      const maxSize = Math.min(availableWidth, availableHeight);
+
+      this.elements.boardWrapper.style.width = maxSize + 'px';
+      this.elements.boardWrapper.style.height = maxSize + 'px';
+      this.elements.boardWrapper.style.maxWidth = maxSize + 'px';
+      this.elements.boardWrapper.style.maxHeight = maxSize + 'px';
+    } else {
+      if (isMobile) {
+        this.elements.boardWrapper.style.width = '100%';
+        this.elements.boardWrapper.style.height = 'auto';
+        this.elements.boardWrapper.style.maxWidth = '95vmin';
+        this.elements.boardWrapper.style.maxHeight = 'none';
+      } else {
+        const baseSize = DEFAULT_CONFIG.CELL_SIZE;
+        const sizePx = baseSize * state.boardSize;
+        this.elements.boardWrapper.style.width = sizePx + 'px';
+        this.elements.boardWrapper.style.height = 'auto';
+        this.elements.boardWrapper.style.maxWidth = '70vmin';
+        this.elements.boardWrapper.style.maxHeight = 'none';
+      }
+    }
+
+    this.elements.boardWrapper.offsetHeight;
+
+    const actualWidth = this.elements.boardWrapper.getBoundingClientRect().width;
+    document.documentElement.style.setProperty('--board-width', actualWidth + 'px');
+
+    console.log(`盤サイズ更新: ${state.boardSize}路, 実際の幅: ${actualWidth}px, モバイル: ${isMobile}, 横レイアウト: ${isHorizontal}`);
+  }
+
+  private drawBoardLines(geometry: RendererGeometry): void {
+    const margin = geometry.margin;
+    const far = geometry.viewBoxSize - margin;
+
+    for (let i = 0; i < geometry.boardSize; i++) {
+      const pos = geometry.coordinateAt(i);
+
       this.elements.svg.appendChild(this.createSVGElement('line', {
         x1: pos.toString(),
-        y1: DEFAULT_CONFIG.MARGIN.toString(),
+        y1: margin.toString(),
         x2: pos.toString(),
-        y2: (size - DEFAULT_CONFIG.MARGIN).toString(),
+        y2: far.toString(),
         stroke: 'var(--line)',
         'stroke-width': '2'
       }));
-      
-      // 横線
+
       this.elements.svg.appendChild(this.createSVGElement('line', {
-        x1: DEFAULT_CONFIG.MARGIN.toString(),
+        x1: margin.toString(),
         y1: pos.toString(),
-        x2: (size - DEFAULT_CONFIG.MARGIN).toString(),
+        x2: far.toString(),
         y2: pos.toString(),
         stroke: 'var(--line)',
         'stroke-width': '2'
@@ -59,14 +353,10 @@ export class Renderer {
     }
   }
 
-  // ============ 星描画 ============
-  private drawStars(N: number): void {
-    const starPositions = this.getStarPositions(N);
-    
-    starPositions.forEach(([ix, iy]) => {
-      const cx = DEFAULT_CONFIG.MARGIN + ix * DEFAULT_CONFIG.CELL_SIZE;
-      const cy = DEFAULT_CONFIG.MARGIN + iy * DEFAULT_CONFIG.CELL_SIZE;
-      
+  private drawStars(geometry: RendererGeometry, stars: Position[]): void {
+    stars.forEach(({ col, row }) => {
+      const { cx, cy } = geometry.toPixel({ col, row });
+
       this.elements.svg.appendChild(this.createSVGElement('circle', {
         cx: cx.toString(),
         cy: cy.toString(),
@@ -76,281 +366,54 @@ export class Renderer {
     });
   }
 
-  private getStarPositions(N: number): number[][] {
-    const starMap: { [key: number]: number[] } = {
-      9: [2, 4, 6],
-      13: [3, 6, 9],
-      19: [3, 9, 15]
-    };
-    
-    const positions = starMap[N] || [];
-    const result: number[][] = [];
-    
-    positions.forEach(x => {
-      positions.forEach(y => {
-        result.push([x, y]);
+  private drawCoordinates(labels: CoordinateLabel[]): void {
+    labels.forEach(label => {
+      const text = this.createSVGElement('text', {
+        x: label.x.toString(),
+        y: label.y.toString(),
+        class: label.className,
+        'font-size': label.fontSize.toString()
       });
+      text.textContent = label.text;
+      this.elements.svg.appendChild(text);
     });
-    
-    return result;
   }
 
-  // ============ 座標描画 ============
-  private drawCoordinates(N: number, size: number): void {
-    const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, N).split('');
-    const fontSize = DEFAULT_CONFIG.CELL_SIZE * DEFAULT_CONFIG.COORD_FONT_RATIO;
-
-    for (let i = 0; i < N; i++) {
-      const pos = DEFAULT_CONFIG.MARGIN + i * DEFAULT_CONFIG.CELL_SIZE;
-      const col = letters[i];
-      const row = N - i;
-
-      // 上の座標
-      const topText = this.createSVGElement('text', {
-        x: pos.toString(),
-        y: (DEFAULT_CONFIG.MARGIN - 15).toString(),
-        class: 'coord',
-        'font-size': fontSize.toString()
-      });
-      topText.textContent = col;
-      this.elements.svg.appendChild(topText);
-
-      // 下の座標
-      const bottomText = this.createSVGElement('text', {
-        x: pos.toString(),
-        y: (size - DEFAULT_CONFIG.MARGIN + 15).toString(),
-        class: 'coord',
-        'font-size': fontSize.toString()
-      });
-      bottomText.textContent = col;
-      this.elements.svg.appendChild(bottomText);
-
-      // 左の座標
-      const leftText = this.createSVGElement('text', {
-        x: (DEFAULT_CONFIG.MARGIN - 20).toString(),
-        y: pos.toString(),
-        class: 'coord',
-        'font-size': fontSize.toString()
-      });
-      leftText.textContent = row.toString();
-      this.elements.svg.appendChild(leftText);
-
-      // 右の座標
-      const rightText = this.createSVGElement('text', {
-        x: (size - DEFAULT_CONFIG.MARGIN + 20).toString(),
-        y: pos.toString(),
-        class: 'coord',
-        'font-size': fontSize.toString()
-      });
-      rightText.textContent = row.toString();
-      this.elements.svg.appendChild(rightText);
-    }
+  private drawStones(stones: StoneRenderInfo[]): void {
+    stones.forEach(stone => {
+      this.elements.svg.appendChild(this.createSVGElement('circle', {
+        cx: stone.cx.toString(),
+        cy: stone.cy.toString(),
+        r: stone.radius.toString(),
+        class: 'stone',
+        fill: stone.fill,
+        stroke: '#000',
+        'stroke-width': stone.strokeWidth.toString()
+      }));
+    });
   }
 
-  // ============ 石描画 ============
-  private drawStones(): void {
-    // 既存の石を削除
-    this.elements.svg.querySelectorAll('.stone').forEach(el => el.remove());
-
-    for (let y = 0; y < this.state.boardSize; y++) {
-      for (let x = 0; x < this.state.boardSize; x++) {
-        const cellValue = this.state.board[y][x];
-        if (cellValue === 0) continue;
-
-        const cx = DEFAULT_CONFIG.MARGIN + x * DEFAULT_CONFIG.CELL_SIZE;
-        const cy = DEFAULT_CONFIG.MARGIN + y * DEFAULT_CONFIG.CELL_SIZE;
-
-        this.elements.svg.appendChild(this.createSVGElement('circle', {
-          cx: cx.toString(),
-          cy: cy.toString(),
-          r: DEFAULT_CONFIG.STONE_RADIUS.toString(),
-          class: 'stone',
-          fill: cellValue === 1 ? 'var(--black)' : 'var(--white)',
-          stroke: '#000',
-          'stroke-width': cellValue === 1 ? '0' : '2'
-        }));
-      }
-    }
-  }
-
-  // ============ 手順番号描画 ============
-  private drawMoveNumbers(): void {
-    const start = this.state.numberStartIndex || 0;
-    const fontSize = DEFAULT_CONFIG.CELL_SIZE * DEFAULT_CONFIG.MOVE_NUM_FONT_RATIO;
-
-    for (let i = start; i < this.state.sgfIndex; i++) {
-      const move = this.state.sgfMoves[i];
-      const cx = DEFAULT_CONFIG.MARGIN + move.col * DEFAULT_CONFIG.CELL_SIZE;
-      const cy = DEFAULT_CONFIG.MARGIN + move.row * DEFAULT_CONFIG.CELL_SIZE;
-      
-      const fill = this.state.board[move.row][move.col] === 1 ? '#fff' : '#000';
-
-      const numberText = this.createSVGElement('text', {
-        x: cx.toString(),
-        y: cy.toString(),
-        'font-size': fontSize.toString(),
-        fill: fill,
+  private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
+    numbers.forEach(number => {
+      const text = this.createSVGElement('text', {
+        x: number.cx.toString(),
+        y: number.cy.toString(),
+        'font-size': number.fontSize.toString(),
+        fill: number.fill,
         class: 'move-num'
       });
-      numberText.textContent = (i - start + 1).toString();
-      this.elements.svg.appendChild(numberText);
-    }
+      text.textContent = number.text;
+      this.elements.svg.appendChild(text);
+    });
   }
 
-  // ============ 情報更新 ============
-  updateInfo(): void {
-    if (!this.elements.infoEl) return;
-
-    const colorText = { 1: '黒', 2: '白' };
-    let turnColor = this.getCurrentColor();
-    let modeText = '';
-
-    if (this.state.numberMode) {
-      modeText = '解答モード';
-    } else {
-      const modeMap = { black: '黒配置', white: '白配置', alt: '交互配置' };
-      modeText = modeMap[this.state.mode];
-    }
-
-    // 手数情報
-    const moveInfo = this.state.sgfMoves.length > 0 
-      ? `　手数: ${this.state.sgfIndex}/${this.state.sgfMoves.length}`
-      : `　手数: 0`;
-
-    // コミ情報
-    const komiText = `　コミ: ${this.state.komi}目`;
-
-    // 置石情報
-    let handicapText = '';
-    if (this.state.handicapStones > 0) {
-      handicapText = `　${this.state.handicapStones}子局`;
-    } else if (this.state.komi === 0) {
-      handicapText = `　先番`;
-    } else {
-      handicapText = `　互先`;
-    }
-
-    this.elements.infoEl.textContent = 
-      `盤サイズ: ${this.state.boardSize}路　モード: ${modeText}${moveInfo}${komiText}${handicapText}　次の手番: ${colorText[turnColor]}`;
-
-    this.updateMoves();
-  }
-
-  private updateMoves(): void {
-    if (!this.elements.movesEl) return;
-
-    if (this.state.numberMode && this.state.sgfMoves.length) {
-      const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, this.state.boardSize).split('');
-      const start = this.state.numberStartIndex || 0;
-      const sequence = [];
-
-      for (let i = start; i < this.state.sgfIndex; i++) {
-        const move = this.state.sgfMoves[i];
-        const col = letters[move.col];
-        const row = this.state.boardSize - move.row;
-        const mark = move.color === 1 ? '■' : '□';
-        const num = getCircleNumber(i - start + 1);
-        sequence.push(`${mark}${num} ${col}${row}`);
-      }
-
-      this.elements.movesEl.textContent = sequence.join(' ');
-    } else {
-      this.elements.movesEl.textContent = '';
-    }
-  }
-
-  private getCurrentColor(): 1 | 2 {
-    if (this.state.numberMode) {
-      return this.state.turn % 2 === 0 ? this.state.startColor : (3 - this.state.startColor) as 1 | 2;
-    }
-    
-    if (this.state.mode === 'alt') {
-      return this.state.turn % 2 === 0 ? this.state.startColor : (3 - this.state.startColor) as 1 | 2;
-    }
-    
-    return this.state.mode === 'black' ? 1 : 2;
-  }
-
-  // ============ スライダー更新 ============
-  updateSlider(): void {
-    if (!this.elements.sliderEl) return;
-    
-    this.elements.sliderEl.max = this.state.sgfMoves.length.toString();
-    this.elements.sliderEl.value = this.state.sgfIndex.toString();
-  }
-
-  // ============ ユーティリティ ============
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
-    
+
     for (const [key, value] of Object.entries(attributes)) {
       element.setAttribute(key, value);
     }
-    
+
     return element;
-  }
-
-  // ============ メッセージ表示 ============
-  showMessage(text: string): void {
-    if (this.elements.msgEl) {
-      this.elements.msgEl.textContent = text;
-    }
-  }
-
-updateBoardSize(): void {
-  if (!this.elements.boardWrapper) return;
-
-  const isHorizontal = document.body.classList.contains('horizontal');
-  const isMobile = window.innerWidth <= 768;
-  
-  if (isHorizontal) {
-    // 横レイアウト時の処理
-    if (isMobile) {
-      // モバイル横レイアウト: 利用可能な横幅を最大限活用
-      const availableWidth = window.innerWidth - 250; // UIエリアの幅を考慮
-      const availableHeight = window.innerHeight * 0.95;
-      const maxSize = Math.min(availableWidth, availableHeight);
-      
-      this.elements.boardWrapper.style.width = maxSize + 'px';
-      this.elements.boardWrapper.style.height = maxSize + 'px';
-      this.elements.boardWrapper.style.maxWidth = maxSize + 'px';
-      this.elements.boardWrapper.style.maxHeight = maxSize + 'px';
-    } else {
-      // PC横レイアウト: 利用可能な横幅を最大限活用
-      const availableWidth = window.innerWidth - 350; // UIエリアの幅を考慮（PCはUIが広い）
-      const availableHeight = window.innerHeight * 0.95;
-      const maxSize = Math.min(availableWidth, availableHeight);
-      
-      this.elements.boardWrapper.style.width = maxSize + 'px';
-      this.elements.boardWrapper.style.height = maxSize + 'px';
-      this.elements.boardWrapper.style.maxWidth = maxSize + 'px';
-      this.elements.boardWrapper.style.maxHeight = maxSize + 'px';
-    }
-  } else {
-    // 縦レイアウト時の処理（既存のロジック）
-    if (isMobile) {
-      // モバイル縦レイアウト: 画面いっぱいに表示
-      this.elements.boardWrapper.style.width = '100%';
-      this.elements.boardWrapper.style.height = 'auto';
-      this.elements.boardWrapper.style.maxWidth = '95vmin';
-      this.elements.boardWrapper.style.maxHeight = 'none';
-    } else {
-      // PC縦レイアウト: 路数に応じてサイズを調整
-      const baseSize = DEFAULT_CONFIG.CELL_SIZE;
-      const sizePx = baseSize * this.state.boardSize;
-      this.elements.boardWrapper.style.width = sizePx + 'px';
-      this.elements.boardWrapper.style.height = 'auto';
-      this.elements.boardWrapper.style.maxWidth = '70vmin';
-      this.elements.boardWrapper.style.maxHeight = 'none';
-    }
-  }
-  
-  // 強制的にレイアウトを再計算
-  this.elements.boardWrapper.offsetHeight;
-  
-  const actualWidth = this.elements.boardWrapper.getBoundingClientRect().width;
-  document.documentElement.style.setProperty('--board-width', actualWidth + 'px');
-  
-  console.log(`盤サイズ更新: ${this.state.boardSize}路, 実際の幅: ${actualWidth}px, モバイル: ${isMobile}, 横レイアウト: ${isHorizontal}`);
   }
 }

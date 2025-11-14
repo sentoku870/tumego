@@ -42,15 +42,12 @@ export class UIController {
     private readonly state: GameState,
     private readonly elements: UIElements
   ) {
-    this.engine = new GoEngine(state);
-    this.renderer = new Renderer(state, elements);
+    this.engine = new GoEngine();
     this.sgfParser = new SGFParser();
     this.qrManager = new QRManager();
     this.historyManager = new HistoryManager();
-
-    this.engine.setHistoryManager(this.historyManager);
-
     this.store = new GameStore(state, this.engine, this.historyManager);
+    this.renderer = new Renderer(this.store, elements);
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
     this.uiState = new UIInteractionState();
