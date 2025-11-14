@@ -8,6 +8,9 @@ export class GameStore {
         this.state = state;
         this.engine = engine;
         this.history = history;
+        this.cachedBoardState = null;
+        this.cachedAppliedMoveIndex = null;
+        this.cachedBoardTimeline = [];
     }
     get snapshot() {
         return this.state;
@@ -28,6 +31,7 @@ export class GameStore {
             this.state.sgfMoves.push({ col: pos.col, row: pos.row, color });
             this.state.sgfIndex = this.state.sgfMoves.length;
         }
+        this.invalidateCache();
         return true;
     }
     removeStone(pos) {
@@ -43,6 +47,7 @@ export class GameStore {
             this.state.handicapPositions.splice(handicapIndex, 1);
             this.state.handicapStones = this.state.handicapPositions.length;
             this.rebuildBoardFromMoves(this.state.sgfIndex);
+            this.invalidateCache();
             return true;
         }
         const removeIndex = this.findLastMoveIndex(pos, currentStone);
@@ -50,6 +55,7 @@ export class GameStore {
             const board = this.cloneBoard();
             board[pos.row][pos.col] = 0;
             this.state.board = board;
+            this.invalidateCache();
             return true;
         }
         const updatedMoves = [...this.state.sgfMoves];
@@ -68,6 +74,7 @@ export class GameStore {
             this.state.sgfIndex = this.state.sgfMoves.length;
         }
         this.rebuildBoardFromMoves(this.state.sgfIndex);
+        this.invalidateCache();
         return true;
     }
     initBoard(size) {
@@ -77,6 +84,7 @@ export class GameStore {
         this.state.boardSize = size;
         this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
         this.resetGameState();
+        this.invalidateCache();
     }
     undo() {
         if (this.state.numberMode) {
@@ -90,23 +98,41 @@ export class GameStore {
             if (snapshot) {
                 this.state.board = this.cloneBoard(snapshot);
             }
+            this.invalidateCache();
             return true;
         }
         return false;
     }
     setMoveIndex(index) {
+        var _a;
         const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
-        this.state.history = [];
-        this.state.turn = 0;
-        this.applyInitialSetup();
-        for (let i = 0; i < clamped; i++) {
-            const move = this.state.sgfMoves[i];
-            const result = this.engine.playMove(this.state, move, move.color);
-            if (!result)
-                continue;
-            this.pushHistorySnapshot();
-            this.state.board = result.board;
+        let useCache = this.canUseCache();
+        if (!useCache) {
+            this.performFullReset(clamped);
+            useCache = true;
         }
+        else if (this.cachedAppliedMoveIndex !== null) {
+            if (clamped > this.cachedAppliedMoveIndex) {
+                useCache = this.advanceFromCache(clamped);
+            }
+            else if (clamped < this.cachedAppliedMoveIndex) {
+                useCache = this.rewindFromCache(clamped);
+            }
+            else if (this.cachedBoardState) {
+                this.state.board = this.cloneBoard(this.cachedBoardState);
+            }
+        }
+        if (!useCache) {
+            this.performFullReset(clamped);
+        }
+        const finalBoard = this.cloneBoard();
+        while (this.cachedBoardTimeline.length < clamped) {
+            const last = (_a = this.cachedBoardTimeline[this.cachedBoardTimeline.length - 1]) !== null && _a !== void 0 ? _a : finalBoard;
+            this.cachedBoardTimeline.push(this.cloneBoard(last));
+        }
+        this.cachedBoardTimeline[clamped] = this.cloneBoard(finalBoard);
+        this.cachedBoardState = finalBoard;
+        this.cachedAppliedMoveIndex = clamped;
         this.state.history = [];
         this.state.sgfIndex = clamped;
         this.state.turn = this.state.numberMode
@@ -120,6 +146,7 @@ export class GameStore {
         this.state.sgfIndex = this.state.sgfMoves.length;
         this.state.turn = 0;
         this.state.history = [];
+        this.invalidateCache();
     }
     setProblemDiagram() {
         const blackPositions = [];
@@ -148,6 +175,7 @@ export class GameStore {
         this.state.numberStartIndex = 0;
         this.state.history = [];
         this.applyInitialSetup();
+        this.invalidateCache();
     }
     restoreProblemDiagram() {
         if (!this.state.problemDiagramSet) {
@@ -155,6 +183,7 @@ export class GameStore {
         }
         this.state.sgfIndex = 0;
         this.rebuildBoardFromMoves(0);
+        this.invalidateCache();
         if (this.state.numberMode) {
             this.state.turn = 0;
             this.state.history = [];
@@ -173,6 +202,7 @@ export class GameStore {
             this.state.handicapPositions = [];
             this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
             this.state.startColor = 1;
+            this.invalidateCache();
             return;
         }
         if (stones === 0) {
@@ -181,6 +211,7 @@ export class GameStore {
             this.state.handicapPositions = [];
             this.state.komi = 0;
             this.state.startColor = 1;
+            this.invalidateCache();
             return;
         }
         this.initBoard(this.state.boardSize);
@@ -198,6 +229,7 @@ export class GameStore {
         this.state.komi = 0;
         this.state.startColor = 2;
         this.state.turn = 0;
+        this.invalidateCache();
     }
     get currentColor() {
         if (this.state.numberMode) {
@@ -291,6 +323,96 @@ export class GameStore {
         this.state.problemDiagramWhite = [];
         this.state.gameTree = null;
         this.state.numberMode = false;
+    }
+    invalidateCache() {
+        this.cachedBoardState = null;
+        this.cachedAppliedMoveIndex = null;
+        this.cachedBoardTimeline = [];
+    }
+    canUseCache() {
+        if (this.cachedBoardState === null ||
+            this.cachedAppliedMoveIndex === null ||
+            !this.cachedBoardTimeline[this.cachedAppliedMoveIndex]) {
+            return false;
+        }
+        return (this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) &&
+            this.boardsEqual(this.state.board, this.cachedBoardState));
+    }
+    performFullReset(target) {
+        var _a;
+        this.rebuildBoardFromMoves(target);
+        const timeline = this.state.history.map(board => this.cloneBoard(board));
+        const finalBoard = this.cloneBoard();
+        if (timeline.length === 0) {
+            timeline.push(this.cloneBoard(finalBoard));
+        }
+        while (timeline.length < target) {
+            const last = (_a = timeline[timeline.length - 1]) !== null && _a !== void 0 ? _a : finalBoard;
+            timeline.push(this.cloneBoard(last));
+        }
+        timeline[target] = this.cloneBoard(finalBoard);
+        this.cachedBoardTimeline = timeline;
+        this.cachedBoardState = this.cloneBoard(finalBoard);
+        this.cachedAppliedMoveIndex = target;
+        this.state.history = [];
+    }
+    advanceFromCache(target) {
+        if (this.cachedAppliedMoveIndex === null) {
+            return false;
+        }
+        const currentBoard = this.cachedBoardTimeline[this.cachedAppliedMoveIndex];
+        if (!currentBoard) {
+            return false;
+        }
+        this.state.board = this.cloneBoard(currentBoard);
+        let index = this.cachedAppliedMoveIndex;
+        while (index < target) {
+            const cached = this.cachedBoardTimeline[index + 1];
+            if (cached) {
+                index++;
+                this.state.board = this.cloneBoard(cached);
+                continue;
+            }
+            const move = this.state.sgfMoves[index];
+            if (!move) {
+                return false;
+            }
+            const result = this.engine.playMove(this.state, move, move.color);
+            if (!result) {
+                return false;
+            }
+            const cloned = this.cloneBoard(result.board);
+            this.state.board = cloned;
+            this.cachedBoardTimeline[index + 1] = this.cloneBoard(cloned);
+            index++;
+        }
+        return true;
+    }
+    rewindFromCache(target) {
+        const cached = this.cachedBoardTimeline[target];
+        if (!cached) {
+            return false;
+        }
+        this.state.board = this.cloneBoard(cached);
+        return true;
+    }
+    boardsEqual(a, b) {
+        if (a.length !== b.length) {
+            return false;
+        }
+        for (let row = 0; row < a.length; row++) {
+            const rowA = a[row];
+            const rowB = b[row];
+            if (rowA.length !== rowB.length) {
+                return false;
+            }
+            for (let col = 0; col < rowA.length; col++) {
+                if (rowA[col] !== rowB[col]) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
     saveToHistory(description) {
         this.history.save(description, this.state);

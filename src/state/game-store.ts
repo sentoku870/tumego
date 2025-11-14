@@ -14,6 +14,10 @@ import { HistoryManager } from '../history-manager.js';
  * interact through this class to keep domain logic encapsulated.
  */
 export class GameStore {
+  private cachedBoardState: Board | null = null;
+  private cachedAppliedMoveIndex: number | null = null;
+  private cachedBoardTimeline: Board[] = [];
+
   constructor(
     private readonly state: GameState,
     private readonly engine: GoEngine,
@@ -44,6 +48,7 @@ export class GameStore {
       this.state.sgfIndex = this.state.sgfMoves.length;
     }
 
+    this.invalidateCache();
     return true;
   }
 
@@ -65,6 +70,7 @@ export class GameStore {
       this.state.handicapPositions.splice(handicapIndex, 1);
       this.state.handicapStones = this.state.handicapPositions.length;
       this.rebuildBoardFromMoves(this.state.sgfIndex);
+      this.invalidateCache();
       return true;
     }
 
@@ -73,6 +79,7 @@ export class GameStore {
       const board = this.cloneBoard();
       board[pos.row][pos.col] = 0;
       this.state.board = board;
+      this.invalidateCache();
       return true;
     }
 
@@ -96,6 +103,7 @@ export class GameStore {
     }
 
     this.rebuildBoardFromMoves(this.state.sgfIndex);
+    this.invalidateCache();
     return true;
   }
 
@@ -107,6 +115,7 @@ export class GameStore {
     this.state.boardSize = size;
     this.state.board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
     this.resetGameState();
+    this.invalidateCache();
   }
 
   undo(): boolean {
@@ -122,6 +131,7 @@ export class GameStore {
       if (snapshot) {
         this.state.board = this.cloneBoard(snapshot);
       }
+      this.invalidateCache();
       return true;
     }
 
@@ -131,18 +141,33 @@ export class GameStore {
   setMoveIndex(index: number): void {
     const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
 
-    this.state.history = [];
-    this.state.turn = 0;
-    this.applyInitialSetup();
+    let useCache = this.canUseCache();
 
-    for (let i = 0; i < clamped; i++) {
-      const move = this.state.sgfMoves[i];
-      const result = this.engine.playMove(this.state, move, move.color);
-      if (!result) continue;
-
-      this.pushHistorySnapshot();
-      this.state.board = result.board;
+    if (!useCache) {
+      this.performFullReset(clamped);
+      useCache = true;
+    } else if (this.cachedAppliedMoveIndex !== null) {
+      if (clamped > this.cachedAppliedMoveIndex) {
+        useCache = this.advanceFromCache(clamped);
+      } else if (clamped < this.cachedAppliedMoveIndex) {
+        useCache = this.rewindFromCache(clamped);
+      } else if (this.cachedBoardState) {
+        this.state.board = this.cloneBoard(this.cachedBoardState);
+      }
     }
+
+    if (!useCache) {
+      this.performFullReset(clamped);
+    }
+
+    const finalBoard = this.cloneBoard();
+    while (this.cachedBoardTimeline.length < clamped) {
+      const last = this.cachedBoardTimeline[this.cachedBoardTimeline.length - 1] ?? finalBoard;
+      this.cachedBoardTimeline.push(this.cloneBoard(last));
+    }
+    this.cachedBoardTimeline[clamped] = this.cloneBoard(finalBoard);
+    this.cachedBoardState = finalBoard;
+    this.cachedAppliedMoveIndex = clamped;
 
     this.state.history = [];
     this.state.sgfIndex = clamped;
@@ -158,6 +183,7 @@ export class GameStore {
     this.state.sgfIndex = this.state.sgfMoves.length;
     this.state.turn = 0;
     this.state.history = [];
+    this.invalidateCache();
   }
 
   setProblemDiagram(): void {
@@ -190,6 +216,7 @@ export class GameStore {
     this.state.history = [];
 
     this.applyInitialSetup();
+    this.invalidateCache();
   }
 
   restoreProblemDiagram(): void {
@@ -199,6 +226,7 @@ export class GameStore {
 
     this.state.sgfIndex = 0;
     this.rebuildBoardFromMoves(0);
+    this.invalidateCache();
 
     if (this.state.numberMode) {
       this.state.turn = 0;
@@ -221,6 +249,7 @@ export class GameStore {
       this.state.handicapPositions = [];
       this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
       this.state.startColor = 1;
+      this.invalidateCache();
       return;
     }
 
@@ -230,6 +259,7 @@ export class GameStore {
       this.state.handicapPositions = [];
       this.state.komi = 0;
       this.state.startColor = 1;
+      this.invalidateCache();
       return;
     }
 
@@ -251,6 +281,7 @@ export class GameStore {
     this.state.komi = 0;
     this.state.startColor = 2;
     this.state.turn = 0;
+    this.invalidateCache();
   }
 
   get currentColor(): StoneColor {
@@ -358,6 +389,121 @@ export class GameStore {
     this.state.problemDiagramWhite = [];
     this.state.gameTree = null;
     this.state.numberMode = false;
+  }
+
+  private invalidateCache(): void {
+    this.cachedBoardState = null;
+    this.cachedAppliedMoveIndex = null;
+    this.cachedBoardTimeline = [];
+  }
+
+  private canUseCache(): boolean {
+    if (
+      this.cachedBoardState === null ||
+      this.cachedAppliedMoveIndex === null ||
+      !this.cachedBoardTimeline[this.cachedAppliedMoveIndex]
+    ) {
+      return false;
+    }
+
+    return (
+      this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) &&
+      this.boardsEqual(this.state.board, this.cachedBoardState)
+    );
+  }
+
+  private performFullReset(target: number): void {
+    this.rebuildBoardFromMoves(target);
+
+    const timeline = this.state.history.map(board => this.cloneBoard(board));
+    const finalBoard = this.cloneBoard();
+    if (timeline.length === 0) {
+      timeline.push(this.cloneBoard(finalBoard));
+    }
+
+    while (timeline.length < target) {
+      const last = timeline[timeline.length - 1] ?? finalBoard;
+      timeline.push(this.cloneBoard(last));
+    }
+
+    timeline[target] = this.cloneBoard(finalBoard);
+
+    this.cachedBoardTimeline = timeline;
+    this.cachedBoardState = this.cloneBoard(finalBoard);
+    this.cachedAppliedMoveIndex = target;
+    this.state.history = [];
+  }
+
+  private advanceFromCache(target: number): boolean {
+    if (this.cachedAppliedMoveIndex === null) {
+      return false;
+    }
+
+    const currentBoard = this.cachedBoardTimeline[this.cachedAppliedMoveIndex];
+    if (!currentBoard) {
+      return false;
+    }
+
+    this.state.board = this.cloneBoard(currentBoard);
+    let index = this.cachedAppliedMoveIndex;
+
+    while (index < target) {
+      const cached = this.cachedBoardTimeline[index + 1];
+      if (cached) {
+        index++;
+        this.state.board = this.cloneBoard(cached);
+        continue;
+      }
+
+      const move = this.state.sgfMoves[index];
+      if (!move) {
+        return false;
+      }
+
+      const result = this.engine.playMove(this.state, move, move.color);
+      if (!result) {
+        return false;
+      }
+
+      const cloned = this.cloneBoard(result.board);
+      this.state.board = cloned;
+      this.cachedBoardTimeline[index + 1] = this.cloneBoard(cloned);
+      index++;
+    }
+
+    return true;
+  }
+
+  private rewindFromCache(target: number): boolean {
+    const cached = this.cachedBoardTimeline[target];
+    if (!cached) {
+      return false;
+    }
+
+    this.state.board = this.cloneBoard(cached);
+    return true;
+  }
+
+  private boardsEqual(a: Board, b: Board): boolean {
+    if (a.length !== b.length) {
+      return false;
+    }
+
+    for (let row = 0; row < a.length; row++) {
+      const rowA = a[row];
+      const rowB = b[row];
+      if (rowA.length !== rowB.length) {
+        return false;
+      }
+
+      for (let col = 0; col < rowA.length; col++) {
+        if (rowA[col] !== rowB[col]) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   private saveToHistory(description: string): void {
