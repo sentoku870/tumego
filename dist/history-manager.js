@@ -2,6 +2,122 @@ export class HistoryManager {
     constructor() {
         this.snapshots = [];
         this.maxSnapshots = 5;
+        this.restoreFieldMappings = [
+            {
+                key: 'boardSize',
+                apply: (current, saved) => {
+                    current.boardSize = saved.boardSize;
+                }
+            },
+            {
+                key: 'board',
+                apply: (current, saved) => {
+                    current.board = this.cloneBoard(saved.board);
+                }
+            },
+            {
+                key: 'mode',
+                apply: (current, saved) => {
+                    current.mode = saved.mode;
+                }
+            },
+            {
+                key: 'sgfMoves',
+                apply: (current, saved) => {
+                    current.sgfMoves = saved.sgfMoves.map(move => ({ ...move }));
+                }
+            },
+            {
+                key: 'sgfIndex',
+                apply: (current, saved) => {
+                    current.sgfIndex = saved.sgfIndex;
+                }
+            },
+            {
+                key: 'numberStartIndex',
+                apply: (current, saved) => {
+                    current.numberStartIndex = saved.numberStartIndex;
+                }
+            },
+            {
+                key: 'handicapStones',
+                apply: (current, saved) => {
+                    current.handicapStones = saved.handicapStones;
+                }
+            },
+            {
+                key: 'handicapPositions',
+                apply: (current, saved) => {
+                    current.handicapPositions = saved.handicapPositions.map(pos => ({ ...pos }));
+                }
+            },
+            {
+                key: 'komi',
+                apply: (current, saved) => {
+                    current.komi = saved.komi;
+                }
+            },
+            {
+                key: 'startColor',
+                apply: (current, saved) => {
+                    current.startColor = saved.startColor;
+                }
+            },
+            {
+                key: 'numberMode',
+                apply: (current, saved) => {
+                    current.numberMode = saved.numberMode;
+                }
+            },
+            {
+                key: 'answerMode',
+                apply: (current, saved) => {
+                    current.answerMode = saved.answerMode;
+                }
+            },
+            {
+                key: 'problemDiagramSet',
+                apply: (current, saved) => {
+                    current.problemDiagramSet = saved.problemDiagramSet;
+                }
+            },
+            {
+                key: 'problemDiagramBlack',
+                apply: (current, saved) => {
+                    current.problemDiagramBlack = saved.problemDiagramBlack.map(pos => ({ ...pos }));
+                }
+            },
+            {
+                key: 'problemDiagramWhite',
+                apply: (current, saved) => {
+                    current.problemDiagramWhite = saved.problemDiagramWhite.map(pos => ({ ...pos }));
+                }
+            },
+            {
+                key: 'turn',
+                apply: (current, saved) => {
+                    current.turn = saved.turn;
+                }
+            },
+            {
+                key: 'history',
+                apply: (current, saved) => {
+                    current.history = this.cloneHistory(saved.history);
+                }
+            },
+            {
+                key: 'gameTree',
+                apply: (current, saved) => {
+                    current.gameTree = saved.gameTree ? this.cloneGameTree(saved.gameTree) : null;
+                }
+            },
+            {
+                key: 'sgfLoadedFromExternal',
+                apply: (current, saved) => {
+                    current.sgfLoadedFromExternal = saved.sgfLoadedFromExternal;
+                }
+            }
+        ];
     }
     // ============ 履歴保存 ============
     save(description, state) {
@@ -22,28 +138,10 @@ export class HistoryManager {
             return false;
         const snapshot = this.snapshots[index];
         const savedState = snapshot.state;
-        // 状態を復元
-        Object.assign(currentState, {
-            boardSize: savedState.boardSize,
-            board: this.cloneBoard(savedState.board),
-            mode: savedState.mode,
-            sgfMoves: [...savedState.sgfMoves],
-            sgfIndex: savedState.sgfIndex,
-            numberStartIndex: savedState.numberStartIndex,
-            handicapStones: savedState.handicapStones,
-            handicapPositions: [...savedState.handicapPositions],
-            komi: savedState.komi,
-            startColor: savedState.startColor,
-            numberMode: savedState.numberMode,
-            answerMode: savedState.answerMode,
-            problemDiagramSet: savedState.problemDiagramSet,
-            problemDiagramBlack: [...savedState.problemDiagramBlack],
-            problemDiagramWhite: [...savedState.problemDiagramWhite],
-            turn: savedState.turn,
-            eraseMode: false, // 復元時は消去モードを無効化
-            gameTree: savedState.gameTree ? this.cloneGameTree(savedState.gameTree) : null,
-            sgfLoadedFromExternal: savedState.sgfLoadedFromExternal
+        this.restoreFieldMappings.forEach(mapping => {
+            mapping.apply(currentState, savedState);
         });
+        currentState.eraseMode = false; // 復元時は消去モードを無効化
         console.log(`履歴復元: ${snapshot.description}`);
         return true;
     }
@@ -154,16 +252,19 @@ export class HistoryManager {
         return {
             ...state,
             board: this.cloneBoard(state.board),
-            history: state.history.map(board => this.cloneBoard(board)),
-            sgfMoves: [...state.sgfMoves],
-            handicapPositions: [...state.handicapPositions],
-            problemDiagramBlack: [...state.problemDiagramBlack],
-            problemDiagramWhite: [...state.problemDiagramWhite],
+            history: this.cloneHistory(state.history),
+            sgfMoves: state.sgfMoves.map(move => ({ ...move })),
+            handicapPositions: state.handicapPositions.map(pos => ({ ...pos })),
+            problemDiagramBlack: state.problemDiagramBlack.map(pos => ({ ...pos })),
+            problemDiagramWhite: state.problemDiagramWhite.map(pos => ({ ...pos })),
             gameTree: state.gameTree ? this.cloneGameTree(state.gameTree) : null
         };
     }
     cloneBoard(board) {
         return board.map(row => [...row]);
+    }
+    cloneHistory(history) {
+        return history.map(board => this.cloneBoard(board));
     }
     cloneGameTree(tree) {
         const nodeMap = new Map();
