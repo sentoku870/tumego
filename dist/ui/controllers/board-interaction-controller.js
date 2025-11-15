@@ -1,4 +1,6 @@
 import { DEFAULT_CONFIG } from '../../types.js';
+import { BoardInputStateMachine } from './board-input-state-machine.js';
+import { normalizePointerInput } from './pointer-input.js';
 export class BoardInteractionController {
     constructor(store, elements, uiState, onBoardUpdated, disableEraseMode) {
         this.store = store;
@@ -6,6 +8,27 @@ export class BoardInteractionController {
         this.uiState = uiState;
         this.onBoardUpdated = onBoardUpdated;
         this.disableEraseMode = disableEraseMode;
+        this.inputStateMachine = new BoardInputStateMachine();
+        this.pointerDownHandlers = {
+            'erase:primary:*': ({ stateMachine }) => stateMachine.onErasePrimaryDown(),
+            'erase:secondary:*': ({ stateMachine }) => stateMachine.onEraseSecondaryDown(),
+            'erase:auxiliary:*': ({ stateMachine }) => stateMachine.onEraseAuxiliaryDown(),
+            'alt:primary:*': ({ stateMachine }) => stateMachine.onAltPrimaryDown(),
+            'alt:secondary:*': ({ stateMachine }) => stateMachine.onAltSecondaryDown(),
+            'alt:auxiliary:*': ({ stateMachine }) => stateMachine.onAltAuxiliaryDown(),
+            'play:primary:*': ({ stateMachine, input }) => stateMachine.onPlayPrimaryDown(input.colors.primary),
+            'play:secondary:*': ({ stateMachine, input }) => stateMachine.onPlaySecondaryDown(input.colors.secondary),
+            'play:auxiliary:*': ({ stateMachine }) => stateMachine.onPlayAuxiliaryDown()
+        };
+        this.pointerMoveHandlers = {
+            erase: ({ stateMachine, input, dragging }) => dragging
+                ? stateMachine.continueDrag()
+                : stateMachine.startEraseDragFromMove(input.isPointerActive),
+            alt: ({ stateMachine }) => stateMachine.ignoreMove(),
+            play: ({ stateMachine, dragging }) => dragging
+                ? stateMachine.continueDrag()
+                : stateMachine.ignoreMove()
+        };
     }
     initialize() {
         this.initBoardFocusEvents();
@@ -56,51 +79,25 @@ export class BoardInteractionController {
         });
     }
     handlePointerDown(event) {
-        this.uiState.boardHasFocus = true;
-        this.elements.boardWrapper.focus();
-        if (event.button === 2) {
-            event.preventDefault();
+        this.focusBoard();
+        const input = normalizePointerInput(event, this.state);
+        this.preventContextMenu(event, input.button);
+        const handler = this.resolvePointerDownHandler(input);
+        if (!handler) {
+            return;
         }
-        if (this.state.eraseMode) {
-            if (event.button === 2) {
-                this.disableEraseMode();
-                return;
-            }
-            this.uiState.drag.dragColor = null;
-        }
-        else if (this.state.mode === 'alt') {
-            if (event.button === 0) {
-                this.uiState.drag.dragColor = null;
-            }
-            else {
-                return;
-            }
-        }
-        else {
-            const leftColor = this.state.mode === 'white' ? 2 : 1;
-            const rightColor = this.state.mode === 'white' ? 1 : 2;
-            this.uiState.drag.dragColor = event.button === 0
-                ? leftColor
-                : event.button === 2
-                    ? rightColor
-                    : null;
-        }
-        this.uiState.drag.dragging = true;
-        this.uiState.drag.lastPos = null;
-        this.elements.svg.setPointerCapture(event.pointerId);
-        this.placeAtEvent(event);
+        const decision = handler({ input, stateMachine: this.inputStateMachine });
+        this.applyPointerDownDecision(decision, event);
     }
     handlePointerMove(event) {
-        if (!this.uiState.drag.dragging) {
-            if (this.state.eraseMode && event.buttons) {
-                this.uiState.drag.dragging = true;
-                this.uiState.drag.lastPos = null;
-            }
-            else {
-                return;
-            }
-        }
-        if (this.state.mode === 'alt' && !this.state.eraseMode) {
+        const input = normalizePointerInput(event, this.state);
+        const handler = this.pointerMoveHandlers[input.mode];
+        const decision = handler({
+            input,
+            stateMachine: this.inputStateMachine,
+            dragging: this.uiState.drag.dragging
+        });
+        if (!this.applyPointerMoveDecision(decision)) {
             return;
         }
         const pos = this.getPositionFromEvent(event);
@@ -166,6 +163,47 @@ export class BoardInteractionController {
     isValidPosition(pos) {
         return pos.col >= 0 && pos.col < this.state.boardSize &&
             pos.row >= 0 && pos.row < this.state.boardSize;
+    }
+    focusBoard() {
+        this.uiState.boardHasFocus = true;
+        this.elements.boardWrapper.focus();
+    }
+    preventContextMenu(event, button) {
+        if (button === 'secondary') {
+            event.preventDefault();
+        }
+    }
+    resolvePointerDownHandler(input) {
+        var _a;
+        const specificKey = `${input.mode}:${input.button}:${input.device}`;
+        const wildcardKey = `${input.mode}:${input.button}:*`;
+        return (_a = this.pointerDownHandlers[specificKey]) !== null && _a !== void 0 ? _a : this.pointerDownHandlers[wildcardKey];
+    }
+    applyPointerDownDecision(decision, event) {
+        if (decision.type === 'ignore') {
+            return;
+        }
+        if (decision.type === 'disableEraseMode') {
+            this.disableEraseMode();
+            return;
+        }
+        this.uiState.drag.dragging = true;
+        this.uiState.drag.dragColor = decision.dragColor;
+        this.uiState.drag.lastPos = null;
+        this.elements.svg.setPointerCapture(event.pointerId);
+        this.placeAtEvent(event);
+    }
+    applyPointerMoveDecision(decision) {
+        if (decision.type === 'ignore') {
+            return false;
+        }
+        if (decision.type === 'startDrag') {
+            this.uiState.drag.dragging = true;
+            this.uiState.drag.dragColor = decision.dragColor;
+            this.uiState.drag.lastPos = null;
+            return true;
+        }
+        return true;
     }
 }
 //# sourceMappingURL=board-interaction-controller.js.map
