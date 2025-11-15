@@ -68,6 +68,7 @@ export interface GameState {
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
   gameTree: GameTree | null;
+  hasExternalSGF: boolean;
 }
 
 // ============ UI要素 ============

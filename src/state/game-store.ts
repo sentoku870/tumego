@@ -99,19 +99,27 @@ export class GameStore {
       return false;
     }
 
-    const removeIndex = this.findLastMoveIndex(pos, currentStone as StoneColor);
-
-    if (removeIndex >= 0) {
-      this.state.sgfMoves = this.state.sgfMoves.slice(0, removeIndex);
-      this.state.sgfIndex = this.state.sgfMoves.length;
-      this.rebuildBoardFromMoves(this.state.sgfIndex);
+    if (this.isFreeEditMode()) {
+      const board = this.cloneBoard();
+      board[pos.row][pos.col] = 0;
+      this.state.board = board;
       this.invalidateCache();
       return true;
     }
 
-    const board = this.cloneBoard();
-    board[pos.row][pos.col] = 0;
-    this.state.board = board;
+    const removeIndex = this.findLastMoveIndex(pos, currentStone as StoneColor);
+
+    if (removeIndex === -1) {
+      const board = this.cloneBoard();
+      board[pos.row][pos.col] = 0;
+      this.state.board = board;
+      this.invalidateCache();
+      return true;
+    }
+
+    this.state.sgfMoves = this.state.sgfMoves.slice(0, removeIndex);
+    this.state.sgfIndex = removeIndex;
+    this.rebuildBoardFromMoves(this.state.sgfIndex);
     this.invalidateCache();
     return true;
   }
@@ -217,6 +225,7 @@ export class GameStore {
     this.state.handicapPositions = [];
     this.state.handicapStones = 0;
     this.state.gameTree = null;
+    this.state.hasExternalSGF = false;
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.turn = 0;
@@ -397,6 +406,10 @@ export class GameStore {
     return -1;
   }
 
+  private isFreeEditMode(): boolean {
+    return !this.state.hasExternalSGF;
+  }
+
   private hasGameData(): boolean {
     return this.state.sgfMoves.length > 0 ||
       this.state.handicapStones > 0 ||
@@ -418,6 +431,7 @@ export class GameStore {
     this.state.problemDiagramWhite = [];
     this.state.gameTree = null;
     this.state.numberMode = false;
+    this.state.hasExternalSGF = false;
   }
 
   private invalidateCache(): void {
