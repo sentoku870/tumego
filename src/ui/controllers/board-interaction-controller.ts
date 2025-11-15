@@ -1,11 +1,37 @@
-import { UIElements, Position, StoneColor, DEFAULT_CONFIG } from '../../types.js';
+import { UIElements, Position, DEFAULT_CONFIG } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
 import { UIInteractionState } from '../state/ui-interaction-state.js';
+import { BoardInputStateMachine, PointerDownDecision, PointerMoveDecision } from './board-input-state-machine.js';
+import { normalizePointerInput, NormalizedPointerInput, PointerButtonKind } from './pointer-input.js';
 
 export type BoardUpdateCallback = () => void;
 export type EraseModeDisabler = () => void;
 
 export class BoardInteractionController {
+  private readonly inputStateMachine = new BoardInputStateMachine();
+
+  private readonly pointerDownHandlers: Record<string, PointerDownHandler> = {
+    'erase:primary:*': ({ stateMachine }) => stateMachine.onErasePrimaryDown(),
+    'erase:secondary:*': ({ stateMachine }) => stateMachine.onEraseSecondaryDown(),
+    'erase:auxiliary:*': ({ stateMachine }) => stateMachine.onEraseAuxiliaryDown(),
+    'alt:primary:*': ({ stateMachine }) => stateMachine.onAltPrimaryDown(),
+    'alt:secondary:*': ({ stateMachine }) => stateMachine.onAltSecondaryDown(),
+    'alt:auxiliary:*': ({ stateMachine }) => stateMachine.onAltAuxiliaryDown(),
+    'play:primary:*': ({ stateMachine, input }) => stateMachine.onPlayPrimaryDown(input.colors.primary),
+    'play:secondary:*': ({ stateMachine, input }) => stateMachine.onPlaySecondaryDown(input.colors.secondary),
+    'play:auxiliary:*': ({ stateMachine }) => stateMachine.onPlayAuxiliaryDown()
+  };
+
+  private readonly pointerMoveHandlers: Record<string, PointerMoveHandler> = {
+    erase: ({ stateMachine, input, dragging }) => dragging
+      ? stateMachine.continueDrag()
+      : stateMachine.startEraseDragFromMove(input.isPointerActive),
+    alt: ({ stateMachine }) => stateMachine.ignoreMove(),
+    play: ({ stateMachine, dragging }) => dragging
+      ? stateMachine.continueDrag()
+      : stateMachine.ignoreMove()
+  };
+
   constructor(
     private readonly store: GameStore,
     private readonly elements: UIElements,
@@ -74,52 +100,31 @@ export class BoardInteractionController {
   }
 
   private handlePointerDown(event: PointerEvent): void {
-    this.uiState.boardHasFocus = true;
-    this.elements.boardWrapper.focus();
+    this.focusBoard();
 
-    if (event.button === 2) {
-      event.preventDefault();
+    const input = normalizePointerInput(event, this.state);
+    this.preventContextMenu(event, input.button);
+
+    const handler = this.resolvePointerDownHandler(input);
+    if (!handler) {
+      return;
     }
 
-    if (this.state.eraseMode) {
-      if (event.button === 2) {
-        this.disableEraseMode();
-        return;
-      }
-      this.uiState.drag.dragColor = null;
-    } else if (this.state.mode === 'alt') {
-      if (event.button === 0) {
-        this.uiState.drag.dragColor = null;
-      } else {
-        return;
-      }
-    } else {
-      const leftColor: StoneColor = this.state.mode === 'white' ? 2 : 1;
-      const rightColor: StoneColor = this.state.mode === 'white' ? 1 : 2;
-      this.uiState.drag.dragColor = event.button === 0
-        ? leftColor
-        : event.button === 2
-          ? rightColor
-          : null;
-    }
-
-    this.uiState.drag.dragging = true;
-    this.uiState.drag.lastPos = null;
-    this.elements.svg.setPointerCapture(event.pointerId);
-    this.placeAtEvent(event);
+    const decision = handler({ input, stateMachine: this.inputStateMachine });
+    this.applyPointerDownDecision(decision, event);
   }
 
   private handlePointerMove(event: PointerEvent): void {
-    if (!this.uiState.drag.dragging) {
-      if (this.state.eraseMode && event.buttons) {
-        this.uiState.drag.dragging = true;
-        this.uiState.drag.lastPos = null;
-      } else {
-        return;
-      }
-    }
+    const input = normalizePointerInput(event, this.state);
+    const handler = this.pointerMoveHandlers[input.mode];
 
-    if (this.state.mode === 'alt' && !this.state.eraseMode) {
+    const decision = handler({
+      input,
+      stateMachine: this.inputStateMachine,
+      dragging: this.uiState.drag.dragging
+    });
+
+    if (!this.applyPointerMoveDecision(decision)) {
       return;
     }
 
@@ -195,4 +200,68 @@ export class BoardInteractionController {
     return pos.col >= 0 && pos.col < this.state.boardSize &&
       pos.row >= 0 && pos.row < this.state.boardSize;
   }
+
+  private focusBoard(): void {
+    this.uiState.boardHasFocus = true;
+    this.elements.boardWrapper.focus();
+  }
+
+  private preventContextMenu(event: PointerEvent, button: PointerButtonKind): void {
+    if (button === 'secondary') {
+      event.preventDefault();
+    }
+  }
+
+  private resolvePointerDownHandler(input: NormalizedPointerInput): PointerDownHandler | undefined {
+    const specificKey = `${input.mode}:${input.button}:${input.device}`;
+    const wildcardKey = `${input.mode}:${input.button}:*`;
+    return this.pointerDownHandlers[specificKey] ?? this.pointerDownHandlers[wildcardKey];
+  }
+
+  private applyPointerDownDecision(decision: PointerDownDecision, event: PointerEvent): void {
+    if (decision.type === 'ignore') {
+      return;
+    }
+
+    if (decision.type === 'disableEraseMode') {
+      this.disableEraseMode();
+      return;
+    }
+
+    this.uiState.drag.dragging = true;
+    this.uiState.drag.dragColor = decision.dragColor;
+    this.uiState.drag.lastPos = null;
+    this.elements.svg.setPointerCapture(event.pointerId);
+    this.placeAtEvent(event);
+  }
+
+  private applyPointerMoveDecision(decision: PointerMoveDecision): boolean {
+    if (decision.type === 'ignore') {
+      return false;
+    }
+
+    if (decision.type === 'startDrag') {
+      this.uiState.drag.dragging = true;
+      this.uiState.drag.dragColor = decision.dragColor;
+      this.uiState.drag.lastPos = null;
+      return true;
+    }
+
+    return true;
+  }
 }
+
+interface PointerDownContext {
+  readonly input: NormalizedPointerInput;
+  readonly stateMachine: BoardInputStateMachine;
+}
+
+type PointerDownHandler = (context: PointerDownContext) => PointerDownDecision;
+
+interface PointerMoveContext {
+  readonly input: NormalizedPointerInput;
+  readonly stateMachine: BoardInputStateMachine;
+  readonly dragging: boolean;
+}
+
+type PointerMoveHandler = (context: PointerMoveContext) => PointerMoveDecision;

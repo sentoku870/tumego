@@ -38,6 +38,7 @@ export class GameStore {
   private cachedBoardState: Board | null = null;
   private cachedAppliedMoveIndex: number | null = null;
   private cachedBoardTimeline: Board[] = [];
+  private cachedMoveApplied: boolean[] = [];
 
   // === Performance metrics (from main branch) ===
   private performanceDebug = false;
@@ -165,40 +166,18 @@ export class GameStore {
 
   setMoveIndex(index: number): void {
     const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
+    let board = this.resolveBoardThroughCache(clamped);
 
-    let useCache = this.canUseCache();
-
-    if (!useCache) {
+    if (!board) {
       this.performFullReset(clamped);
-      useCache = true;
-    } else if (this.cachedAppliedMoveIndex !== null) {
-      if (clamped > this.cachedAppliedMoveIndex) {
-        useCache = this.advanceFromCache(clamped);
-      } else if (clamped < this.cachedAppliedMoveIndex) {
-        useCache = this.rewindFromCache(clamped);
-      } else if (this.cachedBoardState) {
-        this.state.board = this.cloneBoard(this.cachedBoardState);
-      }
+      board = this.cachedBoardTimeline[clamped] ?? this.cachedBoardState;
     }
 
-    if (!useCache) {
-      this.performFullReset(clamped);
+    if (!board) {
+      board = this.cloneBoard();
     }
 
-    const finalBoard = this.cloneBoard();
-    while (this.cachedBoardTimeline.length < clamped) {
-      const last = this.cachedBoardTimeline[this.cachedBoardTimeline.length - 1] ?? finalBoard;
-      this.cachedBoardTimeline.push(this.cloneBoard(last));
-    }
-    this.cachedBoardTimeline[clamped] = this.cloneBoard(finalBoard);
-    this.cachedBoardState = finalBoard;
-    this.cachedAppliedMoveIndex = clamped;
-
-    this.state.history = [];
-    this.state.sgfIndex = clamped;
-    this.state.turn = this.state.numberMode
-      ? Math.max(0, clamped - this.state.numberStartIndex)
-      : clamped;
+    this.applyCachedBoard(clamped, board);
   }
 
   startNumberMode(color: StoneColor): void {
@@ -336,10 +315,9 @@ export class GameStore {
     this.state.board = board;
   }
 
-  private rebuildBoardFromMoves(limit: number): void {
+  private rebuildBoardFromMoves(limit: number): Board | null {
     const profiling = this.performanceDebug;
     let startTime = 0;
-    let appliedMoves = 0;
 
     if (profiling) {
       startTime = this.getTimestamp();
@@ -352,16 +330,31 @@ export class GameStore {
     this.state.turn = 0;
     this.applyInitialSetup();
 
-    for (let i = 0; i < limit; i++) {
-      const move = this.state.sgfMoves[i];
-      const result = this.engine.playMove(this.state, move, move.color);
-      if (!result) continue;
+    const baseBoard = this.cloneBoard();
+    this.cachedBoardTimeline = [];
+    this.cachedBoardTimeline[0] = baseBoard;
+    this.cachedMoveApplied = [];
 
-      this.pushHistorySnapshot();
-      this.state.board = result.board;
-      this.state.turn++;
-      appliedMoves++;
+    const { board, newlyApplied } = this.ensureBoardForIndex(limit);
+    const finalBoard = board ?? baseBoard;
+
+    this.cachedBoardTimeline[limit] = finalBoard;
+    this.cachedBoardState = finalBoard;
+    this.cachedAppliedMoveIndex = limit;
+
+    this.state.history = [];
+    for (let i = 0; i < limit; i++) {
+      if (!this.cachedMoveApplied[i]) {
+        continue;
+      }
+
+      const snapshot = this.cachedBoardTimeline[i];
+      if (snapshot) {
+        this.state.history.push(this.cloneBoard(snapshot));
+      }
     }
+
+    this.state.board = this.cloneBoard(finalBoard);
 
     if (this.state.numberMode) {
       this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
@@ -374,8 +367,10 @@ export class GameStore {
       const duration = this.getTimestamp() - startTime;
       metrics.totalDurationMs += duration;
       metrics.lastDurationMs = duration;
-      metrics.lastAppliedMoves = appliedMoves;
+      metrics.lastAppliedMoves = newlyApplied;
     }
+
+    return finalBoard;
   }
 
   private findLastMoveIndex(pos: Position, color: StoneColor): number {
@@ -416,6 +411,7 @@ export class GameStore {
     this.cachedBoardState = null;
     this.cachedAppliedMoveIndex = null;
     this.cachedBoardTimeline = [];
+    this.cachedMoveApplied = [];
   }
 
   private canUseCache(): boolean {
@@ -434,75 +430,110 @@ export class GameStore {
   }
 
   private performFullReset(target: number): void {
-    this.rebuildBoardFromMoves(target);
-
-    const timeline = this.state.history.map(board => this.cloneBoard(board));
-    const finalBoard = this.cloneBoard();
-    if (timeline.length === 0) {
-      timeline.push(this.cloneBoard(finalBoard));
+    const board = this.rebuildBoardFromMoves(target);
+    if (board) {
+      this.cachedBoardTimeline[target] = board;
+      this.cachedBoardState = board;
+      this.cachedAppliedMoveIndex = target;
     }
-
-    while (timeline.length < target) {
-      const last = timeline[timeline.length - 1] ?? finalBoard;
-      timeline.push(this.cloneBoard(last));
-    }
-
-    timeline[target] = this.cloneBoard(finalBoard);
-
-    this.cachedBoardTimeline = timeline;
-    this.cachedBoardState = this.cloneBoard(finalBoard);
-    this.cachedAppliedMoveIndex = target;
-    this.state.history = [];
   }
 
-  private advanceFromCache(target: number): boolean {
+  private resolveBoardThroughCache(target: number): Board | null {
+    if (!this.canUseCache()) {
+      return null;
+    }
+
     if (this.cachedAppliedMoveIndex === null) {
-      return false;
+      return null;
     }
 
-    const currentBoard = this.cachedBoardTimeline[this.cachedAppliedMoveIndex];
-    if (!currentBoard) {
-      return false;
+    if (target === this.cachedAppliedMoveIndex && this.cachedBoardState) {
+      return this.cachedBoardState;
     }
 
-    this.state.board = this.cloneBoard(currentBoard);
-    let index = this.cachedAppliedMoveIndex;
+    const { board } = this.ensureBoardForIndex(target);
+    return board;
+  }
 
-    while (index < target) {
-      const cached = this.cachedBoardTimeline[index + 1];
+  private applyCachedBoard(target: number, board: Board): void {
+    this.cachedBoardTimeline[target] = board;
+    this.cachedBoardState = board;
+    this.cachedAppliedMoveIndex = target;
+
+    this.state.board = this.cloneBoard(board);
+    this.state.history = [];
+    for (let i = 0; i < target; i++) {
+      if (!this.cachedMoveApplied[i]) {
+        continue;
+      }
+
+      const snapshot = this.cachedBoardTimeline[i];
+      if (snapshot) {
+        this.state.history.push(this.cloneBoard(snapshot));
+      }
+    }
+    this.state.sgfIndex = target;
+    this.state.turn = this.state.numberMode
+      ? Math.max(0, target - this.state.numberStartIndex)
+      : target;
+  }
+
+  private ensureBoardForIndex(target: number): { board: Board | null; newlyApplied: number } {
+    if (target < 0) {
+      return { board: null, newlyApplied: 0 };
+    }
+
+    const nearest = this.findNearestCachedIndex(target);
+    if (nearest === -1) {
+      return { board: null, newlyApplied: 0 };
+    }
+
+    let board = this.cachedBoardTimeline[nearest]!;
+    let applied = 0;
+
+    for (let index = nearest; index < target; index++) {
+      const nextIndex = index + 1;
+      const cached = this.cachedBoardTimeline[nextIndex];
       if (cached) {
-        index++;
-        this.state.board = this.cloneBoard(cached);
+        board = cached;
         continue;
       }
 
       const move = this.state.sgfMoves[index];
       if (!move) {
-        return false;
+        this.cachedBoardTimeline[nextIndex] = board;
+        this.cachedMoveApplied[index] = false;
+        continue;
       }
 
-      const result = this.engine.playMove(this.state, move, move.color);
+      const workingBoard = this.cloneBoard(board);
+      const result = this.engine.playMove(this.state, move, move.color, workingBoard);
       if (!result) {
-        return false;
+        this.cachedBoardTimeline[nextIndex] = board;
+        this.cachedMoveApplied[index] = false;
+        continue;
       }
 
-      const cloned = this.cloneBoard(result.board);
-      this.state.board = cloned;
-      this.cachedBoardTimeline[index + 1] = this.cloneBoard(cloned);
-      index++;
+      board = result.board;
+      this.cachedBoardTimeline[nextIndex] = board;
+      this.cachedMoveApplied[index] = true;
+      applied++;
     }
 
-    return true;
+    return {
+      board: this.cachedBoardTimeline[target] ?? board,
+      newlyApplied: applied
+    };
   }
 
-  private rewindFromCache(target: number): boolean {
-    const cached = this.cachedBoardTimeline[target];
-    if (!cached) {
-      return false;
+  private findNearestCachedIndex(target: number): number {
+    for (let index = Math.min(target, this.cachedBoardTimeline.length - 1); index >= 0; index--) {
+      if (this.cachedBoardTimeline[index]) {
+        return index;
+      }
     }
 
-    this.state.board = this.cloneBoard(cached);
-    return true;
+    return -1;
   }
 
   private boardsEqual(a: Board, b: Board): boolean {
