@@ -225,7 +225,7 @@ export class GameStore {
     this.state.handicapPositions = [];
     this.state.handicapStones = 0;
     this.state.gameTree = null;
-    this.state.hasExternalSGF = false;
+    this.state.sgfLoadedFromExternal = false;
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.turn = 0;
@@ -407,7 +407,7 @@ export class GameStore {
   }
 
   private isFreeEditMode(): boolean {
-    return !this.state.hasExternalSGF;
+    return !this.state.sgfLoadedFromExternal;
   }
 
   private hasGameData(): boolean {
@@ -431,7 +431,7 @@ export class GameStore {
     this.state.problemDiagramWhite = [];
     this.state.gameTree = null;
     this.state.numberMode = false;
-    this.state.hasExternalSGF = false;
+    this.state.sgfLoadedFromExternal = false;
   }
 
   private invalidateCache(): void {

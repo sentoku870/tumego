@@ -24,7 +24,7 @@ const createState = (size = 5) => ({
   problemDiagramBlack: [],
   problemDiagramWhite: [],
   gameTree: null,
-  hasExternalSGF: false
+  sgfLoadedFromExternal: false
 });
 
 const createHistoryMock = () => ({
@@ -66,7 +66,7 @@ describe('GameStore', () => {
   });
 
   test('truncates SGF moves when editing a loaded record', () => {
-    state.hasExternalSGF = true;
+    state.sgfLoadedFromExternal = true;
     state.sgfMoves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },

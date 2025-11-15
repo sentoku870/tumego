@@ -48,7 +48,7 @@ export class HistoryManager implements OperationHistory {
       turn: savedState.turn,
       eraseMode: false, // 復元時は消去モードを無効化
       gameTree: savedState.gameTree ? this.cloneGameTree(savedState.gameTree) : null,
-      hasExternalSGF: savedState.hasExternalSGF
+      sgfLoadedFromExternal: savedState.sgfLoadedFromExternal
     });
 
     console.log(`履歴復元: ${snapshot.description}`);

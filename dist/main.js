@@ -23,7 +23,7 @@ function createInitialState() {
         problemDiagramBlack: [],
         problemDiagramWhite: [],
         gameTree: null,
-        hasExternalSGF: false
+        sgfLoadedFromExternal: false
     };
 }
 // ============ DOM要素の取得 ============

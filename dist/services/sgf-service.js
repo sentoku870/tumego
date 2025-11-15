@@ -56,7 +56,7 @@ export class SGFService {
         state.numberStartIndex = 0;
         state.handicapStones = 0;
         state.gameTree = null;
-        state.hasExternalSGF = true;
+        state.sgfLoadedFromExternal = true;
         state.handicapPositions = [];
         state.problemDiagramSet = false;
         state.problemDiagramBlack = [];
