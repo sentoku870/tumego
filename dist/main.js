@@ -22,7 +22,8 @@ function createInitialState() {
         problemDiagramSet: false,
         problemDiagramBlack: [],
         problemDiagramWhite: [],
-        gameTree: null
+        gameTree: null,
+        sgfLoadedFromExternal: false
     };
 }
 // ============ DOM要素の取得 ============

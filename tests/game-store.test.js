@@ -23,7 +23,8 @@ const createState = (size = 5) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null
+  gameTree: null,
+  sgfLoadedFromExternal: false
 });
 
 const createHistoryMock = () => ({
@@ -54,14 +55,54 @@ describe('GameStore', () => {
     expect(state.history.length).toBe(1);
   });
 
-  test('removes stones and rewinds the SGF move list', () => {
+  test('removes only the targeted stone in free edit mode', () => {
     store.tryMove({ col: 1, row: 1 }, 1);
     const removed = store.removeStone({ col: 1, row: 1 });
 
     expect(removed).toBe(true);
     expect(state.board[1][1]).toBe(0);
-    expect(state.sgfMoves).toHaveLength(0);
-    expect(state.turn).toBe(0);
+    expect(state.sgfMoves).toEqual([{ col: 1, row: 1, color: 1 }]);
+    expect(state.sgfIndex).toBe(1);
+  });
+
+  test('free edit removal keeps later stones intact', () => {
+    store.tryMove({ col: 0, row: 0 }, 1);
+    store.tryMove({ col: 1, row: 0 }, 2);
+    store.tryMove({ col: 2, row: 0 }, 1);
+    store.tryMove({ col: 3, row: 0 }, 2);
+
+    const removed = store.removeStone({ col: 2, row: 0 });
+
+    expect(removed).toBe(true);
+    expect(state.board[0][0]).toBe(1);
+    expect(state.board[0][1]).toBe(2);
+    expect(state.board[0][2]).toBe(0);
+    expect(state.board[0][3]).toBe(2);
+    expect(state.sgfMoves).toHaveLength(4);
+    expect(state.sgfIndex).toBe(4);
+  });
+
+  test('truncates SGF moves when editing a loaded record', () => {
+    state.sgfLoadedFromExternal = true;
+    state.sgfMoves = [
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 },
+      { col: 2, row: 0, color: 1 }
+    ];
+
+    store.setMoveIndex(3);
+
+    const removed = store.removeStone({ col: 2, row: 0 });
+
+    expect(removed).toBe(true);
+    expect(state.sgfMoves).toEqual([
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 }
+    ]);
+    expect(state.sgfIndex).toBe(2);
+    expect(state.board[0][2]).toBe(0);
+    expect(state.board[0][0]).toBe(1);
+    expect(state.board[0][1]).toBe(2);
   });
 
   test('replays moves when setting the SGF index', () => {

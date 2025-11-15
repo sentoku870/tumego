@@ -68,6 +68,7 @@ export interface GameState {
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
   gameTree: GameTree | null;
+  sgfLoadedFromExternal: boolean;
 }
 
 // ============ UI要素 ============
