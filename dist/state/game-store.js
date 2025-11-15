@@ -199,43 +199,20 @@ export class GameStore {
     hasProblemDiagram() {
         return this.state.problemDiagramSet;
     }
+    /**
+     * テンプレートメソッド。以下の順序で処理を行う:
+     * 1. {@link resetBoardForHandicap} 盤面のリセット
+     * 2. {@link placeHandicapStones} 置石の配置
+     * 3. {@link updateHandicapMetadata} メタデータの更新
+     */
     setHandicap(stones) {
         if (this.hasGameData()) {
             this.saveToHistory(`置石変更前（${this.state.handicapStones}子）`);
         }
-        if (stones === 'even') {
-            this.initBoard(this.state.boardSize);
-            this.state.handicapStones = 0;
-            this.state.handicapPositions = [];
-            this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-            this.state.startColor = 1;
-            this.invalidateCache();
-            return;
-        }
-        if (stones === 0) {
-            this.initBoard(this.state.boardSize);
-            this.state.handicapStones = 0;
-            this.state.handicapPositions = [];
-            this.state.komi = 0;
-            this.state.startColor = 1;
-            this.invalidateCache();
-            return;
-        }
-        this.initBoard(this.state.boardSize);
-        const count = Number(stones);
-        const handicapPositions = this.engine.generateHandicapPositions(this.state.boardSize, count);
-        console.log(`置石設定: ${stones}子, 位置:`, handicapPositions);
-        console.log(`${this.state.boardSize}路盤 ${stones}子局の置石位置:`, handicapPositions);
-        handicapPositions.forEach(pos => {
-            if (this.isValidPosition(pos)) {
-                this.state.board[pos.row][pos.col] = 1;
-            }
-        });
-        this.state.handicapStones = count;
-        this.state.handicapPositions = handicapPositions;
-        this.state.komi = 0;
-        this.state.startColor = 2;
-        this.state.turn = 0;
+        const context = this.createHandicapContext(stones);
+        this.resetBoardForHandicap(context);
+        this.placeHandicapStones(context);
+        this.updateHandicapMetadata(context);
         this.invalidateCache();
     }
     get currentColor() {
@@ -460,6 +437,56 @@ export class GameStore {
     isValidPosition(pos) {
         return pos.col >= 0 && pos.col < this.state.boardSize &&
             pos.row >= 0 && pos.row < this.state.boardSize;
+    }
+    createHandicapContext(stones) {
+        if (stones === 'even') {
+            return { mode: 'even', stones: 0, positions: [] };
+        }
+        const numeric = Number(stones);
+        if (!Number.isFinite(numeric) || numeric < 0) {
+            throw new Error(`無効な置石数: ${stones}`);
+        }
+        if (numeric === 0) {
+            return { mode: 'no-komi', stones: 0, positions: [] };
+        }
+        const positions = this.engine.generateHandicapPositions(this.state.boardSize, numeric);
+        console.log(`置石設定: ${stones}子, 位置:`, positions);
+        console.log(`${this.state.boardSize}路盤 ${stones}子局の置石位置:`, positions);
+        return { mode: 'fixed', stones: numeric, positions };
+    }
+    resetBoardForHandicap(_context) {
+        this.initBoard(this.state.boardSize);
+    }
+    placeHandicapStones(context) {
+        if (context.mode !== 'fixed') {
+            return;
+        }
+        context.positions.forEach(pos => {
+            if (this.isValidPosition(pos)) {
+                this.state.board[pos.row][pos.col] = 1;
+            }
+        });
+    }
+    updateHandicapMetadata(context) {
+        if (context.mode === 'even') {
+            this.state.handicapStones = 0;
+            this.state.handicapPositions = [];
+            this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+            this.state.startColor = 1;
+            return;
+        }
+        if (context.mode === 'no-komi') {
+            this.state.handicapStones = 0;
+            this.state.handicapPositions = [];
+            this.state.komi = 0;
+            this.state.startColor = 1;
+            return;
+        }
+        this.state.handicapStones = context.stones;
+        this.state.handicapPositions = context.positions.map(pos => ({ ...pos }));
+        this.state.komi = 0;
+        this.state.startColor = 2;
+        this.state.turn = 0;
     }
 }
 //# sourceMappingURL=game-store.js.map

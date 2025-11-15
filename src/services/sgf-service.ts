@@ -3,6 +3,7 @@ import {
   CellState,
   DEFAULT_CONFIG,
   GameState,
+  Move,
   SGFParseResult,
   StoneColor
 } from '../types.js';
@@ -11,6 +12,31 @@ import { getCircleNumber } from '../renderer.js';
 
 export interface ApplyResult {
   sgfText: string;
+}
+
+interface InitializationPhaseInput {
+  state: GameState;
+  result: SGFParseResult;
+}
+
+interface InitializationPhaseOutput {
+  state: GameState;
+  moves: Move[];
+  gameInfo: Partial<GameState>;
+  rawSGF?: string;
+}
+
+interface ApplicationPhaseInput extends InitializationPhaseOutput {}
+
+interface ApplicationPhaseOutput {
+  state: GameState;
+  appliedMoves: Move[];
+}
+
+interface HistoryAdjustmentInput extends ApplicationPhaseOutput {}
+
+interface HistoryAdjustmentOutput {
+  state: GameState;
 }
 
 export class SGFService {
@@ -52,13 +78,32 @@ export class SGFService {
   }
 
   apply(result: SGFParseResult): ApplyResult {
-    const { moves, gameInfo, rawSGF } = result;
+    const validated = this.validateParseResult(result);
+    const initialized = this.runInitializationPhase({
+      state: this.state,
+      result: validated
+    });
+    const applied = this.runApplicationPhase(initialized);
+    this.runHistoryAdjustmentPhase(applied);
+
+    return {
+      sgfText: validated.rawSGF ?? this.parser.export(this.state)
+    };
+  }
+
+  private validateParseResult(result: SGFParseResult): SGFParseResult {
+    const { moves, gameInfo } = result;
 
     if (!moves || !Array.isArray(moves) || !gameInfo) {
       throw new Error('不正なSGF解析結果です');
     }
 
-    const state = this.state;
+    return result;
+  }
+
+  private runInitializationPhase(input: InitializationPhaseInput): InitializationPhaseOutput {
+    const { state, result } = input;
+    const { moves, gameInfo, rawSGF } = result;
 
     if (state.sgfMoves.length > 0 || state.handicapStones > 0 ||
       state.board.some(row => row.some(cell => cell !== 0))) {
@@ -93,6 +138,17 @@ export class SGFService {
     state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     state.eraseMode = false;
 
+    return {
+      state,
+      moves,
+      gameInfo,
+      rawSGF
+    };
+  }
+
+  private runApplicationPhase(input: ApplicationPhaseInput): ApplicationPhaseOutput {
+    const { state, moves, gameInfo } = input;
+
     if (gameInfo.komi !== undefined) state.komi = gameInfo.komi;
     if (gameInfo.startColor !== undefined) state.startColor = gameInfo.startColor as StoneColor;
     if (gameInfo.handicapStones !== undefined) state.handicapStones = gameInfo.handicapStones;
@@ -113,11 +169,16 @@ export class SGFService {
 
     state.sgfMoves = moves.map(move => ({ ...move }));
     state.sgfIndex = 0;
-    this.store.setMoveIndex(0);
 
     return {
-      sgfText: rawSGF ?? this.parser.export(state)
+      state,
+      appliedMoves: state.sgfMoves
     };
+  }
+
+  private runHistoryAdjustmentPhase(input: HistoryAdjustmentInput): HistoryAdjustmentOutput {
+    this.store.setMoveIndex(0);
+    return { state: input.state };
   }
 
   buildAnswerSequence(): string | null {

@@ -30,11 +30,28 @@ export class SGFService {
         return this.parser.loadFromURL();
     }
     apply(result) {
-        const { moves, gameInfo, rawSGF } = result;
+        var _a;
+        const validated = this.validateParseResult(result);
+        const initialized = this.runInitializationPhase({
+            state: this.state,
+            result: validated
+        });
+        const applied = this.runApplicationPhase(initialized);
+        this.runHistoryAdjustmentPhase(applied);
+        return {
+            sgfText: (_a = validated.rawSGF) !== null && _a !== void 0 ? _a : this.parser.export(this.state)
+        };
+    }
+    validateParseResult(result) {
+        const { moves, gameInfo } = result;
         if (!moves || !Array.isArray(moves) || !gameInfo) {
             throw new Error('不正なSGF解析結果です');
         }
-        const state = this.state;
+        return result;
+    }
+    runInitializationPhase(input) {
+        const { state, result } = input;
+        const { moves, gameInfo, rawSGF } = result;
         if (state.sgfMoves.length > 0 || state.handicapStones > 0 ||
             state.board.some(row => row.some(cell => cell !== 0))) {
             this.store.historyManager.save(`SGF読み込み前（${state.sgfMoves.length}手）`, state);
@@ -64,6 +81,15 @@ export class SGFService {
         state.startColor = 1;
         state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         state.eraseMode = false;
+        return {
+            state,
+            moves,
+            gameInfo,
+            rawSGF
+        };
+    }
+    runApplicationPhase(input) {
+        const { state, moves, gameInfo } = input;
         if (gameInfo.komi !== undefined)
             state.komi = gameInfo.komi;
         if (gameInfo.startColor !== undefined)
@@ -87,10 +113,14 @@ export class SGFService {
         }
         state.sgfMoves = moves.map(move => ({ ...move }));
         state.sgfIndex = 0;
-        this.store.setMoveIndex(0);
         return {
-            sgfText: rawSGF !== null && rawSGF !== void 0 ? rawSGF : this.parser.export(state)
+            state,
+            appliedMoves: state.sgfMoves
         };
+    }
+    runHistoryAdjustmentPhase(input) {
+        this.store.setMoveIndex(0);
+        return { state: input.state };
     }
     buildAnswerSequence() {
         const state = this.state;
