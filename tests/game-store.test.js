@@ -121,6 +121,40 @@ describe('GameStore', () => {
     expect(state.turn).toBe(2);
   });
 
+  test('maintains board consistency across long navigation sequences', () => {
+    state.boardSize = 9;
+    state.board = createBoard(9);
+
+    const totalMoves = 60;
+    state.sgfMoves = Array.from({ length: totalMoves }, (_, index) => ({
+      col: index % state.boardSize,
+      row: Math.floor(index / state.boardSize),
+      color: (index % 2) + 1
+    }));
+
+    store.setMoveIndex(totalMoves);
+    const finalSnapshot = state.board.map(row => row.slice());
+
+    const mid = 25;
+    store.setMoveIndex(mid);
+    const midSnapshot = state.board.map(row => row.slice());
+
+    store.setMoveIndex(totalMoves);
+    expect(state.board).toEqual(finalSnapshot);
+
+    store.setMoveIndex(mid);
+    expect(state.board).toEqual(midSnapshot);
+
+    store.setMoveIndex(0);
+    const baseSnapshot = state.board.map(row => row.slice());
+
+    store.setMoveIndex(totalMoves);
+    expect(state.board).toEqual(finalSnapshot);
+
+    store.setMoveIndex(0);
+    expect(state.board).toEqual(baseSnapshot);
+  });
+
   test('initializes handicap stones and updates starting color', () => {
     state.boardSize = 9;
     state.board = createBoard(9);

@@ -12,28 +12,15 @@ import {
  * Pure go board logic. All state mutations are delegated to {@link GameStore}.
  */
 export class GoEngine {
-  playMove(state: GameState, pos: Position, color: StoneColor): MoveResult | null {
-    if (!this.isValidPosition(state.boardSize, pos) || state.board[pos.row][pos.col] !== 0) {
-      return null;
-    }
+  playMove(
+    state: GameState,
+    pos: Position,
+    color: StoneColor,
+    boardOverride?: Board
+  ): MoveResult | null {
+    const board = boardOverride ?? this.cloneBoard(state.board);
 
-    const board = this.cloneBoard(state.board);
-    board[pos.row][pos.col] = color;
-
-    const opponent = (3 - color) as StoneColor;
-    for (const neighbor of this.getNeighbors(pos, state.boardSize)) {
-      if (board[neighbor.row][neighbor.col] !== opponent) {
-        continue;
-      }
-
-      const group = this.getGroup(board, neighbor, state.boardSize);
-      if (this.getGroupLiberties(board, group.stones, state.boardSize).length === 0) {
-        this.removeStones(board, group.stones);
-      }
-    }
-
-    const selfGroup = this.getGroup(board, pos, state.boardSize);
-    if (this.getGroupLiberties(board, selfGroup.stones, state.boardSize).length === 0) {
+    if (!this.tryApplyMove(board, state.boardSize, pos, color)) {
       return null;
     }
 
@@ -52,6 +39,34 @@ export class GoEngine {
     }
 
     return positions.map(pos => ({ ...pos }));
+  }
+
+  private tryApplyMove(board: Board, boardSize: number, pos: Position, color: StoneColor): boolean {
+    if (!this.isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
+      return false;
+    }
+
+    board[pos.row][pos.col] = color;
+
+    const opponent = (3 - color) as StoneColor;
+    for (const neighbor of this.getNeighbors(pos, boardSize)) {
+      if (board[neighbor.row][neighbor.col] !== opponent) {
+        continue;
+      }
+
+      const group = this.getGroup(board, neighbor, boardSize);
+      if (this.getGroupLiberties(board, group.stones, boardSize).length === 0) {
+        this.removeStones(board, group.stones);
+      }
+    }
+
+    const selfGroup = this.getGroup(board, pos, boardSize);
+    if (this.getGroupLiberties(board, selfGroup.stones, boardSize).length === 0) {
+      board[pos.row][pos.col] = 0;
+      return false;
+    }
+
+    return true;
   }
 
   private cloneBoard(board: Board): Board {
