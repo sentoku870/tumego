@@ -62,38 +62,17 @@ export class GameStore {
         if (currentStone === 0) {
             return false;
         }
-        const handicapIndex = this.state.handicapPositions.findIndex(handicap => handicap.col === pos.col && handicap.row === pos.row);
-        if (handicapIndex !== -1) {
-            this.state.handicapPositions.splice(handicapIndex, 1);
-            this.state.handicapStones = this.state.handicapPositions.length;
+        const removeIndex = this.findLastMoveIndex(pos, currentStone);
+        if (removeIndex >= 0) {
+            this.state.sgfMoves = this.state.sgfMoves.slice(0, removeIndex);
+            this.state.sgfIndex = this.state.sgfMoves.length;
             this.rebuildBoardFromMoves(this.state.sgfIndex);
             this.invalidateCache();
             return true;
         }
-        const removeIndex = this.findLastMoveIndex(pos, currentStone);
-        if (removeIndex === -1) {
-            const board = this.cloneBoard();
-            board[pos.row][pos.col] = 0;
-            this.state.board = board;
-            this.invalidateCache();
-            return true;
-        }
-        const updatedMoves = [...this.state.sgfMoves];
-        updatedMoves.splice(removeIndex, 1);
-        if (this.state.numberMode && removeIndex < this.state.numberStartIndex) {
-            this.state.numberStartIndex = Math.max(0, this.state.numberStartIndex - 1);
-        }
-        this.state.sgfMoves = updatedMoves;
-        if (this.state.numberMode) {
-            this.state.numberStartIndex = Math.min(this.state.numberStartIndex, this.state.sgfMoves.length);
-        }
-        if (this.state.sgfIndex > removeIndex) {
-            this.state.sgfIndex = Math.max(removeIndex, this.state.sgfIndex - 1);
-        }
-        else if (this.state.sgfIndex > this.state.sgfMoves.length) {
-            this.state.sgfIndex = this.state.sgfMoves.length;
-        }
-        this.rebuildBoardFromMoves(this.state.sgfIndex);
+        const board = this.cloneBoard();
+        board[pos.row][pos.col] = 0;
+        this.state.board = board;
         this.invalidateCache();
         return true;
     }
