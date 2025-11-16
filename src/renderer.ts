@@ -245,6 +245,22 @@ export class Renderer {
   }
 
   render(): void {
+        // === 数字用影フィルタ ===
+    const defs = this.createSVGElement('defs', {});
+    const shadow = this.createSVGElement('filter', { id: 'num-shadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+
+    const fe = this.createSVGElement('feDropShadow', {
+      dx: '1.0',
+      dy: '1.0',
+      stdDeviation: '1.0',
+      'flood-color': '#000',
+      'flood-opacity': '0.55'
+    });
+
+    shadow.appendChild(fe);
+    defs.appendChild(shadow);
+    this.elements.svg.appendChild(defs);
+    // =========================
     const model = this.viewModelBuilder.buildBoardModel();
     const size = model.geometry.viewBoxSize;
 
@@ -395,13 +411,55 @@ export class Renderer {
 
   private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
     numbers.forEach(number => {
+
+      // === 背景円（透け防止＋視認性最大化） ===
+      // 石の半径 ≒ number.fontSize * 約1.3〜1.35 に近い
+      // → これに合わせて背景円を95%ほどに設定
+      const bgRadius = number.fontSize * 1.15;
+
+      // 白石の上の黒数字 → 背景は濃い黒
+      // 黒石の上の白数字 → 背景は純白
+      // （別ソフトもこの方式）
+      const bgColor = number.fill === '#000'
+        ? '#ffffff'
+        : '#000000';
+
+      const bg = this.createSVGElement('circle', {
+        cx: number.cx.toString(),
+        cy: number.cy.toString(),
+        r: bgRadius.toString(),
+        fill: bgColor,
+        filter: 'url(#num-shadow)'  // 背景ごと影を付けて浮かせる
+      });
+
+      this.elements.svg.appendChild(bg);
+
+
+      // === 数字本体 ===
       const text = this.createSVGElement('text', {
         x: number.cx.toString(),
         y: number.cy.toString(),
-        'font-size': number.fontSize.toString(),
-        fill: number.fill,
+        fill: number.fill,  // 白 or 黒
         class: 'move-num'
       });
+
+      // 超太字（900相当）
+      text.setAttribute('font-weight', '900');
+
+      // 数字の大きさ
+      const size = number.fontSize * 1.20;
+      text.setAttribute('font-size', size.toString());
+
+      // 視認性の肝：太い縁取り（石画像みたいに見える）
+      const strokeColor = number.fill === '#000' ? '#fff' : '#000';
+      text.setAttribute('stroke', strokeColor);
+      text.setAttribute('stroke-width', (size * 0.22).toString());
+      text.setAttribute('paint-order', 'stroke');
+      text.setAttribute('dominant-baseline', 'central');
+
+      // 数字にも影を微弱に乗せる
+      text.setAttribute('filter', 'url(#num-shadow)');
+
       text.textContent = number.text;
       this.elements.svg.appendChild(text);
     });
