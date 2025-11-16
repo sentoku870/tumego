@@ -90,7 +90,7 @@ class RendererViewModelBuilder {
       handicapText = '　互先';
     }
 
-    const infoText = `${state.boardSize}路 手数:${moveInfo.trim()} モード:${modeText} 手番:${colorText[this.store.currentColor]}`;
+    const infoText = `${state.boardSize}路 ${moveInfo.trim()} モード:${modeText} 手番:${colorText[this.store.currentColor]}`;
 
     return {
       infoText,
