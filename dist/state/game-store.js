@@ -63,7 +63,7 @@ export class GameStore {
         if (currentStone === 0) {
             return false;
         }
-        if (this.state.sgfLoadedFromExternal) {
+        if (this.state.sgfLoadedFromExternal || this.state.numberMode) {
             const removeIndex = this.findLastMoveIndex(pos, currentStone);
             if (removeIndex === -1) {
                 const board = this.cloneBoard();
