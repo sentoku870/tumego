@@ -147,3 +147,87 @@ svg.rotated text.coord,
 svg.rotated .move-num {
   transform: rotate(180deg);
 }
+
+/* ===== 碁盤まわりの見た目調整ここから ===== */
+
+/* 碁盤ラッパーの見た目を少し落ち着いた感じに */
+#board-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 95vmin;
+  background: var(--board);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  overscroll-behavior: contain;
+  touch-action: none;
+  overflow: hidden;
+}
+
+/* 情報表示 */
+.info {
+  margin-block: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  min-height: 1.6em;
+  text-align: center;
+  width: 100%;
+  max-width: 95vmin;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* 分岐情報はカード風のボックスに */
+.branch-info {
+  margin-block: 4px;
+  background: rgba(255, 235, 59, 0.95);
+  border: 1px solid #f57f17;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #333;
+  text-align: center;
+  width: 100%;
+  max-width: 95vmin;
+  box-shadow: var(--shadow-soft);
+}
+
+.branch-info-text {
+  margin-block: 4px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid #4caf50;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #2e7d32;
+  text-align: center;
+}
+
+/* 分岐ボタンの見た目 */
+.branch-btn {
+  display: inline-block;
+  margin: 2px;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.branch-btn:hover {
+  background: #f0f0f0;
+}
+
+.branch-btn.current {
+  background: #2196f3;
+  color: #fff;
+  border-color: #1976d2;
+  box-shadow: 0 1px 3px rgba(25, 118, 210, 0.4);
+}
+
+/* ===== 碁盤まわりの見た目調整ここまで ===== */
