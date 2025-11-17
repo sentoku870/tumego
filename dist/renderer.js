@@ -194,10 +194,27 @@ export class Renderer {
         this.viewModelBuilder = new RendererViewModelBuilder(store);
     }
     render() {
+        // === 数字用影フィルタ ===
+        const defs = this.createSVGElement('defs', {});
+        const shadow = this.createSVGElement('filter', { id: 'num-shadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+        const fe = this.createSVGElement('feDropShadow', {
+            dx: '1.0',
+            dy: '1.0',
+            stdDeviation: '1.0',
+            'flood-color': '#000',
+            'flood-opacity': '0.55'
+        });
+        shadow.appendChild(fe);
+        defs.appendChild(shadow);
+        this.elements.svg.appendChild(defs);
+        // =========================
         const model = this.viewModelBuilder.buildBoardModel();
         const size = model.geometry.viewBoxSize;
-        this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+        // === ここでSVGを消して viewBox 設定 ===
         this.elements.svg.innerHTML = '';
+        this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+        // === クリア後に defs を append ===
+        this.elements.svg.appendChild(defs);
         this.drawBoardLines(model.geometry);
         this.drawStars(model.geometry, model.stars);
         this.drawCoordinates(model.coordinates);
@@ -324,13 +341,47 @@ export class Renderer {
     }
     drawMoveNumbers(numbers) {
         numbers.forEach(number => {
+            // ==== 背景円（石とのコントラスト確保）=====================
+            const bgRadius = number.fontSize * 1.16;
+            const bgColor = number.fill === '#000' ? '#ffffff' : '#000000';
+            const bg = this.createSVGElement('circle', {
+                cx: number.cx.toString(),
+                cy: number.cy.toString(),
+                r: bgRadius.toString(),
+                fill: bgColor,
+                filter: 'url(#num-shadow)'
+            });
+            this.elements.svg.appendChild(bg);
+            // ==== 数字本体 ============================================
             const text = this.createSVGElement('text', {
                 x: number.cx.toString(),
                 y: number.cy.toString(),
-                'font-size': number.fontSize.toString(),
                 fill: number.fill,
                 class: 'move-num'
             });
+            // 全端末でズレにくいフォント
+            text.setAttribute('font-family', 'Roboto, Helvetica, Arial, sans-serif');
+            // 文字サイズ（背景円とのバランス）
+            const size = number.fontSize * 1.18;
+            text.setAttribute('font-size', size.toString());
+            text.setAttribute('font-weight', '800');
+            // 縁取り（stroke）
+            const strokeColor = number.fill === '#000' ? '#fff' : '#000';
+            text.setAttribute('stroke', strokeColor);
+            text.setAttribute('stroke-width', (size * 0.15).toString());
+            text.setAttribute('paint-order', 'stroke');
+            // 高精度描画指定（SVG全体に加えて個別にも指定）
+            text.setAttribute('shape-rendering', 'geometricPrecision');
+            text.setAttribute('text-rendering', 'geometricPrecision');
+            // 中央揃え（端末差を吸収）
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('text-anchor', 'middle');
+            // 黒石と白石でわずかに見え方が違うので微調整
+            const adjustY = number.fill === '#000' ? -0.7 : +0.7;
+            const finalY = number.cy + adjustY;
+            text.setAttribute('y', finalY.toString());
+            // 影
+            text.setAttribute('filter', 'url(#num-shadow)');
             text.textContent = number.text;
             this.elements.svg.appendChild(text);
         });

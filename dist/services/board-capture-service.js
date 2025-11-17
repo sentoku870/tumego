@@ -5,31 +5,39 @@ export class BoardCaptureService {
     }
     async captureBoard() {
         var _a;
-        const canvasElement = this.getBoardCaptureCanvas();
-        const pngBlob = await this.convertSvgToPng(this.svgElement, canvasElement);
-        const clipboardWritable = typeof ((_a = navigator.clipboard) === null || _a === void 0 ? void 0 : _a.write) === 'function';
-        const clipboardItemCtor = window.ClipboardItem;
-        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-            (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-        if (clipboardWritable && clipboardItemCtor) {
-            try {
-                const item = new clipboardItemCtor({ 'image/png': pngBlob });
-                await navigator.clipboard.write([item]);
-                this.renderer.showMessage('コピーしました');
-                return;
-            }
-            catch (error) {
-                console.error('クリップボードへの書き込みに失敗しました', error);
-                if (!isIOS) {
-                    alert('クリップボードにコピーできなかったため画像を表示します');
+        try {
+            // SVG から PNG Blob を生成
+            const pngBlob = await this.convertSvgToPng(this.svgElement);
+            const clipboardWritable = typeof ((_a = navigator.clipboard) === null || _a === void 0 ? void 0 : _a.write) === 'function';
+            const clipboardItemCtor = window.ClipboardItem;
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+            // クリップボードに PNG を書き込み（対応ブラウザのみ）
+            if (clipboardWritable && clipboardItemCtor) {
+                try {
+                    const item = new clipboardItemCtor({ 'image/png': pngBlob });
+                    await navigator.clipboard.write([item]);
+                    this.renderer.showMessage('コピーしました');
+                    return;
+                }
+                catch (error) {
+                    console.error('クリップボードへの書き込みに失敗しました', error);
+                    if (!isIOS) {
+                        alert('クリップボードにコピーできなかったため画像を表示します');
+                    }
                 }
             }
+            // クリップボードが使えない場合はプレビュー表示
+            const dataUrl = await this.blobToDataUrl(pngBlob);
+            if (!dataUrl) {
+                throw new Error('PNGの生成に失敗しました');
+            }
+            this.showBoardPreviewModal(dataUrl);
         }
-        const dataUrl = await this.blobToDataUrl(pngBlob);
-        if (!dataUrl) {
-            throw new Error('PNGの生成に失敗しました');
+        catch (error) {
+            console.error('盤面キャプチャに失敗しました', error);
+            this.renderer.showMessage('盤面画像の生成に失敗しました');
         }
-        this.showBoardPreviewModal(dataUrl);
     }
     async blobToDataUrl(blob) {
         return new Promise((resolve) => {
@@ -43,16 +51,6 @@ export class BoardCaptureService {
             };
             reader.readAsDataURL(blob);
         });
-    }
-    getBoardCaptureCanvas() {
-        let canvas = document.getElementById('goban-canvas');
-        if (!canvas) {
-            canvas = document.createElement('canvas');
-            canvas.id = 'goban-canvas';
-            canvas.style.display = 'none';
-            document.body.appendChild(canvas);
-        }
-        return canvas;
     }
     showBoardPreviewModal(imageUrl) {
         const existingOverlay = document.getElementById('board-preview-overlay');
@@ -104,15 +102,22 @@ export class BoardCaptureService {
         });
         document.body.appendChild(overlay);
     }
-    async convertSvgToPng(svgElement, canvas) {
+    /**
+     * SVG をクローンして CSS 変数を反映し、PNG Blob を生成
+     * DOM 上の <canvas> 要素は使わず、都度メモリ上に canvas を作る
+     */
+    async convertSvgToPng(svgElement) {
         const inlineSvg = svgElement.cloneNode(true);
         const rootStyle = getComputedStyle(document.documentElement);
+        // ==== viewBox の内部サイズを取得（描画と完全一致） ====
         const { width, height } = this.getSvgRenderSize(svgElement);
         if (!width || !height) {
             throw new Error('SVGのサイズを取得できません');
         }
+        // PNG 用の SVG に内部座標と同じサイズを設定
         inlineSvg.setAttribute('width', width.toString());
         inlineSvg.setAttribute('height', height.toString());
+        // テーマ用の CSS カスタムプロパティを埋め込む
         const cssVariables = ['--board', '--line', '--star', '--coord', '--black', '--white'];
         cssVariables.forEach((name) => {
             const value = rootStyle.getPropertyValue(name);
@@ -122,6 +127,7 @@ export class BoardCaptureService {
         });
         const serializer = new XMLSerializer();
         let svgString = serializer.serializeToString(inlineSvg);
+        // xmlns がない場合は付与
         if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
             svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
         }
@@ -135,6 +141,8 @@ export class BoardCaptureService {
             const revokeUrl = () => URL.revokeObjectURL(url);
             image.onload = () => {
                 try {
+                    // DOM に追加しない一時 canvas
+                    const canvas = document.createElement('canvas');
                     canvas.width = width;
                     canvas.height = height;
                     const context = canvas.getContext('2d');

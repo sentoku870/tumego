@@ -264,8 +264,12 @@ export class Renderer {
     const model = this.viewModelBuilder.buildBoardModel();
     const size = model.geometry.viewBoxSize;
 
-    this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+    // === ここでSVGを消して viewBox 設定 ===
     this.elements.svg.innerHTML = '';
+    this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+
+    // === クリア後に defs を append ===
+    this.elements.svg.appendChild(defs);
 
     this.drawBoardLines(model.geometry);
     this.drawStars(model.geometry, model.stars);
@@ -411,59 +415,64 @@ export class Renderer {
 
   private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
     numbers.forEach(number => {
+      // ==== 背景円（石とのコントラスト確保）=====================
+      const bgRadius = number.fontSize * 1.16;
 
-      // === 背景円（透け防止＋視認性最大化） ===
-      // 石の半径 ≒ number.fontSize * 約1.3〜1.35 に近い
-      // → これに合わせて背景円を95%ほどに設定
-      const bgRadius = number.fontSize * 1.15;
-
-      // 白石の上の黒数字 → 背景は濃い黒
-      // 黒石の上の白数字 → 背景は純白
-      // （別ソフトもこの方式）
-      const bgColor = number.fill === '#000'
-        ? '#ffffff'
-        : '#000000';
+      const bgColor = number.fill === '#000' ? '#ffffff' : '#000000';
 
       const bg = this.createSVGElement('circle', {
         cx: number.cx.toString(),
         cy: number.cy.toString(),
         r: bgRadius.toString(),
         fill: bgColor,
-        filter: 'url(#num-shadow)'  // 背景ごと影を付けて浮かせる
+        filter: 'url(#num-shadow)'
       });
 
       this.elements.svg.appendChild(bg);
 
-
-      // === 数字本体 ===
+      // ==== 数字本体 ============================================
       const text = this.createSVGElement('text', {
         x: number.cx.toString(),
         y: number.cy.toString(),
-        fill: number.fill,  // 白 or 黒
+        fill: number.fill,
         class: 'move-num'
       });
 
-      // 超太字（900相当）
-      text.setAttribute('font-weight', '900');
+      // 全端末でズレにくいフォント
+      text.setAttribute('font-family', 'Roboto, Helvetica, Arial, sans-serif');
 
-      // 数字の大きさ
-      const size = number.fontSize * 1.20;
+      // 文字サイズ（背景円とのバランス）
+      const size = number.fontSize * 1.18;
       text.setAttribute('font-size', size.toString());
+      text.setAttribute('font-weight', '800');
 
-      // 視認性の肝：太い縁取り（石画像みたいに見える）
+      // 縁取り（stroke）
       const strokeColor = number.fill === '#000' ? '#fff' : '#000';
       text.setAttribute('stroke', strokeColor);
-      text.setAttribute('stroke-width', (size * 0.22).toString());
+      text.setAttribute('stroke-width', (size * 0.15).toString());
       text.setAttribute('paint-order', 'stroke');
-      text.setAttribute('dominant-baseline', 'central');
 
-      // 数字にも影を微弱に乗せる
+      // 高精度描画指定（SVG全体に加えて個別にも指定）
+      text.setAttribute('shape-rendering', 'geometricPrecision');
+      text.setAttribute('text-rendering', 'geometricPrecision');
+
+      // 中央揃え（端末差を吸収）
+      text.setAttribute('dominant-baseline', 'middle');
+      text.setAttribute('text-anchor', 'middle');
+
+      // 黒石と白石でわずかに見え方が違うので微調整
+      const adjustY = number.fill === '#000' ? -0.7 : +0.7;
+      const finalY = number.cy + adjustY;
+      text.setAttribute('y', finalY.toString());
+
+      // 影
       text.setAttribute('filter', 'url(#num-shadow)');
 
       text.textContent = number.text;
       this.elements.svg.appendChild(text);
     });
   }
+
 
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {
     const element = document.createElementNS('http://www.w3.org/2000/svg', tag);

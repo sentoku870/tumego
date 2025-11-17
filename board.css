@@ -231,3 +231,8 @@ svg.rotated .move-num {
 }
 
 /* ===== 碁盤まわりの見た目調整ここまで ===== */
+/* 盤面SVGの描画精度を上げる */
+svg {
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+}
