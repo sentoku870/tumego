@@ -415,22 +415,7 @@ export class Renderer {
 
   private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
     numbers.forEach(number => {
-
-      // ==== 背景円（石とのコントラスト確保）=====================
-      const bgRadius = number.fontSize * 1.16;
-
-      const bgColor = number.fill === '#000' ? '#ffffff' : '#000000';
-
-      const bg = this.createSVGElement('circle', {
-        cx: number.cx.toString(),
-        cy: number.cy.toString(),
-        r: bgRadius.toString(),
-        fill: bgColor,
-        filter: 'url(#num-shadow)'
-      });
-
-      this.elements.svg.appendChild(bg);
-
+      
       // ==== 数字本体 ============================================
       const text = this.createSVGElement('text', {
         x: number.cx.toString(),
