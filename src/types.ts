@@ -61,6 +61,10 @@ export interface GameState {
   sgfIndex: number;
   numberStartIndex: number;
   komi: number;
+  blackName?: string;
+  whiteName?: string;
+  result?: string;
+  date?: string;
   handicapStones: number;
   handicapPositions: Position[];
   answerMode: AnswerMode;

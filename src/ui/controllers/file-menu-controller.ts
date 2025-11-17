@@ -137,11 +137,26 @@ export class FileMenuController {
     });
   }
 
-  private applySgf(result: SGFParseResult): void {
-    const applyResult = this.sgfService.apply(result);
-    this.renderer.updateBoardSize();
-    this.updateUI();
-    this.onSgfApplied(applyResult.sgfText);
-    this.updateAnswerButtonDisplay();
+private applySgf(result: SGFParseResult): void {
+  const applyResult = this.sgfService.apply(result);
+  this.renderer.updateBoardSize();
+  this.updateUI();
+  this.onSgfApplied(applyResult.sgfText);
+  this.updateAnswerButtonDisplay();
+
+  // ===== SGF対局情報のUI表示処理 =====
+  const info = result.gameInfo;
+  const metaBox = document.getElementById("sgf-meta");
+
+  if (metaBox) {
+    metaBox.innerHTML = `
+      黒番: ${info.blackName ?? '-'}　
+      白番: ${info.whiteName ?? '-'}　
+      結果: ${info.result ?? '-'}<br>
+      コミ: ${info.komi ?? '-'}　
+      置石: ${info.handicapStones ?? '-'}　
+      日時: ${info.date ?? '-'}
+    `;
   }
+}
 }

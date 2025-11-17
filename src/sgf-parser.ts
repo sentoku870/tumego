@@ -24,6 +24,18 @@ export class SGFParser {
       gameInfo.boardSize = parseInt(sizeMatch[1], 10);
       console.log('盤サイズ:', gameInfo.boardSize);
     }
+        // --- 対局者名・結果・日時 ---
+    const blackNameMatch = rawText.match(/PB\[([^\]]*)\]/i);
+    if (blackNameMatch) gameInfo.blackName = blackNameMatch[1];
+
+    const whiteNameMatch = rawText.match(/PW\[([^\]]*)\]/i);
+    if (whiteNameMatch) gameInfo.whiteName = whiteNameMatch[1];
+
+    const resultMatch = rawText.match(/RE\[([^\]]*)\]/i);
+    if (resultMatch) gameInfo.result = resultMatch[1];
+
+    const dateMatch = rawText.match(/DT\[([^\]]*)\]/i);
+    if (dateMatch) gameInfo.date = dateMatch[1];
 
     // コミの解析
     const komiMatch = rawText.match(/KM\[([0-9.]+)\]/i);

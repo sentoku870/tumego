@@ -121,11 +121,25 @@ export class FileMenuController {
         });
     }
     applySgf(result) {
+        var _a, _b, _c, _d, _e, _f;
         const applyResult = this.sgfService.apply(result);
         this.renderer.updateBoardSize();
         this.updateUI();
         this.onSgfApplied(applyResult.sgfText);
         this.updateAnswerButtonDisplay();
+        // ===== SGF対局情報のUI表示処理 =====
+        const info = result.gameInfo;
+        const metaBox = document.getElementById("sgf-meta");
+        if (metaBox) {
+            metaBox.innerHTML = `
+      黒番: ${(_a = info.blackName) !== null && _a !== void 0 ? _a : '-'}　
+      白番: ${(_b = info.whiteName) !== null && _b !== void 0 ? _b : '-'}　
+      結果: ${(_c = info.result) !== null && _c !== void 0 ? _c : '-'}<br>
+      コミ: ${(_d = info.komi) !== null && _d !== void 0 ? _d : '-'}　
+      置石: ${(_e = info.handicapStones) !== null && _e !== void 0 ? _e : '-'}　
+      日時: ${(_f = info.date) !== null && _f !== void 0 ? _f : '-'}
+    `;
+        }
     }
 }
 //# sourceMappingURL=file-menu-controller.js.map

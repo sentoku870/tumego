@@ -82,8 +82,9 @@ body.horizontal .moves {
 #board-wrapper { order: 5; }
 .moves { order: 6; }
 #sgf-controls { order: 7; }
-#sgf-text { order: 8; }
-.msg { order: 9; }
+#sgf-meta {  order: 8; }
+#sgf-text { order: 9; }
+.msg { order: 10; }
 
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
@@ -549,3 +550,35 @@ body:not(.horizontal) .msg {
 }
 
 /* ===== UI デザイン追加ここまで ===== */
+/* ==== SGF情報と配置順序 ==== */
+#sgf-meta {
+  order: 6;
+  font-size: 0.9rem;
+  margin: 6px 0 4px;
+  padding: 4px 6px;
+  background: #f7f7f7;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+#sgf-text { order: 7; }
+#msg { order: 8; }
+
+/* ==== SGF情報と配置順序（最優先） ==== */
+#sgf-meta {
+  order: 8 !important;
+  font-size: 0.9rem;
+  margin: 6px 0 4px;
+  padding: 4px 6px;
+  background: #f7f7f7;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+#sgf-text {
+  order: 9 !important;
+}
+
+.msg {
+  order: 10 !important;
+}
