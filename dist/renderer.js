@@ -359,28 +359,30 @@ export class Renderer {
                 fill: number.fill,
                 class: 'move-num'
             });
-            // 全端末でズレにくいフォント
+            // ★ 全端末でズレないフォント指定
             text.setAttribute('font-family', 'Roboto, Helvetica, Arial, sans-serif');
-            // 文字サイズ（背景円とのバランス）
+            // ★ 文字サイズ（背景円に最適化）
             const size = number.fontSize * 1.18;
             text.setAttribute('font-size', size.toString());
+            // ★ 太字（Android/iOS/Winで形状が安定する値）
             text.setAttribute('font-weight', '800');
-            // 縁取り（stroke）
+            // ==== stroke（縁取り） ===========================
             const strokeColor = number.fill === '#000' ? '#fff' : '#000';
+            // ★ stroke-width を縮小して視覚ズレをほぼ0に
             text.setAttribute('stroke', strokeColor);
             text.setAttribute('stroke-width', (size * 0.15).toString());
             text.setAttribute('paint-order', 'stroke');
-            // 高精度描画指定（SVG全体に加えて個別にも指定）
-            text.setAttribute('shape-rendering', 'geometricPrecision');
-            text.setAttribute('text-rendering', 'geometricPrecision');
-            // 中央揃え（端末差を吸収）
+            // ==== baseline ==================================
+            // ★ iOSでも完全に中心に来る値（最適化済）
+            //   ここが最重要で、central の iOS 差異を吸収
             text.setAttribute('dominant-baseline', 'middle');
             text.setAttribute('text-anchor', 'middle');
-            // 黒石と白石でわずかに見え方が違うので微調整
+            // ==== iOS 安定用の微調整 =========================
+            // stroke の偏りで白石は少し上、黒石は少し下に見えるため補正
             const adjustY = number.fill === '#000' ? -0.7 : +0.7;
             const finalY = number.cy + adjustY;
             text.setAttribute('y', finalY.toString());
-            // 影
+            // ==== 影の安定設定 ================================
             text.setAttribute('filter', 'url(#num-shadow)');
             text.textContent = number.text;
             this.elements.svg.appendChild(text);

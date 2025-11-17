@@ -140,12 +140,13 @@ text.coord {
 /* 盤面回転機能 */
 svg.rotated {
   transform: rotate(180deg);
-  transition: transform 0.3s ease;
+  transition: none;
 }
 
 svg.rotated text.coord,
 svg.rotated .move-num {
-  transform: rotate(180deg);
+  transform: rotate(180deg) translate(0, 0);
+  transform-origin: center;
 }
 
 /* ===== 碁盤まわりの見た目調整ここから ===== */
