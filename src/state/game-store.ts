@@ -108,8 +108,7 @@ export class GameStore {
       return false;
     }
 
-    if (this.state.sgfLoadedFromExternal || this.state.numberMode) {
-
+    if (this.state.sgfLoadedFromExternal) {
       const removeIndex = this.findLastMoveIndex(pos, currentStone as StoneColor);
 
       if (removeIndex === -1) {
