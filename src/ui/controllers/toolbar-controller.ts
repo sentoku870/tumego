@@ -205,6 +205,8 @@ export class ToolbarController {
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
       this.store.setMoveIndex(parseInt(target.value, 10));
+        // ← これを追加（reviewモード強制解除）
+  (this.store as any).reviewMoves = [];
       this.updateUI();
     });
   }

@@ -47,7 +47,12 @@ export class UIController {
     this.qrManager = new QRManager();
     this.historyManager = new HistoryManager();
     this.store = new GameStore(state, this.engine, this.historyManager);
-    this.renderer = new Renderer(this.store, elements);
+    this.renderer = new Renderer(
+      this.store,
+      elements,
+      () => this.updateUI()   // ← これを渡す！
+);
+
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
     this.uiState = new UIInteractionState();
@@ -89,6 +94,9 @@ export class UIController {
       (sgfText) => this.syncSgfTextarea(sgfText),
       () => this.toolbarController.updateAnswerButtonDisplay()
     );
+
+    // デバッグ用：GameStore を globalThis から見えるようにする
+    (globalThis as any).store = this.store;
   }
 
   initialize(): void {
@@ -132,6 +140,22 @@ export class UIController {
     this.renderer.render();
     this.renderer.updateInfo();
     this.renderer.updateSlider();
+
+    // === 検討モード中は盤枠に色を付ける ===
+    const wrapper = this.elements.boardWrapper;
+    if (!wrapper) return;
+
+    const state = this.store.snapshot;
+    const reviewMoves = (this.store as any).reviewMoves as { col: number; row: number }[] | undefined;
+    const hasReview = Array.isArray(reviewMoves) && reviewMoves.length > 0;
+
+    const inReviewMode = state.sgfLoadedFromExternal && hasReview;
+
+    if (inReviewMode) {
+      wrapper.classList.add('review-mode');
+    } else {
+      wrapper.classList.remove('review-mode');
+    }
   }
 
   private syncSgfTextarea(text: string): void {

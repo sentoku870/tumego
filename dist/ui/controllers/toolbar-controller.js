@@ -178,6 +178,8 @@ export class ToolbarController {
         (_a = this.elements.sliderEl) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (event) => {
             const target = event.target;
             this.store.setMoveIndex(parseInt(target.value, 10));
+            // ← これを追加（reviewモード強制解除）
+            this.store.reviewMoves = [];
             this.updateUI();
         });
     }

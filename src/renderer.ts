@@ -236,12 +236,15 @@ class RendererViewModelBuilder {
 
 export class Renderer {
   private readonly viewModelBuilder: RendererViewModelBuilder;
+  private readonly onUIUpdate: (() => void) | null;
 
   constructor(
     private readonly store: GameStore,
-    private readonly elements: UIElements
+    private readonly elements: UIElements,
+    onUIUpdate?: () => void   // ← 追加
   ) {
     this.viewModelBuilder = new RendererViewModelBuilder(store);
+    this.onUIUpdate = onUIUpdate ?? null; // ← 追加
   }
 
   render(): void {
@@ -292,13 +295,14 @@ export class Renderer {
     }
   }
 
-  updateSlider(): void {
-    if (!this.elements.sliderEl) return;
+updateSlider(): void {
+  if (!this.elements.sliderEl) return;
 
-    const sliderModel = this.viewModelBuilder.buildSliderModel();
-    this.elements.sliderEl.max = sliderModel.max.toString();
-    this.elements.sliderEl.value = sliderModel.value.toString();
-  }
+  const sliderModel = this.viewModelBuilder.buildSliderModel();
+  this.elements.sliderEl.max = sliderModel.max.toString();
+  this.elements.sliderEl.value = sliderModel.value.toString();
+
+}
 
   showMessage(text: string): void {
     if (this.elements.msgEl) {

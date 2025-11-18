@@ -24,7 +24,8 @@ export class UIController {
         this.qrManager = new QRManager();
         this.historyManager = new HistoryManager();
         this.store = new GameStore(state, this.engine, this.historyManager);
-        this.renderer = new Renderer(this.store, elements);
+        this.renderer = new Renderer(this.store, elements, () => this.updateUI() // ← これを渡す！
+        );
         this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
         this.sgfService = new SGFService(this.sgfParser, this.store);
         this.uiState = new UIInteractionState();
@@ -34,6 +35,8 @@ export class UIController {
         this.keyboardController = new KeyboardController(this.uiState);
         this.featureMenuController = new FeatureMenuController(this.dropdownManager, this.renderer, this.elements, this.store, this.sgfService, () => this.updateUI());
         this.fileMenuController = new FileMenuController(this.dropdownManager, this.sgfService, this.renderer, this.qrManager, () => this.updateUI(), (sgfText) => this.syncSgfTextarea(sgfText), () => this.toolbarController.updateAnswerButtonDisplay());
+        // デバッグ用：GameStore を globalThis から見えるようにする
+        globalThis.store = this.store;
     }
     initialize() {
         this.boardController.initialize();
@@ -69,6 +72,20 @@ export class UIController {
         this.renderer.render();
         this.renderer.updateInfo();
         this.renderer.updateSlider();
+        // === 検討モード中は盤枠に色を付ける ===
+        const wrapper = this.elements.boardWrapper;
+        if (!wrapper)
+            return;
+        const state = this.store.snapshot;
+        const reviewMoves = this.store.reviewMoves;
+        const hasReview = Array.isArray(reviewMoves) && reviewMoves.length > 0;
+        const inReviewMode = state.sgfLoadedFromExternal && hasReview;
+        if (inReviewMode) {
+            wrapper.classList.add('review-mode');
+        }
+        else {
+            wrapper.classList.remove('review-mode');
+        }
     }
     syncSgfTextarea(text) {
         const sgfTextarea = document.getElementById('sgf-text');

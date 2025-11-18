@@ -18,12 +18,18 @@ export class GameStore {
         this.performanceMetrics = {
             rebuildBoardFromMoves: this.createRebuildMetrics()
         };
+        // === Review mode fields ===
+        this.reviewMoves = [];
+        this.isReviewMode = false;
     }
     get snapshot() {
         return this.state;
     }
     get historyManager() {
         return this.history;
+    }
+    get reviewActive() {
+        return this.reviewMoves.length > 0;
     }
     setPerformanceDebugging(enabled, reset = true) {
         this.performanceDebug = enabled;
@@ -55,34 +61,75 @@ export class GameStore {
         this.invalidateCache();
         return true;
     }
+    // === Review mode: add temporary move ===
+    addReviewMove(move) {
+        // 盤面に実際に着手するが、SGF（sgfMoves）は書き換えない
+        const ok = this.tryMove({ row: move.row, col: move.col }, move.color, false);
+        if (!ok) {
+            return;
+        }
+        this.reviewMoves.push(move);
+        this.isReviewMode = true;
+        // tryMove 内で invalidateCache() 済み
+    }
+    // === Review mode: reset and return to main line ===
+    resetReview() {
+        this.reviewMoves = [];
+        this.isReviewMode = false;
+        // 本譜だけで盤面を再構築
+        this.rebuildBoardFromMoves(this.state.sgfIndex);
+        this.invalidateCache();
+    }
     removeStone(pos) {
-        if (!this.isValidPosition(pos)) {
-            return false;
-        }
-        const currentStone = this.state.board[pos.row][pos.col];
-        if (currentStone === 0) {
-            return false;
-        }
-        if (this.state.sgfLoadedFromExternal || this.state.numberMode) {
-            const removeIndex = this.findLastMoveIndex(pos, currentStone);
-            if (removeIndex === -1) {
-                const board = this.cloneBoard();
+        // === 0) 配置モード（numberMode=false & sgfLoadedFromExternal=false）===
+        if (!this.state.numberMode && !this.state.sgfLoadedFromExternal) {
+            // → 完全に自由に削除
+            const board = this.cloneBoard();
+            if (board[pos.row][pos.col] !== 0) {
                 board[pos.row][pos.col] = 0;
                 this.state.board = board;
                 this.invalidateCache();
                 return true;
             }
-            this.state.sgfMoves = this.state.sgfMoves.slice(0, removeIndex);
-            this.state.sgfIndex = this.state.sgfMoves.length;
-            this.rebuildBoardFromMoves(this.state.sgfIndex);
-            this.invalidateCache();
-            return true;
+            return false;
         }
-        const board = this.cloneBoard();
-        board[pos.row][pos.col] = 0;
-        this.state.board = board;
-        this.invalidateCache();
-        return true;
+        // === 1) 解答モード（numberMode=true）===
+        if (this.state.numberMode) {
+            // 常に末尾の手だけ消せる
+            if (this.state.sgfIndex > this.state.numberStartIndex) {
+                const lastMove = this.state.sgfMoves[this.state.sgfIndex - 1];
+                if (lastMove.col === pos.col && lastMove.row === pos.row) {
+                    this.state.sgfMoves.pop();
+                    this.state.sgfIndex--;
+                    this.rebuildBoardFromMoves(this.state.sgfIndex);
+                    this.invalidateCache();
+                    return true;
+                }
+            }
+            return false;
+        }
+        // === 2) SGF読み込み中の検討モード（sgfLoadedFromExternal=true）===
+        if (this.state.sgfLoadedFromExternal) {
+            // 本譜は保護
+            // 検討手(reviewMoves) の末尾だけ消せる
+            if (this.isReviewMode && this.reviewMoves.length > 0) {
+                const last = this.reviewMoves[this.reviewMoves.length - 1];
+                if (last.col === pos.col && last.row === pos.row) {
+                    this.reviewMoves.pop();
+                    // 本譜 + 残りの検討手で復元
+                    this.rebuildBoardFromMoves(this.state.sgfIndex);
+                    for (const mv of this.reviewMoves) {
+                        const r = this.engine.playMove(this.state, mv, mv.color, this.state.board);
+                        if (r)
+                            this.state.board = r.board;
+                    }
+                    this.invalidateCache();
+                    return true;
+                }
+            }
+            return false; // 本譜は消さない
+        }
+        return false;
     }
     initBoard(size) {
         if (this.hasGameData()) {
@@ -113,6 +160,8 @@ export class GameStore {
     setMoveIndex(index) {
         var _a;
         const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
+        // ★ここに追加（最も安全で一貫した位置）
+        this.reviewMoves = [];
         let board = this.resolveBoardThroughCache(clamped);
         if (!board) {
             this.performFullReset(clamped);
@@ -268,6 +317,15 @@ export class GameStore {
             }
         }
         this.state.board = this.cloneBoard(finalBoard);
+        // === Apply review moves (temporary moves) ===
+        if (this.isReviewMode && this.reviewMoves.length > 0) {
+            for (const mv of this.reviewMoves) {
+                const result = this.engine.playMove(this.state, mv, mv.color, this.state.board);
+                if (result) {
+                    this.state.board = result.board;
+                }
+            }
+        }
         if (this.state.numberMode) {
             this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
         }

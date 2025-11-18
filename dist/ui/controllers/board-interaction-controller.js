@@ -130,16 +130,22 @@ export class BoardInteractionController {
     handlePlaceStone(pos) {
         var _a;
         const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
+        // === SGF を外部から読み込んでいる間は、すべて「検討手」として扱う ===
+        if (this.state.sgfLoadedFromExternal) {
+            this.store.addReviewMove({ col: pos.col, row: pos.row, color });
+            this.onBoardUpdated();
+            return;
+        }
+        // 通常モード時のみ、本譜として着手を記録
         if (this.store.tryMove(pos, color)) {
             this.onBoardUpdated();
         }
     }
     handleErase(pos) {
-        if (this.store.removeStone(pos)) {
-            this.onBoardUpdated();
-            return true;
-        }
-        return false;
+        const removed = this.store.removeStone(pos);
+        // ★ 成功/失敗に関係なく UI は必ず更新する
+        this.onBoardUpdated();
+        return removed;
     }
     getPositionFromEvent(event) {
         try {

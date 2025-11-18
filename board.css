@@ -237,3 +237,21 @@ svg {
   shape-rendering: geometricPrecision;
   text-rendering: geometricPrecision;
 }
+/* === 検討モード：枠色ハイライト === */
+#board-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 95vmin;
+  background: var(--board);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  overscroll-behavior: contain;
+  touch-action: none;
+  overflow: hidden;
+
+  border: 4px solid transparent; /* ←追加！ */
+}
+
+#board-wrapper.review-mode {
+  border-color: #5AFF00;
+}

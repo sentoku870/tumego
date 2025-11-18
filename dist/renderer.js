@@ -188,10 +188,12 @@ class RendererViewModelBuilder {
     }
 }
 export class Renderer {
-    constructor(store, elements) {
+    constructor(store, elements, onUIUpdate // ← 追加
+    ) {
         this.store = store;
         this.elements = elements;
         this.viewModelBuilder = new RendererViewModelBuilder(store);
+        this.onUIUpdate = onUIUpdate !== null && onUIUpdate !== void 0 ? onUIUpdate : null; // ← 追加
     }
     render() {
         // === 数字用影フィルタ ===
