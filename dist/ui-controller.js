@@ -1,20 +1,20 @@
 // ============ UI制御エンジン ============
-import { DEFAULT_CONFIG } from './types.js';
-import { GoEngine } from './go-engine.js';
-import { Renderer } from './renderer.js';
-import { SGFParser } from './sgf-parser.js';
-import { QRManager } from './qr-manager.js';
-import { HistoryManager } from './history-manager.js';
-import { GameStore } from './state/game-store.js';
-import { BoardCaptureService } from './services/board-capture-service.js';
-import { SGFService } from './services/sgf-service.js';
-import { UIInteractionState } from './ui/state/ui-interaction-state.js';
-import { DropdownManager } from './ui/controllers/dropdown-manager.js';
-import { BoardInteractionController } from './ui/controllers/board-interaction-controller.js';
-import { KeyboardController } from './ui/controllers/keyboard-controller.js';
-import { ToolbarController } from './ui/controllers/toolbar-controller.js';
-import { FeatureMenuController } from './ui/controllers/feature-menu-controller.js';
-import { FileMenuController } from './ui/controllers/file-menu-controller.js';
+import { DEFAULT_CONFIG } from "./types.js";
+import { GoEngine } from "./go-engine.js";
+import { Renderer } from "./renderer.js";
+import { SGFParser } from "./sgf-parser.js";
+import { QRManager } from "./qr-manager.js";
+import { HistoryManager } from "./history-manager.js";
+import { GameStore } from "./state/game-store.js";
+import { BoardCaptureService } from "./services/board-capture-service.js";
+import { SGFService } from "./services/sgf-service.js";
+import { UIInteractionState } from "./ui/state/ui-interaction-state.js";
+import { DropdownManager } from "./ui/controllers/dropdown-manager.js";
+import { BoardInteractionController } from "./ui/controllers/board-interaction-controller.js";
+import { KeyboardController } from "./ui/controllers/keyboard-controller.js";
+import { ToolbarController } from "./ui/controllers/toolbar-controller.js";
+import { FeatureMenuController } from "./ui/controllers/feature-menu-controller.js";
+import { FileMenuController } from "./ui/controllers/file-menu-controller.js";
 export class UIController {
     constructor(state, elements) {
         this.state = state;
@@ -53,7 +53,7 @@ export class UIController {
         this.updateUI();
         this.toolbarController.updateAnswerButtonDisplay();
         this.historyManager.clear();
-        this.historyManager.save('アプリケーション開始', this.state);
+        this.historyManager.save("アプリケーション開始", this.state);
         const urlResult = this.sgfService.loadFromURL();
         if (urlResult) {
             const applyResult = this.sgfService.apply(urlResult);
@@ -64,9 +64,9 @@ export class UIController {
             this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
         }
         const sizeBtn = document.querySelector('.size-btn[data-size="9"]');
-        const altBtn = document.getElementById('btn-alt');
-        sizeBtn === null || sizeBtn === void 0 ? void 0 : sizeBtn.classList.add('active');
-        altBtn === null || altBtn === void 0 ? void 0 : altBtn.classList.add('active');
+        const altBtn = document.getElementById("btn-alt");
+        sizeBtn === null || sizeBtn === void 0 ? void 0 : sizeBtn.classList.add("active");
+        altBtn === null || altBtn === void 0 ? void 0 : altBtn.classList.add("active");
     }
     updateUI() {
         this.renderer.render();
@@ -81,31 +81,31 @@ export class UIController {
         const hasReview = Array.isArray(reviewMoves) && reviewMoves.length > 0;
         const inReviewMode = state.sgfLoadedFromExternal && hasReview;
         if (inReviewMode) {
-            wrapper.classList.add('review-mode');
+            wrapper.classList.add("review-mode");
         }
         else {
-            wrapper.classList.remove('review-mode');
+            wrapper.classList.remove("review-mode");
         }
     }
     syncSgfTextarea(text) {
-        const sgfTextarea = document.getElementById('sgf-text');
+        const sgfTextarea = document.getElementById("sgf-text");
         if (sgfTextarea) {
             sgfTextarea.value = text;
         }
     }
     createKeyBindings() {
         return {
-            'q': () => this.toolbarController.triggerButton('.size-btn[data-size="9"]'),
-            'w': () => this.toolbarController.triggerButton('.size-btn[data-size="13"]'),
-            'e': () => this.toolbarController.triggerButton('.size-btn[data-size="19"]'),
-            'a': () => this.toolbarController.triggerButton('#btn-clear'),
-            's': () => this.toolbarController.triggerButton('#btn-undo'),
-            'd': () => this.toolbarController.triggerButton('#btn-erase'),
-            'z': () => this.toolbarController.triggerButton('#btn-black'),
-            'x': () => this.toolbarController.triggerButton('#btn-alt'),
-            'c': () => this.toolbarController.triggerButton('#btn-white'),
-            'ArrowLeft': () => this.toolbarController.triggerButton('#btn-prev-move'),
-            'ArrowRight': () => this.toolbarController.triggerButton('#btn-next-move')
+            q: () => this.toolbarController.triggerButton('.size-btn[data-size="9"]'),
+            w: () => this.toolbarController.triggerButton('.size-btn[data-size="13"]'),
+            e: () => this.toolbarController.triggerButton('.size-btn[data-size="19"]'),
+            a: () => this.toolbarController.triggerButton("#btn-clear"),
+            s: () => this.toolbarController.triggerButton("#btn-undo"),
+            d: () => this.toolbarController.triggerButton("#btn-erase"),
+            z: () => this.toolbarController.triggerButton("#btn-black"),
+            x: () => this.toolbarController.triggerButton("#btn-alt"),
+            c: () => this.toolbarController.triggerButton("#btn-white"),
+            ArrowLeft: () => this.toolbarController.triggerButton("#btn-prev-move"),
+            ArrowRight: () => this.toolbarController.triggerButton("#btn-next-move"),
         };
     }
     initResizeEvents() {
@@ -114,8 +114,8 @@ export class UIController {
             setTimeout(() => this.renderer.render(), 200);
             this.dropdownManager.repositionActive();
         };
-        window.addEventListener('orientationchange', handleResize);
-        window.addEventListener('resize', handleResize);
+        window.addEventListener("orientationchange", handleResize);
+        window.addEventListener("resize", handleResize);
     }
 }
 //# sourceMappingURL=ui-controller.js.map

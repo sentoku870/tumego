@@ -4,10 +4,10 @@ import {
   GameState,
   Position,
   StoneColor,
-  DEFAULT_CONFIG
-} from '../types.js';
-import { GoEngine } from '../go-engine.js';
-import { HistoryManager } from '../history-manager.js';
+  DEFAULT_CONFIG,
+} from "../types.js";
+import { GoEngine } from "../go-engine.js";
+import { HistoryManager } from "../history-manager.js";
 
 interface RebuildMetrics {
   callCount: number;
@@ -21,7 +21,7 @@ interface PerformanceMetrics {
   rebuildBoardFromMoves: RebuildMetrics;
 }
 
-type HandicapMode = 'even' | 'no-komi' | 'fixed';
+type HandicapMode = "even" | "no-komi" | "fixed";
 
 interface HandicapContext {
   readonly mode: HandicapMode;
@@ -43,12 +43,11 @@ export class GameStore {
   // === Performance metrics (from main branch) ===
   private performanceDebug = false;
   private performanceMetrics: PerformanceMetrics = {
-    rebuildBoardFromMoves: this.createRebuildMetrics()
+    rebuildBoardFromMoves: this.createRebuildMetrics(),
   };
   // === Review mode fields ===
   private reviewMoves: { row: number; col: number; color: StoneColor }[] = [];
   private isReviewMode: boolean = false;
-
 
   constructor(
     private readonly state: GameState,
@@ -65,9 +64,8 @@ export class GameStore {
   }
 
   get reviewActive(): boolean {
-  return this.reviewMoves.length > 0;
-}
-
+    return this.reviewMoves.length > 0;
+  }
 
   setPerformanceDebugging(enabled: boolean, reset = true): void {
     this.performanceDebug = enabled;
@@ -82,7 +80,9 @@ export class GameStore {
 
   getPerformanceMetrics(): PerformanceMetrics {
     return {
-      rebuildBoardFromMoves: { ...this.performanceMetrics.rebuildBoardFromMoves }
+      rebuildBoardFromMoves: {
+        ...this.performanceMetrics.rebuildBoardFromMoves,
+      },
     };
   }
 
@@ -105,21 +105,24 @@ export class GameStore {
     this.invalidateCache();
     return true;
   }
-    // === Review mode: add temporary move ===
-    addReviewMove(move: { row: number; col: number; color: StoneColor }): void {
-      // 盤面に実際に着手するが、SGF（sgfMoves）は書き換えない
-      const ok = this.tryMove({ row: move.row, col: move.col }, move.color, false);
-      if (!ok) {
-        return;
-      }
-
-      this.reviewMoves.push(move);
-      this.isReviewMode = true;
-      // tryMove 内で invalidateCache() 済み
+  // === Review mode: add temporary move ===
+  addReviewMove(move: { row: number; col: number; color: StoneColor }): void {
+    // 盤面に実際に着手するが、SGF（sgfMoves）は書き換えない
+    const ok = this.tryMove(
+      { row: move.row, col: move.col },
+      move.color,
+      false
+    );
+    if (!ok) {
+      return;
     }
 
+    this.reviewMoves.push(move);
+    this.isReviewMode = true;
+    // tryMove 内で invalidateCache() 済み
+  }
 
-    // === Review mode: reset and return to main line ===
+  // === Review mode: reset and return to main line ===
   resetReview(): void {
     this.reviewMoves = [];
     this.isReviewMode = false;
@@ -131,7 +134,6 @@ export class GameStore {
   }
 
   removeStone(pos: Position): boolean {
-
     // === 0) 配置モード（numberMode=false & sgfLoadedFromExternal=false）===
     if (!this.state.numberMode && !this.state.sgfLoadedFromExternal) {
       // → 完全に自由に削除
@@ -163,8 +165,9 @@ export class GameStore {
 
     // === 2) SGF読み込み中の検討モード（sgfLoadedFromExternal=true）===
     if (this.state.sgfLoadedFromExternal) {
-      // 本譜は保護
-      // 検討手(reviewMoves) の末尾だけ消せる
+      // 本譜は原則保護。ただし以下の条件で本譜末尾の手を削除できる:
+      // - 検討モード (reviewMoves) の末尾を削除する場合
+      // - 検討モードでない通常の表示時で、現在の表示位置が本譜の末尾
       if (this.isReviewMode && this.reviewMoves.length > 0) {
         const last = this.reviewMoves[this.reviewMoves.length - 1];
         if (last.col === pos.col && last.row === pos.row) {
@@ -173,7 +176,12 @@ export class GameStore {
           // 本譜 + 残りの検討手で復元
           this.rebuildBoardFromMoves(this.state.sgfIndex);
           for (const mv of this.reviewMoves) {
-            const r = this.engine.playMove(this.state, mv, mv.color, this.state.board);
+            const r = this.engine.playMove(
+              this.state,
+              mv,
+              mv.color,
+              this.state.board
+            );
             if (r) this.state.board = r.board;
           }
 
@@ -181,7 +189,25 @@ export class GameStore {
           return true;
         }
       }
-      return false; // 本譜は消さない
+
+      // 検討モードでない場合、表示中の手番が本譜の末尾にあるなら末尾の手を切り詰められる
+      if (!this.isReviewMode) {
+        if (
+          this.state.sgfIndex > 0 &&
+          this.state.sgfIndex === this.state.sgfMoves.length
+        ) {
+          const last = this.state.sgfMoves[this.state.sgfIndex - 1];
+          if (last && last.col === pos.col && last.row === pos.row) {
+            this.state.sgfMoves.pop();
+            this.state.sgfIndex--;
+            this.rebuildBoardFromMoves(this.state.sgfIndex);
+            this.invalidateCache();
+            return true;
+          }
+        }
+      }
+
+      return false; // 本譜の途中は消さない
     }
 
     return false;
@@ -189,18 +215,25 @@ export class GameStore {
 
   initBoard(size: number): void {
     if (this.hasGameData()) {
-      this.saveToHistory(`${this.state.boardSize}路盤（${this.state.sgfMoves.length}手）`);
+      this.saveToHistory(
+        `${this.state.boardSize}路盤（${this.state.sgfMoves.length}手）`
+      );
     }
 
     this.state.boardSize = size;
-    this.state.board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
+    this.state.board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
     this.resetGameState();
     this.invalidateCache();
   }
 
   undo(): boolean {
     if (this.state.numberMode) {
-      this.state.sgfIndex = Math.max(this.state.numberStartIndex, this.state.sgfIndex - 1);
+      this.state.sgfIndex = Math.max(
+        this.state.numberStartIndex,
+        this.state.sgfIndex - 1
+      );
       this.setMoveIndex(this.state.sgfIndex);
       return true;
     }
@@ -218,25 +251,25 @@ export class GameStore {
     return false;
   }
 
-setMoveIndex(index: number): void {
-  const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
+  setMoveIndex(index: number): void {
+    const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
 
-  // ★ここに追加（最も安全で一貫した位置）
-  (this as any).reviewMoves = [];
+    // ★ここに追加（最も安全で一貫した位置）
+    (this as any).reviewMoves = [];
 
-  let board = this.resolveBoardThroughCache(clamped);
+    let board = this.resolveBoardThroughCache(clamped);
 
-  if (!board) {
-    this.performFullReset(clamped);
-    board = this.cachedBoardTimeline[clamped] ?? this.cachedBoardState;
+    if (!board) {
+      this.performFullReset(clamped);
+      board = this.cachedBoardTimeline[clamped] ?? this.cachedBoardState;
+    }
+
+    if (!board) {
+      board = this.cloneBoard();
+    }
+
+    this.applyCachedBoard(clamped, board);
   }
-
-  if (!board) {
-    board = this.cloneBoard();
-  }
-
-  this.applyCachedBoard(clamped, board);
-}
 
   startNumberMode(color: StoneColor): void {
     this.state.numberMode = true;
@@ -263,8 +296,8 @@ setMoveIndex(index: number): void {
       }
     }
 
-    this.state.problemDiagramBlack = blackPositions.map(pos => ({ ...pos }));
-    this.state.problemDiagramWhite = whitePositions.map(pos => ({ ...pos }));
+    this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+    this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
     this.state.problemDiagramSet = true;
 
     this.state.handicapPositions = [];
@@ -325,16 +358,16 @@ setMoveIndex(index: number): void {
     if (this.state.numberMode) {
       return this.state.turn % 2 === 0
         ? this.state.startColor
-        : (3 - this.state.startColor) as StoneColor;
+        : ((3 - this.state.startColor) as StoneColor);
     }
 
-    if (this.state.mode === 'alt') {
+    if (this.state.mode === "alt") {
       return this.state.turn % 2 === 0
         ? this.state.startColor
-        : (3 - this.state.startColor) as StoneColor;
+        : ((3 - this.state.startColor) as StoneColor);
     }
 
-    return this.state.mode === 'black' ? 1 : 2;
+    return this.state.mode === "black" ? 1 : 2;
   }
 
   private pushHistorySnapshot(): void {
@@ -342,15 +375,17 @@ setMoveIndex(index: number): void {
   }
 
   private cloneBoard(board: Board = this.state.board): Board {
-    return board.map(row => row.slice());
+    return board.map((row) => row.slice());
   }
 
   private applyInitialSetup(): void {
     const size = this.state.boardSize;
-    const board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
+    const board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
 
     if (this.state.handicapPositions.length > 0) {
-      this.state.handicapPositions.forEach(pos => {
+      this.state.handicapPositions.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 1;
         }
@@ -358,12 +393,12 @@ setMoveIndex(index: number): void {
     }
 
     if (this.state.problemDiagramSet) {
-      this.state.problemDiagramBlack.forEach(pos => {
+      this.state.problemDiagramBlack.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 1;
         }
       });
-      this.state.problemDiagramWhite.forEach(pos => {
+      this.state.problemDiagramWhite.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 2;
         }
@@ -413,16 +448,20 @@ setMoveIndex(index: number): void {
     }
 
     this.state.board = this.cloneBoard(finalBoard);
-        // === Apply review moves (temporary moves) ===
+    // === Apply review moves (temporary moves) ===
     if (this.isReviewMode && this.reviewMoves.length > 0) {
       for (const mv of this.reviewMoves) {
-        const result = this.engine.playMove(this.state, mv, mv.color, this.state.board);
+        const result = this.engine.playMove(
+          this.state,
+          mv,
+          mv.color,
+          this.state.board
+        );
         if (result) {
           this.state.board = result.board;
         }
       }
     }
-
 
     if (this.state.numberMode) {
       this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
@@ -444,7 +483,11 @@ setMoveIndex(index: number): void {
   private findLastMoveIndex(pos: Position, color: StoneColor): number {
     for (let i = this.state.sgfMoves.length - 1; i >= 0; i--) {
       const move = this.state.sgfMoves[i];
-      if (move.col === pos.col && move.row === pos.row && move.color === color) {
+      if (
+        move.col === pos.col &&
+        move.row === pos.row &&
+        move.color === color
+      ) {
         return i;
       }
     }
@@ -452,9 +495,11 @@ setMoveIndex(index: number): void {
   }
 
   private hasGameData(): boolean {
-    return this.state.sgfMoves.length > 0 ||
+    return (
+      this.state.sgfMoves.length > 0 ||
       this.state.handicapStones > 0 ||
-      this.state.board.some(row => row.some(cell => cell !== 0));
+      this.state.board.some((row) => row.some((cell) => cell !== 0))
+    );
   }
 
   private resetGameState(): void {
@@ -492,8 +537,10 @@ setMoveIndex(index: number): void {
     }
 
     return (
-      this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) &&
-      this.boardsEqual(this.state.board, this.cachedBoardState)
+      this.boardsEqual(
+        this.cachedBoardTimeline[this.cachedAppliedMoveIndex],
+        this.cachedBoardState
+      ) && this.boardsEqual(this.state.board, this.cachedBoardState)
     );
   }
 
@@ -546,7 +593,10 @@ setMoveIndex(index: number): void {
       : target;
   }
 
-  private ensureBoardForIndex(target: number): { board: Board | null; newlyApplied: number } {
+  private ensureBoardForIndex(target: number): {
+    board: Board | null;
+    newlyApplied: number;
+  } {
     if (target < 0) {
       return { board: null, newlyApplied: 0 };
     }
@@ -575,7 +625,12 @@ setMoveIndex(index: number): void {
       }
 
       const workingBoard = this.cloneBoard(board);
-      const result = this.engine.playMove(this.state, move, move.color, workingBoard);
+      const result = this.engine.playMove(
+        this.state,
+        move,
+        move.color,
+        workingBoard
+      );
       if (!result) {
         this.cachedBoardTimeline[nextIndex] = board;
         this.cachedMoveApplied[index] = false;
@@ -590,12 +645,16 @@ setMoveIndex(index: number): void {
 
     return {
       board: this.cachedBoardTimeline[target] ?? board,
-      newlyApplied: applied
+      newlyApplied: applied,
     };
   }
 
   private findNearestCachedIndex(target: number): number {
-    for (let index = Math.min(target, this.cachedBoardTimeline.length - 1); index >= 0; index--) {
+    for (
+      let index = Math.min(target, this.cachedBoardTimeline.length - 1);
+      index >= 0;
+      index--
+    ) {
       if (this.cachedBoardTimeline[index]) {
         return index;
       }
@@ -636,12 +695,15 @@ setMoveIndex(index: number): void {
       totalDurationMs: 0,
       lastDurationMs: 0,
       lastLimit: 0,
-      lastAppliedMoves: 0
+      lastAppliedMoves: 0,
     };
   }
 
   private getTimestamp(): number {
-    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    if (
+      typeof performance !== "undefined" &&
+      typeof performance.now === "function"
+    ) {
       return performance.now();
     }
 
@@ -649,13 +711,17 @@ setMoveIndex(index: number): void {
   }
 
   private isValidPosition(pos: Position): boolean {
-    return pos.col >= 0 && pos.col < this.state.boardSize &&
-      pos.row >= 0 && pos.row < this.state.boardSize;
+    return (
+      pos.col >= 0 &&
+      pos.col < this.state.boardSize &&
+      pos.row >= 0 &&
+      pos.row < this.state.boardSize
+    );
   }
 
   private createHandicapContext(stones: number | string): HandicapContext {
-    if (stones === 'even') {
-      return { mode: 'even', stones: 0, positions: [] };
+    if (stones === "even") {
+      return { mode: "even", stones: 0, positions: [] };
     }
 
     const numeric = Number(stones);
@@ -664,14 +730,20 @@ setMoveIndex(index: number): void {
     }
 
     if (numeric === 0) {
-      return { mode: 'no-komi', stones: 0, positions: [] };
+      return { mode: "no-komi", stones: 0, positions: [] };
     }
 
-    const positions = this.engine.generateHandicapPositions(this.state.boardSize, numeric);
+    const positions = this.engine.generateHandicapPositions(
+      this.state.boardSize,
+      numeric
+    );
     console.log(`置石設定: ${stones}子, 位置:`, positions);
-    console.log(`${this.state.boardSize}路盤 ${stones}子局の置石位置:`, positions);
+    console.log(
+      `${this.state.boardSize}路盤 ${stones}子局の置石位置:`,
+      positions
+    );
 
-    return { mode: 'fixed', stones: numeric, positions };
+    return { mode: "fixed", stones: numeric, positions };
   }
 
   private resetBoardForHandicap(_context: HandicapContext): void {
@@ -679,11 +751,11 @@ setMoveIndex(index: number): void {
   }
 
   private placeHandicapStones(context: HandicapContext): void {
-    if (context.mode !== 'fixed') {
+    if (context.mode !== "fixed") {
       return;
     }
 
-    context.positions.forEach(pos => {
+    context.positions.forEach((pos) => {
       if (this.isValidPosition(pos)) {
         this.state.board[pos.row][pos.col] = 1;
       }
@@ -691,7 +763,7 @@ setMoveIndex(index: number): void {
   }
 
   private updateHandicapMetadata(context: HandicapContext): void {
-    if (context.mode === 'even') {
+    if (context.mode === "even") {
       this.state.handicapStones = 0;
       this.state.handicapPositions = [];
       this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
@@ -699,7 +771,7 @@ setMoveIndex(index: number): void {
       return;
     }
 
-    if (context.mode === 'no-komi') {
+    if (context.mode === "no-komi") {
       this.state.handicapStones = 0;
       this.state.handicapPositions = [];
       this.state.komi = 0;
@@ -708,7 +780,7 @@ setMoveIndex(index: number): void {
     }
 
     this.state.handicapStones = context.stones;
-    this.state.handicapPositions = context.positions.map(pos => ({ ...pos }));
+    this.state.handicapPositions = context.positions.map((pos) => ({ ...pos }));
     this.state.komi = 0;
     this.state.startColor = 2;
     this.state.turn = 0;

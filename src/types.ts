@@ -7,8 +7,8 @@ export interface Position {
 
 export type StoneColor = 1 | 2; // 1: 黒, 2: 白
 export type CellState = 0 | StoneColor; // 0: 空, 1: 黒, 2: 白
-export type PlayMode = 'black' | 'white' | 'alt';
-export type AnswerMode = 'black' | 'white';
+export type PlayMode = "black" | "white" | "alt";
+export type AnswerMode = "black" | "white";
 
 export interface Move {
   col: number;
@@ -65,6 +65,17 @@ export interface GameState {
   whiteName?: string;
   result?: string;
   date?: string;
+  // === SGFメタ情報（任意） ===
+  sgfMeta?: {
+    PB?: string; // Black player
+    PW?: string; // White player
+    BR?: string; // Black rank
+    WR?: string; // White rank
+    KM?: string; // Komi
+    RE?: string; // Result (SGF RE)
+    DT?: string; // Date
+    GN?: string; // Game name
+  };
   handicapStones: number;
   handicapPositions: Position[];
   answerMode: AnswerMode;
@@ -208,5 +219,5 @@ export const DEFAULT_CONFIG: GameConfig = {
   DEFAULT_BOARD_SIZE: 9,
   DEFAULT_KOMI: 6.5,
   COORD_FONT_RATIO: 0.28,
-  MOVE_NUM_FONT_RATIO: 0.4
+  MOVE_NUM_FONT_RATIO: 0.4,
 } as const;

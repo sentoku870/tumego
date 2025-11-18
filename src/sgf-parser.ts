@@ -1,11 +1,17 @@
 // ============ SGF処理エンジン ============
-import { GameState, Move, Position, SGFParseResult, DEFAULT_CONFIG } from './types.js';
+import {
+  GameState,
+  Move,
+  Position,
+  SGFParseResult,
+  DEFAULT_CONFIG,
+} from "./types.js";
 
 export class SGFParser {
   // ============ SGF解析 ============
   parse(sgfText: string): SGFParseResult {
     const rawText = sgfText.trim();
-    console.log('SGF解析開始:', rawText);
+    console.log("SGF解析開始:", rawText);
 
     const moves: Move[] = [];
     const gameInfo: Partial<GameState> = {
@@ -15,16 +21,16 @@ export class SGFParser {
       startColor: 1,
       problemDiagramSet: false,
       problemDiagramBlack: [],
-      problemDiagramWhite: []
+      problemDiagramWhite: [],
     };
 
     // 盤サイズの解析
     const sizeMatch = rawText.match(/SZ\[(\d+)\]/i);
     if (sizeMatch) {
       gameInfo.boardSize = parseInt(sizeMatch[1], 10);
-      console.log('盤サイズ:', gameInfo.boardSize);
+      console.log("盤サイズ:", gameInfo.boardSize);
     }
-        // --- 対局者名・結果・日時 ---
+    // --- 対局者名・結果・日時 ---
     const blackNameMatch = rawText.match(/PB\[([^\]]*)\]/i);
     if (blackNameMatch) gameInfo.blackName = blackNameMatch[1];
 
@@ -37,33 +43,44 @@ export class SGFParser {
     const dateMatch = rawText.match(/DT\[([^\]]*)\]/i);
     if (dateMatch) gameInfo.date = dateMatch[1];
 
+    // SGF メタ情報を集める
+    const sgfMeta: Record<string, string> = {};
+    const setMeta = (key: string) => {
+      const m = rawText.match(new RegExp(key + "\\[([^\\]]*)\\]", "i"));
+      if (m) sgfMeta[key] = m[1];
+    };
+    ["PB", "PW", "BR", "WR", "KM", "RE", "DT", "GN"].forEach(setMeta);
+    if (Object.keys(sgfMeta).length > 0) {
+      (gameInfo as any).sgfMeta = sgfMeta;
+    }
+
     // コミの解析
     const komiMatch = rawText.match(/KM\[([0-9.]+)\]/i);
     if (komiMatch) {
       gameInfo.komi = parseFloat(komiMatch[1]);
-      console.log('コミ:', gameInfo.komi);
+      console.log("コミ:", gameInfo.komi);
     }
 
     // ハンディキャップ（置石数）の解析
     const handicapMatch = rawText.match(/HA\[(\d+)\]/i);
     if (handicapMatch) {
       gameInfo.handicapStones = parseInt(handicapMatch[1], 10);
-      console.log('置石数:', gameInfo.handicapStones);
+      console.log("置石数:", gameInfo.handicapStones);
     }
 
     const initialBlack: Position[] = [];
     const initialWhite: Position[] = [];
 
     const collectSetup = (property: string, target: Position[]): void => {
-      const pattern = new RegExp(`${property}(?:\\[[a-z]{2}\\])+`, 'gi');
+      const pattern = new RegExp(`${property}(?:\\[[a-z]{2}\\])+`, "gi");
       const matches = rawText.match(pattern);
       if (!matches) return;
 
-      matches.forEach(match => {
+      matches.forEach((match) => {
         const coords = match.match(/\[([a-z]{2})\]/gi);
         if (!coords) return;
 
-        coords.forEach(coord => {
+        coords.forEach((coord) => {
           const clean = coord.slice(1, -1).toLowerCase();
           if (clean.length !== 2) return;
           const col = clean.charCodeAt(0) - 97;
@@ -76,14 +93,14 @@ export class SGFParser {
       });
     };
 
-    collectSetup('AB', initialBlack);
-    collectSetup('AW', initialWhite);
+    collectSetup("AB", initialBlack);
+    collectSetup("AW", initialWhite);
 
     if (initialBlack.length > 0) {
       if ((gameInfo.handicapStones || 0) > 0) {
         gameInfo.handicapPositions = initialBlack;
         gameInfo.startColor = 2;
-        console.log('白番開始に設定');
+        console.log("白番開始に設定");
       } else {
         gameInfo.problemDiagramBlack = initialBlack;
       }
@@ -93,18 +110,20 @@ export class SGFParser {
       gameInfo.problemDiagramWhite = initialWhite;
     }
 
-    if ((gameInfo.problemDiagramBlack?.length || 0) > 0 ||
-        (gameInfo.problemDiagramWhite?.length || 0) > 0) {
+    if (
+      (gameInfo.problemDiagramBlack?.length || 0) > 0 ||
+      (gameInfo.problemDiagramWhite?.length || 0) > 0
+    ) {
       gameInfo.problemDiagramSet = true;
     }
 
     // 着手の解析
     const moveMatches = rawText.matchAll(/;([BW])\[((?:[a-z]{2})?)\]/gi);
     for (const match of moveMatches) {
-      const color = match[1].toUpperCase() === 'B' ? 1 : 2;
-      const coord = (match[2] || '').toLowerCase();
+      const color = match[1].toUpperCase() === "B" ? 1 : 2;
+      const coord = (match[2] || "").toLowerCase();
       if (coord.length !== 2) {
-        console.log('パス着手を検出:', match[0]);
+        console.log("パス着手を検出:", match[0]);
         continue;
       }
       const col = coord.charCodeAt(0) - 97;
@@ -119,47 +138,108 @@ export class SGFParser {
 
     const playerMatch = rawText.match(/PL\[(B|W)\]/i);
     if (playerMatch) {
-      gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
+      gameInfo.startColor = playerMatch[1].toUpperCase() === "B" ? 1 : 2;
     }
 
-    console.log('解析完了 - 着手数:', moves.length, '置石数:', gameInfo.handicapPositions?.length || 0);
+    console.log(
+      "解析完了 - 着手数:",
+      moves.length,
+      "置石数:",
+      gameInfo.handicapPositions?.length || 0
+    );
     return { moves, gameInfo, rawSGF: rawText };
   }
 
   // ============ SGF出力 ============
   export(state: GameState): string {
-    let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]KM[${state.komi}]`;
+    const esc = (v: any) => {
+      if (v === undefined || v === null) return "";
+      return String(v).replace(/\\/g, "\\\\").replace(/\]/g, "\\]");
+    };
+
+    let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]`;
+
+    // メタ情報: 優先して state.sgfMeta を使い、なければ個別フィールドを参照
+    const meta = (state as any).sgfMeta as Record<string, string> | undefined;
+    const getMeta = (key: string, fallback?: any) => meta?.[key] ?? fallback;
+
+    const gn = getMeta("GN");
+    if (gn) sgf += `GN[${esc(gn)}]`;
+
+    const pb = getMeta("PB", state.blackName);
+    if (pb) sgf += `PB[${esc(pb)}]`;
+
+    const pw = getMeta("PW", state.whiteName);
+    if (pw) sgf += `PW[${esc(pw)}]`;
+
+    const br = getMeta("BR");
+    if (br) sgf += `BR[${esc(br)}]`;
+
+    const wr = getMeta("WR");
+    if (wr) sgf += `WR[${esc(wr)}]`;
+
+    const re = getMeta("RE", state.result);
+    if (re) sgf += `RE[${esc(re)}]`;
+
+    const dt = getMeta("DT", state.date);
+    if (dt) sgf += `DT[${esc(dt)}]`;
+
+    // コミは数値扱いだが sgfMeta から来る場合は文字列なので parse して出力
+    const kmMeta = getMeta("KM");
+    if (kmMeta !== undefined && kmMeta !== "") {
+      const parsed = parseFloat(kmMeta as string);
+      if (!Number.isNaN(parsed)) {
+        sgf += `KM[${parsed}]`;
+      }
+    } else if (state.komi !== undefined) {
+      sgf += `KM[${state.komi}]`;
+    }
 
     // 置石がある場合はハンディキャップとして記録
-    const treatAsHandicap = state.handicapStones > 0 && !state.problemDiagramSet;
+    const treatAsHandicap =
+      state.handicapStones > 0 && !state.problemDiagramSet;
     if (treatAsHandicap) {
       sgf += `HA[${state.handicapStones}]`;
     }
 
-    const initialBlack = state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions;
+    const initialBlack = state.problemDiagramSet
+      ? state.problemDiagramBlack
+      : state.handicapPositions;
     if (initialBlack.length > 0) {
       const blackCoords = initialBlack
-        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-        .join('');
+        .map(
+          (pos) =>
+            `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(
+              97 + pos.row
+            )}]`
+        )
+        .join("");
       sgf += `AB${blackCoords}`;
     }
 
     if (state.problemDiagramSet && state.problemDiagramWhite.length > 0) {
       const whiteCoords = state.problemDiagramWhite
-        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-        .join('');
+        .map(
+          (pos) =>
+            `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(
+              97 + pos.row
+            )}]`
+        )
+        .join("");
       sgf += `AW${whiteCoords}`;
     }
 
     // 着手を記録
     for (const move of state.sgfMoves) {
-      const color = move.color === 1 ? 'B' : 'W';
-      const coord = `${String.fromCharCode(97 + move.col)}${String.fromCharCode(97 + move.row)}`;
+      const color = move.color === 1 ? "B" : "W";
+      const coord = `${String.fromCharCode(97 + move.col)}${String.fromCharCode(
+        97 + move.row
+      )}`;
       sgf += `;${color}[${coord}]`;
     }
 
-    sgf += ')';
-    console.log('SGF出力:', sgf);
+    sgf += ")";
+    console.log("SGF出力:", sgf);
     return sgf;
   }
 
@@ -167,18 +247,20 @@ export class SGFParser {
   compress(sgfData: string): string {
     try {
       let compressed = sgfData
-        .replace(/\s+/g, ' ')           // 複数の空白を1つに
-        .replace(/\s*;\s*/g, ';')       // セミコロン周りの空白削除
-        .replace(/\s*\[\s*/g, '[')      // 括弧周りの空白削除
-        .replace(/\s*\]\s*/g, ']')
-        .replace(/\s*\(\s*/g, '(')      // 丸括弧周りの空白削除
-        .replace(/\s*\)\s*/g, ')')
+        .replace(/\s+/g, " ") // 複数の空白を1つに
+        .replace(/\s*;\s*/g, ";") // セミコロン周りの空白削除
+        .replace(/\s*\[\s*/g, "[") // 括弧周りの空白削除
+        .replace(/\s*\]\s*/g, "]")
+        .replace(/\s*\(\s*/g, "(") // 丸括弧周りの空白削除
+        .replace(/\s*\)\s*/g, ")")
         .trim();
 
-      console.log(`圧縮前: ${sgfData.length}文字 → 圧縮後: ${compressed.length}文字`);
+      console.log(
+        `圧縮前: ${sgfData.length}文字 → 圧縮後: ${compressed.length}文字`
+      );
       return compressed;
     } catch (error) {
-      console.error('圧縮エラー:', error);
+      console.error("圧縮エラー:", error);
       return sgfData;
     }
   }
@@ -188,8 +270,8 @@ export class SGFParser {
     try {
       return btoa(sgfData);
     } catch (error) {
-      console.error('URL エンコードエラー:', error);
-      return '';
+      console.error("URL エンコードエラー:", error);
+      return "";
     }
   }
 
@@ -198,8 +280,8 @@ export class SGFParser {
     try {
       return atob(encodedData);
     } catch (error) {
-      console.error('URL デコードエラー:', error);
-      return '';
+      console.error("URL デコードエラー:", error);
+      return "";
     }
   }
 
@@ -207,22 +289,22 @@ export class SGFParser {
   async loadFromFile(file: File): Promise<SGFParseResult> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = () => {
         try {
           const result = this.parse(reader.result as string);
           console.log(`ファイル読み込み完了: ${result.moves.length}手`);
           resolve(result);
         } catch (error) {
-          console.error('SGF読み込みエラー:', error);
+          console.error("SGF読み込みエラー:", error);
           reject(error);
         }
       };
-      
+
       reader.onerror = () => {
-        reject(new Error('ファイル読み込みに失敗しました'));
+        reject(new Error("ファイル読み込みに失敗しました"));
       };
-      
+
       reader.readAsText(file);
     });
   }
@@ -232,61 +314,65 @@ export class SGFParser {
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) {
-        throw new Error('クリップボードにSGFがありません');
+        throw new Error("クリップボードにSGFがありません");
       }
-      
+
       const result = this.parse(text);
-      console.log('クリップボードからSGF読み込み完了');
+      console.log("クリップボードからSGF読み込み完了");
       return result;
     } catch (error) {
-      console.error('クリップボードの読み込みに失敗:', error);
+      console.error("クリップボードの読み込みに失敗:", error);
       throw error;
     }
   }
 
   async copyToClipboard(sgfData: string): Promise<void> {
-    const canUseClipboardApi = typeof navigator !== 'undefined' &&
-                               navigator.clipboard &&
-                               typeof navigator.clipboard.writeText === 'function';
+    const canUseClipboardApi =
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function";
 
     if (canUseClipboardApi) {
       try {
         await navigator.clipboard.writeText(sgfData);
-        console.log('SGF をクリップボードにコピーしました');
+        console.log("SGF をクリップボードにコピーしました");
         return;
       } catch (error) {
-        console.warn('クリップボードAPIでのコピーに失敗。フォールバックを試みます:', error);
+        console.warn(
+          "クリップボードAPIでのコピーに失敗。フォールバックを試みます:",
+          error
+        );
       }
     }
 
     if (this.copyToClipboardFallback(sgfData)) {
-      console.log('フォールバックでクリップボードにコピーしました');
+      console.log("フォールバックでクリップボードにコピーしました");
       return;
     }
 
-    throw new Error('クリップボードにコピーできませんでした');
+    throw new Error("クリップボードにコピーできませんでした");
   }
 
   private copyToClipboardFallback(text: string): boolean {
     try {
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
-      textArea.setAttribute('readonly', '');
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.top = '0';
-      textArea.style.left = '0';
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      textArea.style.top = "0";
+      textArea.style.left = "0";
 
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
       textArea.setSelectionRange(0, text.length);
 
-      const successful = document.execCommand('copy');
+      const successful = document.execCommand("copy");
       document.body.removeChild(textArea);
       return successful;
     } catch (error) {
-      console.error('フォールバックコピーに失敗:', error);
+      console.error("フォールバックコピーに失敗:", error);
       return false;
     }
   }
@@ -294,45 +380,49 @@ export class SGFParser {
   // ============ ファイル保存 ============
   async saveToFile(sgfData: string, filename?: string): Promise<void> {
     const now = new Date();
-    const timestamp = now.getFullYear() + 
-                     String(now.getMonth() + 1).padStart(2, '0') + 
-                     String(now.getDate()).padStart(2, '0') + '_' +
-                     String(now.getHours()).padStart(2, '0') + 
-                     String(now.getMinutes()).padStart(2, '0');
+    const timestamp =
+      now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      String(now.getDate()).padStart(2, "0") +
+      "_" +
+      String(now.getHours()).padStart(2, "0") +
+      String(now.getMinutes()).padStart(2, "0");
     const defaultFilename = `${timestamp}.sgf`;
     const finalFilename = filename || defaultFilename;
 
     try {
-      if ('showSaveFilePicker' in window) {
+      if ("showSaveFilePicker" in window) {
         // Modern File System Access API
         const fileHandle = await (window as any).showSaveFilePicker({
           suggestedName: finalFilename,
-          types: [{
-            description: 'SGF files',
-            accept: { 'application/x-go-sgf': ['.sgf'] }
-          }]
+          types: [
+            {
+              description: "SGF files",
+              accept: { "application/x-go-sgf": [".sgf"] },
+            },
+          ],
         });
-        
+
         const writable = await fileHandle.createWritable();
         await writable.write(sgfData);
         await writable.close();
-        console.log('SGFファイルを保存しました');
+        console.log("SGFファイルを保存しました");
       } else {
         // Fallback: download via blob
-        const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
+        const blob = new Blob([sgfData], { type: "application/x-go-sgf" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
         a.download = finalFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        console.log('SGFファイルをダウンロードしました');
+        console.log("SGFファイルをダウンロードしました");
       }
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.error('SGF保存エラー:', error);
+      if (error.name !== "AbortError") {
+        console.error("SGF保存エラー:", error);
         throw error;
       }
     }
@@ -341,38 +431,44 @@ export class SGFParser {
   // ============ URL共有機能 ============
   createShareURL(sgfData: string, baseURL?: string): string {
     const compressed = this.encodeForURL(sgfData);
-    const base = baseURL || 
-                 (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-                   ? 'https://sentoku870.github.io/tumego/'
-                   : window.location.origin + window.location.pathname);
-    
-    return base + '?sgf=' + compressed;
+    const base =
+      baseURL ||
+      (window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "localhost"
+        ? "https://sentoku870.github.io/tumego/"
+        : window.location.origin + window.location.pathname);
+
+    return base + "?sgf=" + compressed;
   }
 
   // ============ URL からSGF読み込み ============
   loadFromURL(): SGFParseResult | null {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const sgfParam = urlParams.get('sgf');
-      
+      const sgfParam = urlParams.get("sgf");
+
       if (sgfParam) {
-        console.log('URL SGFパラメータ発見');
+        console.log("URL SGFパラメータ発見");
         const sgfData = this.decodeFromURL(sgfParam);
         const result = this.parse(sgfData);
-        
+
         // URL パラメータをクリア（履歴を汚さない）
         if (window.history && window.history.replaceState) {
-          const newURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          const newURL =
+            window.location.protocol +
+            "//" +
+            window.location.host +
+            window.location.pathname;
           window.history.replaceState({}, document.title, newURL);
         }
-        
+
         console.log(`URL からSGF読み込み完了: ${result.moves.length}手`);
         return result;
       }
-      
+
       return null;
     } catch (error) {
-      console.error('URL からのSGF読み込みエラー:', error);
+      console.error("URL からのSGF読み込みエラー:", error);
       return null;
     }
   }

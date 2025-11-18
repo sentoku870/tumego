@@ -1,14 +1,14 @@
-import { GameStore } from '../state/game-store.js';
+import { GameStore } from "../state/game-store.js";
 import {
   CellState,
   DEFAULT_CONFIG,
   GameState,
   Move,
   SGFParseResult,
-  StoneColor
-} from '../types.js';
-import { SGFParser } from '../sgf-parser.js';
-import { getCircleNumber } from '../renderer.js';
+  StoneColor,
+} from "../types.js";
+import { SGFParser } from "../sgf-parser.js";
+import { getCircleNumber } from "../renderer.js";
 
 export interface ApplyResult {
   sgfText: string;
@@ -81,13 +81,13 @@ export class SGFService {
     const validated = this.validateParseResult(result);
     const initialized = this.runInitializationPhase({
       state: this.state,
-      result: validated
+      result: validated,
     });
     const applied = this.runApplicationPhase(initialized);
     this.runHistoryAdjustmentPhase(applied);
 
     return {
-      sgfText: validated.rawSGF ?? this.parser.export(this.state)
+      sgfText: validated.rawSGF ?? this.parser.export(this.state),
     };
   }
 
@@ -95,30 +95,40 @@ export class SGFService {
     const { moves, gameInfo } = result;
 
     if (!moves || !Array.isArray(moves) || !gameInfo) {
-      throw new Error('不正なSGF解析結果です');
+      throw new Error("不正なSGF解析結果です");
     }
 
     return result;
   }
 
-  private runInitializationPhase(input: InitializationPhaseInput): InitializationPhaseOutput {
+  private runInitializationPhase(
+    input: InitializationPhaseInput
+  ): InitializationPhaseOutput {
     const { state, result } = input;
     const { moves, gameInfo, rawSGF } = result;
 
-    if (state.sgfMoves.length > 0 || state.handicapStones > 0 ||
-      state.board.some(row => row.some(cell => cell !== 0))) {
-      this.store.historyManager.save(`SGF読み込み前（${state.sgfMoves.length}手）`, state);
+    if (
+      state.sgfMoves.length > 0 ||
+      state.handicapStones > 0 ||
+      state.board.some((row) => row.some((cell) => cell !== 0))
+    ) {
+      this.store.historyManager.save(
+        `SGF読み込み前（${state.sgfMoves.length}手）`,
+        state
+      );
     }
 
     if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
       const newSize = gameInfo.boardSize;
       state.boardSize = newSize;
       state.board = Array.from({ length: newSize }, () =>
-        Array.from({ length: newSize }, () => 0 as CellState));
+        Array.from({ length: newSize }, () => 0 as CellState)
+      );
     } else {
       const currentSize = state.boardSize;
       state.board = Array.from({ length: currentSize }, () =>
-        Array.from({ length: currentSize }, () => 0 as CellState));
+        Array.from({ length: currentSize }, () => 0 as CellState)
+      );
     }
 
     state.history = [];
@@ -142,41 +152,93 @@ export class SGFService {
       state,
       moves,
       gameInfo,
-      rawSGF
+      rawSGF,
     };
   }
 
-  private runApplicationPhase(input: ApplicationPhaseInput): ApplicationPhaseOutput {
+  private runApplicationPhase(
+    input: ApplicationPhaseInput
+  ): ApplicationPhaseOutput {
     const { state, moves, gameInfo } = input;
 
     if (gameInfo.komi !== undefined) state.komi = gameInfo.komi;
-    if (gameInfo.startColor !== undefined) state.startColor = gameInfo.startColor as StoneColor;
-    if (gameInfo.handicapStones !== undefined) state.handicapStones = gameInfo.handicapStones;
+    if (gameInfo.startColor !== undefined)
+      state.startColor = gameInfo.startColor as StoneColor;
+    if (gameInfo.handicapStones !== undefined)
+      state.handicapStones = gameInfo.handicapStones;
     if (gameInfo.handicapPositions) {
-      state.handicapPositions = gameInfo.handicapPositions.map(pos => ({ ...pos }));
+      state.handicapPositions = gameInfo.handicapPositions.map((pos) => ({
+        ...pos,
+      }));
     }
     if (gameInfo.problemDiagramBlack) {
-      state.problemDiagramBlack = gameInfo.problemDiagramBlack.map(pos => ({ ...pos }));
+      state.problemDiagramBlack = gameInfo.problemDiagramBlack.map((pos) => ({
+        ...pos,
+      }));
     }
     if (gameInfo.problemDiagramWhite) {
-      state.problemDiagramWhite = gameInfo.problemDiagramWhite.map(pos => ({ ...pos }));
+      state.problemDiagramWhite = gameInfo.problemDiagramWhite.map((pos) => ({
+        ...pos,
+      }));
     }
     if (gameInfo.problemDiagramSet !== undefined) {
       state.problemDiagramSet = gameInfo.problemDiagramSet;
-    } else if (state.problemDiagramBlack.length > 0 || state.problemDiagramWhite.length > 0) {
+    } else if (
+      state.problemDiagramBlack.length > 0 ||
+      state.problemDiagramWhite.length > 0
+    ) {
       state.problemDiagramSet = true;
     }
 
-    state.sgfMoves = moves.map(move => ({ ...move }));
+    // SGF メタ情報を state に取り込む（優先順: sgfMeta -> gameInfo フィールド）
+    const sgfMeta = (gameInfo as any)?.sgfMeta as
+      | Record<string, string>
+      | undefined;
+    if (sgfMeta) {
+      state.sgfMeta = { ...sgfMeta } as any;
+      // プレイヤー名 / 結果 / 日時 を同期
+      if (sgfMeta.PB) state.blackName = sgfMeta.PB;
+      if (sgfMeta.PW) state.whiteName = sgfMeta.PW;
+      if (sgfMeta.RE) state.result = sgfMeta.RE;
+      if (sgfMeta.DT) state.date = sgfMeta.DT;
+      if (sgfMeta.KM && state.komi === undefined) {
+        const parsed = parseFloat(sgfMeta.KM);
+        if (!Number.isNaN(parsed)) state.komi = parsed;
+      }
+    } else {
+      if (gameInfo.blackName) state.blackName = gameInfo.blackName;
+      if (gameInfo.whiteName) state.whiteName = gameInfo.whiteName;
+      if (gameInfo.result) state.result = gameInfo.result;
+      if (gameInfo.date) state.date = gameInfo.date;
+    }
+
+    state.sgfMoves = moves.map((move) => ({ ...move }));
     state.sgfIndex = 0;
+
+    // === 正規化: state の個別フィールドを一次情報として sgfMeta を再構築 ===
+    const incomingMeta = (gameInfo as any)?.sgfMeta as
+      | Record<string, string>
+      | undefined;
+    state.sgfMeta = {
+      PB: state.blackName ?? incomingMeta?.PB,
+      PW: state.whiteName ?? incomingMeta?.PW,
+      BR: incomingMeta?.BR,
+      WR: incomingMeta?.WR,
+      KM: state.komi !== undefined ? String(state.komi) : incomingMeta?.KM,
+      RE: state.result ?? incomingMeta?.RE,
+      DT: state.date ?? incomingMeta?.DT,
+      GN: incomingMeta?.GN,
+    };
 
     return {
       state,
-      appliedMoves: state.sgfMoves
+      appliedMoves: state.sgfMoves,
     };
   }
 
-  private runHistoryAdjustmentPhase(input: HistoryAdjustmentInput): HistoryAdjustmentOutput {
+  private runHistoryAdjustmentPhase(
+    input: HistoryAdjustmentInput
+  ): HistoryAdjustmentOutput {
     this.store.setMoveIndex(0);
     return { state: input.state };
   }
@@ -187,7 +249,7 @@ export class SGFService {
       return null;
     }
 
-    const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, state.boardSize).split('');
+    const letters = "ABCDEFGHJKLMNOPQRSTUV".slice(0, state.boardSize).split("");
     const startIndex = state.numberStartIndex || 0;
     const endIndex = state.sgfIndex;
 
@@ -202,7 +264,7 @@ export class SGFService {
 
       const col = letters[move.col];
       const row = state.boardSize - move.row;
-      const mark = move.color === 1 ? '■' : '□';
+      const mark = move.color === 1 ? "■" : "□";
       const num = getCircleNumber(i - startIndex + 1);
 
       if (col) {
@@ -210,6 +272,6 @@ export class SGFService {
       }
     }
 
-    return sequence.length ? sequence.join(' ') : null;
+    return sequence.length ? sequence.join(" ") : null;
   }
 }

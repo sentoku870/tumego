@@ -10,6 +10,6 @@ export const DEFAULT_CONFIG = {
     DEFAULT_BOARD_SIZE: 9,
     DEFAULT_KOMI: 6.5,
     COORD_FONT_RATIO: 0.28,
-    MOVE_NUM_FONT_RATIO: 0.4
+    MOVE_NUM_FONT_RATIO: 0.4,
 };
 //# sourceMappingURL=types.js.map

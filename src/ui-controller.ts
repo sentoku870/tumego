@@ -1,25 +1,20 @@
 // ============ UI制御エンジン ============
-import {
-  GameState,
-  UIElements,
-  KeyBindings,
-  DEFAULT_CONFIG
-} from './types.js';
-import { GoEngine } from './go-engine.js';
-import { Renderer } from './renderer.js';
-import { SGFParser } from './sgf-parser.js';
-import { QRManager } from './qr-manager.js';
-import { HistoryManager } from './history-manager.js';
-import { GameStore } from './state/game-store.js';
-import { BoardCaptureService } from './services/board-capture-service.js';
-import { SGFService } from './services/sgf-service.js';
-import { UIInteractionState } from './ui/state/ui-interaction-state.js';
-import { DropdownManager } from './ui/controllers/dropdown-manager.js';
-import { BoardInteractionController } from './ui/controllers/board-interaction-controller.js';
-import { KeyboardController } from './ui/controllers/keyboard-controller.js';
-import { ToolbarController } from './ui/controllers/toolbar-controller.js';
-import { FeatureMenuController } from './ui/controllers/feature-menu-controller.js';
-import { FileMenuController } from './ui/controllers/file-menu-controller.js';
+import { GameState, UIElements, KeyBindings, DEFAULT_CONFIG } from "./types.js";
+import { GoEngine } from "./go-engine.js";
+import { Renderer } from "./renderer.js";
+import { SGFParser } from "./sgf-parser.js";
+import { QRManager } from "./qr-manager.js";
+import { HistoryManager } from "./history-manager.js";
+import { GameStore } from "./state/game-store.js";
+import { BoardCaptureService } from "./services/board-capture-service.js";
+import { SGFService } from "./services/sgf-service.js";
+import { UIInteractionState } from "./ui/state/ui-interaction-state.js";
+import { DropdownManager } from "./ui/controllers/dropdown-manager.js";
+import { BoardInteractionController } from "./ui/controllers/board-interaction-controller.js";
+import { KeyboardController } from "./ui/controllers/keyboard-controller.js";
+import { ToolbarController } from "./ui/controllers/toolbar-controller.js";
+import { FeatureMenuController } from "./ui/controllers/feature-menu-controller.js";
+import { FileMenuController } from "./ui/controllers/file-menu-controller.js";
 
 export class UIController {
   private engine: GoEngine;
@@ -50,8 +45,8 @@ export class UIController {
     this.renderer = new Renderer(
       this.store,
       elements,
-      () => this.updateUI()   // ← これを渡す！
-);
+      () => this.updateUI() // ← これを渡す！
+    );
 
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
@@ -118,7 +113,7 @@ export class UIController {
     this.toolbarController.updateAnswerButtonDisplay();
 
     this.historyManager.clear();
-    this.historyManager.save('アプリケーション開始', this.state);
+    this.historyManager.save("アプリケーション開始", this.state);
 
     const urlResult = this.sgfService.loadFromURL();
     if (urlResult) {
@@ -127,13 +122,15 @@ export class UIController {
       this.updateUI();
       this.syncSgfTextarea(applyResult.sgfText);
       this.toolbarController.updateAnswerButtonDisplay();
-      this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
+      this.renderer.showMessage(
+        `URL からSGF読み込み完了 (${urlResult.moves.length}手)`
+      );
     }
 
     const sizeBtn = document.querySelector('.size-btn[data-size="9"]');
-    const altBtn = document.getElementById('btn-alt');
-    sizeBtn?.classList.add('active');
-    altBtn?.classList.add('active');
+    const altBtn = document.getElementById("btn-alt");
+    sizeBtn?.classList.add("active");
+    altBtn?.classList.add("active");
   }
 
   private updateUI(): void {
@@ -146,20 +143,24 @@ export class UIController {
     if (!wrapper) return;
 
     const state = this.store.snapshot;
-    const reviewMoves = (this.store as any).reviewMoves as { col: number; row: number }[] | undefined;
+    const reviewMoves = (this.store as any).reviewMoves as
+      | { col: number; row: number }[]
+      | undefined;
     const hasReview = Array.isArray(reviewMoves) && reviewMoves.length > 0;
 
     const inReviewMode = state.sgfLoadedFromExternal && hasReview;
 
     if (inReviewMode) {
-      wrapper.classList.add('review-mode');
+      wrapper.classList.add("review-mode");
     } else {
-      wrapper.classList.remove('review-mode');
+      wrapper.classList.remove("review-mode");
     }
   }
 
   private syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+    const sgfTextarea = document.getElementById(
+      "sgf-text"
+    ) as HTMLTextAreaElement | null;
     if (sgfTextarea) {
       sgfTextarea.value = text;
     }
@@ -167,17 +168,19 @@ export class UIController {
 
   private createKeyBindings(): KeyBindings {
     return {
-      'q': () => this.toolbarController.triggerButton('.size-btn[data-size="9"]'),
-      'w': () => this.toolbarController.triggerButton('.size-btn[data-size="13"]'),
-      'e': () => this.toolbarController.triggerButton('.size-btn[data-size="19"]'),
-      'a': () => this.toolbarController.triggerButton('#btn-clear'),
-      's': () => this.toolbarController.triggerButton('#btn-undo'),
-      'd': () => this.toolbarController.triggerButton('#btn-erase'),
-      'z': () => this.toolbarController.triggerButton('#btn-black'),
-      'x': () => this.toolbarController.triggerButton('#btn-alt'),
-      'c': () => this.toolbarController.triggerButton('#btn-white'),
-      'ArrowLeft': () => this.toolbarController.triggerButton('#btn-prev-move'),
-      'ArrowRight': () => this.toolbarController.triggerButton('#btn-next-move')
+      q: () => this.toolbarController.triggerButton('.size-btn[data-size="9"]'),
+      w: () =>
+        this.toolbarController.triggerButton('.size-btn[data-size="13"]'),
+      e: () =>
+        this.toolbarController.triggerButton('.size-btn[data-size="19"]'),
+      a: () => this.toolbarController.triggerButton("#btn-clear"),
+      s: () => this.toolbarController.triggerButton("#btn-undo"),
+      d: () => this.toolbarController.triggerButton("#btn-erase"),
+      z: () => this.toolbarController.triggerButton("#btn-black"),
+      x: () => this.toolbarController.triggerButton("#btn-alt"),
+      c: () => this.toolbarController.triggerButton("#btn-white"),
+      ArrowLeft: () => this.toolbarController.triggerButton("#btn-prev-move"),
+      ArrowRight: () => this.toolbarController.triggerButton("#btn-next-move"),
     };
   }
 
@@ -188,7 +191,7 @@ export class UIController {
       this.dropdownManager.repositionActive();
     };
 
-    window.addEventListener('orientationchange', handleResize);
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("orientationchange", handleResize);
+    window.addEventListener("resize", handleResize);
   }
 }

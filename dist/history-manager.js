@@ -4,119 +4,139 @@ export class HistoryManager {
         this.maxSnapshots = 5;
         this.restoreFieldMappings = [
             {
-                key: 'boardSize',
+                key: "boardSize",
                 apply: (current, saved) => {
                     current.boardSize = saved.boardSize;
-                }
+                },
             },
             {
-                key: 'board',
+                key: "board",
                 apply: (current, saved) => {
                     current.board = this.cloneBoard(saved.board);
-                }
+                },
             },
             {
-                key: 'mode',
+                key: "mode",
                 apply: (current, saved) => {
                     current.mode = saved.mode;
-                }
+                },
             },
             {
-                key: 'sgfMoves',
+                key: "sgfMoves",
                 apply: (current, saved) => {
-                    current.sgfMoves = saved.sgfMoves.map(move => ({ ...move }));
-                }
+                    current.sgfMoves = saved.sgfMoves.map((move) => ({ ...move }));
+                },
             },
             {
-                key: 'sgfIndex',
+                key: "sgfIndex",
                 apply: (current, saved) => {
                     current.sgfIndex = saved.sgfIndex;
-                }
+                },
             },
             {
-                key: 'numberStartIndex',
+                key: "numberStartIndex",
                 apply: (current, saved) => {
                     current.numberStartIndex = saved.numberStartIndex;
-                }
+                },
             },
             {
-                key: 'handicapStones',
+                key: "handicapStones",
                 apply: (current, saved) => {
                     current.handicapStones = saved.handicapStones;
-                }
+                },
             },
             {
-                key: 'handicapPositions',
+                key: "handicapPositions",
                 apply: (current, saved) => {
-                    current.handicapPositions = saved.handicapPositions.map(pos => ({ ...pos }));
-                }
+                    current.handicapPositions = saved.handicapPositions.map((pos) => ({
+                        ...pos,
+                    }));
+                },
             },
             {
-                key: 'komi',
+                key: "komi",
                 apply: (current, saved) => {
                     current.komi = saved.komi;
-                }
+                },
             },
             {
-                key: 'startColor',
+                key: "startColor",
                 apply: (current, saved) => {
                     current.startColor = saved.startColor;
-                }
+                },
             },
             {
-                key: 'numberMode',
+                key: "numberMode",
                 apply: (current, saved) => {
                     current.numberMode = saved.numberMode;
-                }
+                },
             },
             {
-                key: 'answerMode',
+                key: "answerMode",
                 apply: (current, saved) => {
                     current.answerMode = saved.answerMode;
-                }
+                },
             },
             {
-                key: 'problemDiagramSet',
+                key: "problemDiagramSet",
                 apply: (current, saved) => {
                     current.problemDiagramSet = saved.problemDiagramSet;
-                }
+                },
             },
             {
-                key: 'problemDiagramBlack',
+                key: "problemDiagramBlack",
                 apply: (current, saved) => {
-                    current.problemDiagramBlack = saved.problemDiagramBlack.map(pos => ({ ...pos }));
-                }
+                    current.problemDiagramBlack = saved.problemDiagramBlack.map((pos) => ({
+                        ...pos,
+                    }));
+                },
             },
             {
-                key: 'problemDiagramWhite',
+                key: "problemDiagramWhite",
                 apply: (current, saved) => {
-                    current.problemDiagramWhite = saved.problemDiagramWhite.map(pos => ({ ...pos }));
-                }
+                    current.problemDiagramWhite = saved.problemDiagramWhite.map((pos) => ({
+                        ...pos,
+                    }));
+                },
             },
             {
-                key: 'turn',
+                key: "turn",
                 apply: (current, saved) => {
                     current.turn = saved.turn;
-                }
+                },
             },
             {
-                key: 'history',
+                key: "history",
                 apply: (current, saved) => {
                     current.history = this.cloneHistory(saved.history);
-                }
+                },
             },
             {
-                key: 'gameTree',
+                key: "gameTree",
                 apply: (current, saved) => {
-                    current.gameTree = saved.gameTree ? this.cloneGameTree(saved.gameTree) : null;
-                }
+                    current.gameTree = saved.gameTree
+                        ? this.cloneGameTree(saved.gameTree)
+                        : null;
+                },
             },
             {
-                key: 'sgfLoadedFromExternal',
+                key: "sgfLoadedFromExternal",
                 apply: (current, saved) => {
                     current.sgfLoadedFromExternal = saved.sgfLoadedFromExternal;
-                }
-            }
+                },
+            },
+            {
+                key: "sgfMeta",
+                apply: (current, saved) => {
+                    if (saved.sgfMeta === undefined) {
+                        // remove any existing sgfMeta to fully restore saved shape
+                        delete current.sgfMeta;
+                    }
+                    else {
+                        current.sgfMeta = { ...saved.sgfMeta };
+                    }
+                },
+            },
         ];
     }
     // ============ 履歴保存 ============
@@ -124,7 +144,7 @@ export class HistoryManager {
         const snapshot = {
             timestamp: new Date(),
             description: description,
-            state: this.cloneGameState(state)
+            state: this.cloneGameState(state),
         };
         this.snapshots.unshift(snapshot);
         if (this.snapshots.length > this.maxSnapshots) {
@@ -138,7 +158,7 @@ export class HistoryManager {
             return false;
         const snapshot = this.snapshots[index];
         const savedState = snapshot.state;
-        this.restoreFieldMappings.forEach(mapping => {
+        this.restoreFieldMappings.forEach((mapping) => {
             mapping.apply(currentState, savedState);
         });
         currentState.eraseMode = false; // 復元時は消去モードを無効化
@@ -151,7 +171,7 @@ export class HistoryManager {
             index: index,
             description: snapshot.description,
             timestamp: snapshot.timestamp,
-            timeString: snapshot.timestamp.toLocaleTimeString()
+            timeString: snapshot.timestamp.toLocaleTimeString(),
         }));
     }
     // ============ 履歴クリア ============
@@ -163,15 +183,16 @@ export class HistoryManager {
         var _a, _b;
         const historyList = this.getList();
         if (historyList.length === 0) {
-            alert('📜 操作履歴がありません。\n\n重要な操作（盤サイズ変更、置石設定、全消去、SGF読み込みなど）を行うと、履歴が保存されます。');
+            alert("📜 操作履歴がありません。\n\n重要な操作（盤サイズ変更、置石設定、全消去、SGF読み込みなど）を行うと、履歴が保存されます。");
             return;
         }
         // 既存のポップアップがあれば削除
-        const existing = document.getElementById('history-popup');
+        const existing = document.getElementById("history-popup");
         existing === null || existing === void 0 ? void 0 : existing.remove();
-        const popup = document.createElement('div');
-        popup.id = 'history-popup';
-        const historyItems = historyList.map((item) => `
+        const popup = document.createElement("div");
+        popup.id = "history-popup";
+        const historyItems = historyList
+            .map((item) => `
       <button data-index="${item.index}" class="history-item-btn"
               style="display:block; width:100%; margin:5px 0; padding:12px; 
                      background:#fff; border:1px solid #ddd; border-radius:6px; 
@@ -180,7 +201,8 @@ export class HistoryManager {
         <div style="font-weight:600; color:#333;">${this.escapeHtml(item.description)}</div>
         <div style="font-size:12px; color:#666; margin-top:4px;">${item.timeString}</div>
       </button>
-    `).join('');
+    `)
+            .join("");
         popup.innerHTML = `
       <div style="position:fixed; top:0; left:0; width:100%; height:100%; 
                   background:rgba(0,0,0,0.8); z-index:9999; 
@@ -214,35 +236,35 @@ export class HistoryManager {
       </div>
     `;
         // イベントリスナー
-        popup.addEventListener('click', (e) => {
-            if (e.target === popup.querySelector('div')) {
+        popup.addEventListener("click", (e) => {
+            if (e.target === popup.querySelector("div")) {
                 popup.remove();
             }
         });
         // 履歴項目のホバー効果
-        popup.querySelectorAll('.history-item-btn').forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = '#f0f0f0';
+        popup.querySelectorAll(".history-item-btn").forEach((btn) => {
+            btn.addEventListener("mouseenter", () => {
+                btn.style.background = "#f0f0f0";
             });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = '#fff';
+            btn.addEventListener("mouseleave", () => {
+                btn.style.background = "#fff";
             });
-            btn.addEventListener('click', () => {
+            btn.addEventListener("click", () => {
                 const index = parseInt(btn.dataset.index);
-                if (confirm('この操作履歴に復元しますか？\n\n⚠️ 復元すると、現在の状態が失われます。')) {
+                if (confirm("この操作履歴に復元しますか？\n\n⚠️ 復元すると、現在の状態が失われます。")) {
                     popup.remove();
                     onRestore(index);
                 }
             });
         });
-        (_a = popup.querySelector('#clear-history-btn')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
-            if (confirm('操作履歴をすべて削除しますか？\n\n⚠️ この操作は取り消せません。')) {
+        (_a = popup.querySelector("#clear-history-btn")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
+            if (confirm("操作履歴をすべて削除しますか？\n\n⚠️ この操作は取り消せません。")) {
                 this.clear();
                 popup.remove();
-                alert('操作履歴をクリアしました');
+                alert("操作履歴をクリアしました");
             }
         });
-        (_b = popup.querySelector('#close-history-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+        (_b = popup.querySelector("#close-history-btn")) === null || _b === void 0 ? void 0 : _b.addEventListener("click", () => {
             popup.remove();
         });
         document.body.appendChild(popup);
@@ -253,18 +275,18 @@ export class HistoryManager {
             ...state,
             board: this.cloneBoard(state.board),
             history: this.cloneHistory(state.history),
-            sgfMoves: state.sgfMoves.map(move => ({ ...move })),
-            handicapPositions: state.handicapPositions.map(pos => ({ ...pos })),
-            problemDiagramBlack: state.problemDiagramBlack.map(pos => ({ ...pos })),
-            problemDiagramWhite: state.problemDiagramWhite.map(pos => ({ ...pos })),
-            gameTree: state.gameTree ? this.cloneGameTree(state.gameTree) : null
+            sgfMoves: state.sgfMoves.map((move) => ({ ...move })),
+            handicapPositions: state.handicapPositions.map((pos) => ({ ...pos })),
+            problemDiagramBlack: state.problemDiagramBlack.map((pos) => ({ ...pos })),
+            problemDiagramWhite: state.problemDiagramWhite.map((pos) => ({ ...pos })),
+            gameTree: state.gameTree ? this.cloneGameTree(state.gameTree) : null,
         };
     }
     cloneBoard(board) {
-        return board.map(row => [...row]);
+        return board.map((row) => [...row]);
     }
     cloneHistory(history) {
-        return history.map(board => this.cloneBoard(board));
+        return history.map((board) => this.cloneBoard(board));
     }
     cloneGameTree(tree) {
         const nodeMap = new Map();
@@ -277,21 +299,21 @@ export class HistoryManager {
                 label: node.label,
                 mainLine: node.mainLine,
                 parent,
-                children: []
+                children: [],
             };
             nodeMap.set(node, clonedNode);
-            clonedNode.children = node.children.map(child => cloneNode(child, clonedNode));
+            clonedNode.children = node.children.map((child) => cloneNode(child, clonedNode));
             return clonedNode;
         };
         const rootClone = cloneNode(tree.rootNode);
         const currentClone = nodeMap.get(tree.currentNode) || rootClone;
         const pathClone = tree.currentPath
-            .map(node => nodeMap.get(node))
+            .map((node) => nodeMap.get(node))
             .filter((node) => Boolean(node));
         return {
             rootNode: rootClone,
             currentNode: currentClone,
-            currentPath: pathClone
+            currentPath: pathClone,
         };
     }
     escapeHtml(unsafe) {

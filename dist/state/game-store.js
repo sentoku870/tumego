@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG } from '../types.js';
+import { DEFAULT_CONFIG, } from "../types.js";
 /**
  * Centralizes all mutations against {@link GameState}. Rendering and UI layers
  * interact through this class to keep domain logic encapsulated.
@@ -16,7 +16,7 @@ export class GameStore {
         // === Performance metrics (from main branch) ===
         this.performanceDebug = false;
         this.performanceMetrics = {
-            rebuildBoardFromMoves: this.createRebuildMetrics()
+            rebuildBoardFromMoves: this.createRebuildMetrics(),
         };
         // === Review mode fields ===
         this.reviewMoves = [];
@@ -42,7 +42,9 @@ export class GameStore {
     }
     getPerformanceMetrics() {
         return {
-            rebuildBoardFromMoves: { ...this.performanceMetrics.rebuildBoardFromMoves }
+            rebuildBoardFromMoves: {
+                ...this.performanceMetrics.rebuildBoardFromMoves,
+            },
         };
     }
     tryMove(pos, color, record = true) {
@@ -110,8 +112,9 @@ export class GameStore {
         }
         // === 2) SGF読み込み中の検討モード（sgfLoadedFromExternal=true）===
         if (this.state.sgfLoadedFromExternal) {
-            // 本譜は保護
-            // 検討手(reviewMoves) の末尾だけ消せる
+            // 本譜は原則保護。ただし以下の条件で本譜末尾の手を削除できる:
+            // - 検討モード (reviewMoves) の末尾を削除する場合
+            // - 検討モードでない通常の表示時で、現在の表示位置が本譜の末尾
             if (this.isReviewMode && this.reviewMoves.length > 0) {
                 const last = this.reviewMoves[this.reviewMoves.length - 1];
                 if (last.col === pos.col && last.row === pos.row) {
@@ -127,7 +130,21 @@ export class GameStore {
                     return true;
                 }
             }
-            return false; // 本譜は消さない
+            // 検討モードでない場合、表示中の手番が本譜の末尾にあるなら末尾の手を切り詰められる
+            if (!this.isReviewMode) {
+                if (this.state.sgfIndex > 0 &&
+                    this.state.sgfIndex === this.state.sgfMoves.length) {
+                    const last = this.state.sgfMoves[this.state.sgfIndex - 1];
+                    if (last && last.col === pos.col && last.row === pos.row) {
+                        this.state.sgfMoves.pop();
+                        this.state.sgfIndex--;
+                        this.rebuildBoardFromMoves(this.state.sgfIndex);
+                        this.invalidateCache();
+                        return true;
+                    }
+                }
+            }
+            return false; // 本譜の途中は消さない
         }
         return false;
     }
@@ -195,8 +212,8 @@ export class GameStore {
                 }
             }
         }
-        this.state.problemDiagramBlack = blackPositions.map(pos => ({ ...pos }));
-        this.state.problemDiagramWhite = whitePositions.map(pos => ({ ...pos }));
+        this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+        this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
         this.state.problemDiagramSet = true;
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
@@ -248,36 +265,36 @@ export class GameStore {
                 ? this.state.startColor
                 : (3 - this.state.startColor);
         }
-        if (this.state.mode === 'alt') {
+        if (this.state.mode === "alt") {
             return this.state.turn % 2 === 0
                 ? this.state.startColor
                 : (3 - this.state.startColor);
         }
-        return this.state.mode === 'black' ? 1 : 2;
+        return this.state.mode === "black" ? 1 : 2;
     }
     pushHistorySnapshot() {
         this.state.history.push(this.cloneBoard());
     }
     cloneBoard(board = this.state.board) {
-        return board.map(row => row.slice());
+        return board.map((row) => row.slice());
     }
     applyInitialSetup() {
         const size = this.state.boardSize;
         const board = Array.from({ length: size }, () => Array(size).fill(0));
         if (this.state.handicapPositions.length > 0) {
-            this.state.handicapPositions.forEach(pos => {
+            this.state.handicapPositions.forEach((pos) => {
                 if (this.isValidPosition(pos)) {
                     board[pos.row][pos.col] = 1;
                 }
             });
         }
         if (this.state.problemDiagramSet) {
-            this.state.problemDiagramBlack.forEach(pos => {
+            this.state.problemDiagramBlack.forEach((pos) => {
                 if (this.isValidPosition(pos)) {
                     board[pos.row][pos.col] = 1;
                 }
             });
-            this.state.problemDiagramWhite.forEach(pos => {
+            this.state.problemDiagramWhite.forEach((pos) => {
                 if (this.isValidPosition(pos)) {
                     board[pos.row][pos.col] = 2;
                 }
@@ -344,16 +361,18 @@ export class GameStore {
     findLastMoveIndex(pos, color) {
         for (let i = this.state.sgfMoves.length - 1; i >= 0; i--) {
             const move = this.state.sgfMoves[i];
-            if (move.col === pos.col && move.row === pos.row && move.color === color) {
+            if (move.col === pos.col &&
+                move.row === pos.row &&
+                move.color === color) {
                 return i;
             }
         }
         return -1;
     }
     hasGameData() {
-        return this.state.sgfMoves.length > 0 ||
+        return (this.state.sgfMoves.length > 0 ||
             this.state.handicapStones > 0 ||
-            this.state.board.some(row => row.some(cell => cell !== 0));
+            this.state.board.some((row) => row.some((cell) => cell !== 0)));
     }
     resetGameState() {
         this.state.history = [];
@@ -384,8 +403,7 @@ export class GameStore {
             !this.cachedBoardTimeline[this.cachedAppliedMoveIndex]) {
             return false;
         }
-        return (this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) &&
-            this.boardsEqual(this.state.board, this.cachedBoardState));
+        return (this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) && this.boardsEqual(this.state.board, this.cachedBoardState));
     }
     performFullReset(target) {
         const board = this.rebuildBoardFromMoves(target);
@@ -466,7 +484,7 @@ export class GameStore {
         }
         return {
             board: (_a = this.cachedBoardTimeline[target]) !== null && _a !== void 0 ? _a : board,
-            newlyApplied: applied
+            newlyApplied: applied,
         };
     }
     findNearestCachedIndex(target) {
@@ -504,57 +522,60 @@ export class GameStore {
             totalDurationMs: 0,
             lastDurationMs: 0,
             lastLimit: 0,
-            lastAppliedMoves: 0
+            lastAppliedMoves: 0,
         };
     }
     getTimestamp() {
-        if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+        if (typeof performance !== "undefined" &&
+            typeof performance.now === "function") {
             return performance.now();
         }
         return Date.now();
     }
     isValidPosition(pos) {
-        return pos.col >= 0 && pos.col < this.state.boardSize &&
-            pos.row >= 0 && pos.row < this.state.boardSize;
+        return (pos.col >= 0 &&
+            pos.col < this.state.boardSize &&
+            pos.row >= 0 &&
+            pos.row < this.state.boardSize);
     }
     createHandicapContext(stones) {
-        if (stones === 'even') {
-            return { mode: 'even', stones: 0, positions: [] };
+        if (stones === "even") {
+            return { mode: "even", stones: 0, positions: [] };
         }
         const numeric = Number(stones);
         if (!Number.isFinite(numeric) || numeric < 0) {
             throw new Error(`無効な置石数: ${stones}`);
         }
         if (numeric === 0) {
-            return { mode: 'no-komi', stones: 0, positions: [] };
+            return { mode: "no-komi", stones: 0, positions: [] };
         }
         const positions = this.engine.generateHandicapPositions(this.state.boardSize, numeric);
         console.log(`置石設定: ${stones}子, 位置:`, positions);
         console.log(`${this.state.boardSize}路盤 ${stones}子局の置石位置:`, positions);
-        return { mode: 'fixed', stones: numeric, positions };
+        return { mode: "fixed", stones: numeric, positions };
     }
     resetBoardForHandicap(_context) {
         this.initBoard(this.state.boardSize);
     }
     placeHandicapStones(context) {
-        if (context.mode !== 'fixed') {
+        if (context.mode !== "fixed") {
             return;
         }
-        context.positions.forEach(pos => {
+        context.positions.forEach((pos) => {
             if (this.isValidPosition(pos)) {
                 this.state.board[pos.row][pos.col] = 1;
             }
         });
     }
     updateHandicapMetadata(context) {
-        if (context.mode === 'even') {
+        if (context.mode === "even") {
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
             this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
             this.state.startColor = 1;
             return;
         }
-        if (context.mode === 'no-komi') {
+        if (context.mode === "no-komi") {
             this.state.handicapStones = 0;
             this.state.handicapPositions = [];
             this.state.komi = 0;
@@ -562,7 +583,7 @@ export class GameStore {
             return;
         }
         this.state.handicapStones = context.stones;
-        this.state.handicapPositions = context.positions.map(pos => ({ ...pos }));
+        this.state.handicapPositions = context.positions.map((pos) => ({ ...pos }));
         this.state.komi = 0;
         this.state.startColor = 2;
         this.state.turn = 0;
