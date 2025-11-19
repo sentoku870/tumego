@@ -10,6 +10,7 @@ export class UIInteractionState {
   boardHasFocus = false;
   touchStartY = 0;
   activeDropdown: { trigger: HTMLElement; dropdown: HTMLElement } | null = null;
+  reviewTurn: 'B' | 'W' = 'B'; // PR68 review mode stone color
 
   resetDrag(): void {
     this.drag.dragging = false;

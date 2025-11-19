@@ -109,10 +109,24 @@ class RendererViewModelBuilder {
   }
 
   buildSliderModel(timeline: MoveTimeline): SliderRenderModel {
-    return {
-      max: timeline.effectiveLength,
-      value: Math.min(timeline.currentIndex, timeline.effectiveLength)
-    };
+    const state = this.store.snapshot;
+
+    if (state.appMode === 'solve') {
+      const value = Math.max(0, state.sgfIndex - state.numberStartIndex);
+      return {
+        max: state.solutionMoveList.length,
+        value: Math.min(value, state.solutionMoveList.length)
+      };
+    }
+
+    if (state.appMode === 'review') {
+      return {
+        max: timeline.effectiveLength,
+        value: Math.min(state.sgfIndex, timeline.effectiveLength)
+      };
+    }
+
+    return { max: 0, value: 0 };
   }
 
   private buildStoneModels(board: Board, geometry: RendererGeometry): StoneRenderInfo[] {

@@ -3,12 +3,16 @@ import { SGFService } from '../../services/sgf-service.js';
 import { Renderer } from '../../renderer.js';
 import { QRManager } from '../../qr-manager.js';
 import { UIUpdater } from './feature-menu-controller.js';
-import { SGFParseResult } from '../../types.js';
+import { SGFParseResult, AppMode } from '../../types.js';
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
 
 export class FileMenuController {
+  private fileDropdown: HTMLElement | null = null;
+  private fileCopyBtn: HTMLButtonElement | null = null;
+  private fileSaveBtn: HTMLButtonElement | null = null;
+
   constructor(
     private readonly dropdownManager: DropdownManager,
     private readonly sgfService: SGFService,
@@ -24,11 +28,15 @@ export class FileMenuController {
     const fileDropdown = document.getElementById('file-dropdown') as HTMLElement | null;
     const fileSelectBtn = document.getElementById('btn-file-select');
     const fileLoadBtn = document.getElementById('btn-file-load');
-    const fileCopyBtn = document.getElementById('btn-file-copy');
-    const fileSaveBtn = document.getElementById('btn-file-save');
+    const fileCopyBtn = document.getElementById('btn-file-copy') as HTMLButtonElement | null;
+    const fileSaveBtn = document.getElementById('btn-file-save') as HTMLButtonElement | null;
     const fileQRBtn = document.getElementById('btn-file-qr');
     const fileDiscordBtn = document.getElementById('btn-file-discord');
     const sgfInput = document.getElementById('sgf-input') as HTMLInputElement | null;
+
+    this.fileDropdown = fileDropdown;
+    this.fileCopyBtn = fileCopyBtn;
+    this.fileSaveBtn = fileSaveBtn;
 
     fileBtn?.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -115,6 +123,11 @@ export class FileMenuController {
 
     fileSaveBtn?.addEventListener('click', async () => {
       this.dropdownManager.hide(fileDropdown);
+      if (this.sgfService.state.appMode === 'review') {
+        this.renderer.showMessage('検討モードでは SGF を保存できません');
+        return;
+      }
+
       const sgfData = this.sgfService.export();
 
       try {
@@ -135,6 +148,17 @@ export class FileMenuController {
       this.dropdownManager.hide(fileDropdown);
       this.qrManager.createDiscordShareLink(this.sgfService.state);
     });
+  }
+
+  updateModeDependentUI(mode: AppMode): void {
+    if (!this.fileSaveBtn) {
+      return;
+    }
+
+    const disabled = mode === 'review';
+    this.fileSaveBtn.disabled = disabled;
+    this.fileSaveBtn.classList.toggle('disabled', disabled);
+    this.fileSaveBtn.setAttribute('aria-disabled', String(disabled));
   }
 
 private applySgf(result: SGFParseResult): void {

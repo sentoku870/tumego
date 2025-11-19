@@ -1,5 +1,6 @@
 import { GameStore } from "../state/game-store.js";
 import {
+  AppMode,
   CellState,
   DEFAULT_CONFIG,
   GameState,
@@ -64,7 +65,37 @@ export class SGFService {
   }
 
   export(): string {
-    return this.parser.export(this.state);
+    return this.getTextForMode(this.state.appMode);
+  }
+
+  getTextForMode(mode: AppMode): string {
+    if (mode === "review") {
+      return this.getOriginalSGF();
+    }
+
+    if (mode === "solve") {
+      return this.getSolutionSGF();
+    }
+
+    return this.getProblemSGF();
+  }
+
+  getOriginalSGF(): string {
+    return this.state.originalSGF || this.parser.export(this.state);
+  }
+
+  getSolutionSGF(): string {
+    if (this.state.solutionSGF) {
+      return this.state.solutionSGF;
+    }
+    return this.getProblemSGF();
+  }
+
+  getProblemSGF(): string {
+    if (this.state.problemSGF) {
+      return this.state.problemSGF;
+    }
+    return this.buildProblemSGFFromState(this.state);
   }
 
   async copyToClipboard(text: string): Promise<void> {

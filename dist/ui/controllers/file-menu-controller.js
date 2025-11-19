@@ -7,6 +7,9 @@ export class FileMenuController {
         this.updateUI = updateUI;
         this.onSgfApplied = onSgfApplied;
         this.updateAnswerButtonDisplay = updateAnswerButtonDisplay;
+        this.fileDropdown = null;
+        this.fileCopyBtn = null;
+        this.fileSaveBtn = null;
     }
     initialize() {
         const fileBtn = document.getElementById('btn-file');
@@ -18,6 +21,9 @@ export class FileMenuController {
         const fileQRBtn = document.getElementById('btn-file-qr');
         const fileDiscordBtn = document.getElementById('btn-file-discord');
         const sgfInput = document.getElementById('sgf-input');
+        this.fileDropdown = fileDropdown;
+        this.fileCopyBtn = fileCopyBtn;
+        this.fileSaveBtn = fileSaveBtn;
         fileBtn === null || fileBtn === void 0 ? void 0 : fileBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             const featureDropdown = document.getElementById('feature-dropdown');
@@ -101,6 +107,10 @@ export class FileMenuController {
         });
         fileSaveBtn === null || fileSaveBtn === void 0 ? void 0 : fileSaveBtn.addEventListener('click', async () => {
             this.dropdownManager.hide(fileDropdown);
+            if (this.sgfService.state.appMode === 'review') {
+                this.renderer.showMessage('検討モードでは SGF を保存できません');
+                return;
+            }
             const sgfData = this.sgfService.export();
             try {
                 await this.sgfService.saveToFile(sgfData);
@@ -119,6 +129,15 @@ export class FileMenuController {
             this.dropdownManager.hide(fileDropdown);
             this.qrManager.createDiscordShareLink(this.sgfService.state);
         });
+    }
+    updateModeDependentUI(mode) {
+        if (!this.fileSaveBtn) {
+            return;
+        }
+        const disabled = mode === 'review';
+        this.fileSaveBtn.disabled = disabled;
+        this.fileSaveBtn.classList.toggle('disabled', disabled);
+        this.fileSaveBtn.setAttribute('aria-disabled', String(disabled));
     }
     applySgf(result) {
         var _a, _b, _c, _d, _e, _f;

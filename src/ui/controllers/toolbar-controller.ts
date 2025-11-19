@@ -3,18 +3,22 @@ import { Renderer } from '../../renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
 import { UIElements, PlayMode } from '../../types.js';
 import { UIUpdater } from './feature-menu-controller.js';
+import { UIInteractionState } from '../state/ui-interaction-state.js';
 
 export class ToolbarController {
   private playButtons: HTMLButtonElement[] = [];
   private answerButton: HTMLButtonElement | null = null;
   private navigationButtons: HTMLButtonElement[] = [];
+  private reviewTurnButtons: HTMLButtonElement[] = [];
+  private reviewTurnContainer: HTMLElement | null = null;
 
   constructor(
     private readonly store: GameStore,
     private readonly renderer: Renderer,
     private readonly boardCapture: BoardCaptureService,
     private readonly elements: UIElements,
-    private readonly updateUI: UIUpdater
+    private readonly updateUI: UIUpdater,
+    private readonly uiState: UIInteractionState
   ) {}
 
   initialize(): void {
@@ -22,6 +26,7 @@ export class ToolbarController {
     this.initBasicButtons();
     this.initGameButtons();
     this.initBoardSaveButton();
+    this.initReviewTurnButtons();
   }
 
   disableEraseMode(): void {
@@ -135,6 +140,15 @@ export class ToolbarController {
     const prevBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     prevBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
+      if (this.store.appMode === 'solve') {
+        const baseIndex = state.numberStartIndex;
+        if (state.sgfIndex > baseIndex) {
+          this.store.setMoveIndex(state.sgfIndex - 1);
+          this.updateUI();
+        }
+        return;
+      }
+
       if (state.sgfIndex > 0) {
         this.store.setMoveIndex(state.sgfIndex - 1);
         this.updateUI();
@@ -144,6 +158,15 @@ export class ToolbarController {
     const nextBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     nextBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
+      if (this.store.appMode === 'solve') {
+        const maxIndex = state.numberStartIndex + state.solutionMoveList.length;
+        if (state.sgfIndex < maxIndex) {
+          this.store.setMoveIndex(state.sgfIndex + 1);
+          this.updateUI();
+        }
+        return;
+      }
+
       if (state.sgfIndex < state.sgfMoves.length) {
         this.store.setMoveIndex(state.sgfIndex + 1);
         this.updateUI();
@@ -217,17 +240,60 @@ export class ToolbarController {
 
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
-      if (this.store.appMode !== 'review') {
+      const mode = this.store.appMode;
+
+      if (mode === 'review') {
+        if (this.store.reviewActive) {
+          this.store.resetReview();
+        }
+
+        this.store.setMoveIndex(parseInt(target.value, 10));
+        this.updateUI();
         return;
       }
 
-      if (this.store.reviewActive) {
-        this.store.resetReview();
+      if (mode === 'solve') {
+        const state = this.store.snapshot;
+        const offset = parseInt(target.value, 10);
+        const baseIndex = state.numberStartIndex;
+        this.store.setMoveIndex(baseIndex + offset);
+        this.updateUI();
       }
-
-      this.store.setMoveIndex(parseInt(target.value, 10));
-      this.updateUI();
     });
+  }
+
+  private initReviewTurnButtons(): void {
+    const container = document.getElementById('review-turn-controls');
+    const blackBtn = document.getElementById('btn-review-black') as HTMLButtonElement | null;
+    const whiteBtn = document.getElementById('btn-review-white') as HTMLButtonElement | null;
+
+    if (!container || !blackBtn || !whiteBtn) {
+      return;
+    }
+
+    container.style.display = 'none';
+
+    const setActive = (): void => {
+      this.reviewTurnButtons.forEach((btn) =>
+        btn.classList.toggle('active',
+          (btn === blackBtn && this.uiState.reviewTurn === 'B') ||
+          (btn === whiteBtn && this.uiState.reviewTurn === 'W'))
+      );
+    };
+
+    blackBtn.addEventListener('click', () => {
+      this.uiState.reviewTurn = 'B';
+      setActive();
+    });
+
+    whiteBtn.addEventListener('click', () => {
+      this.uiState.reviewTurn = 'W';
+      setActive();
+    });
+
+    this.reviewTurnButtons = [blackBtn, whiteBtn];
+    this.reviewTurnContainer = container;
+    setActive();
   }
 
   private initBoardSaveButton(): void {
@@ -265,11 +331,15 @@ export class ToolbarController {
 
   updateModeDependentUI(): void {
     const mode = this.store.appMode;
+    const state = this.store.snapshot;
+    const solveNavigationActive = mode === 'solve' && state.solutionMoveList.length > 0;
+
     this.setButtonsEnabled(this.playButtons, mode === 'edit');
     if (this.answerButton) {
       this.setButtonsEnabled([this.answerButton], mode === 'solve');
     }
-    this.setButtonsEnabled(this.navigationButtons, mode === 'review');
+    this.setButtonsEnabled(this.navigationButtons, mode === 'review' || solveNavigationActive);
+    this.updateReviewTurnControls(mode === 'review');
   }
 
   private setButtonsEnabled(buttons: HTMLButtonElement[], enabled: boolean): void {
@@ -277,6 +347,20 @@ export class ToolbarController {
       button.disabled = !enabled;
       button.classList.toggle('disabled', !enabled);
       button.setAttribute('aria-disabled', String(!enabled));
+    });
+  }
+
+  private updateReviewTurnControls(visible: boolean): void {
+    if (!this.reviewTurnContainer || this.reviewTurnButtons.length === 0) {
+      return;
+    }
+
+    this.reviewTurnContainer.style.display = visible ? 'flex' : 'none';
+    this.setButtonsEnabled(this.reviewTurnButtons, visible);
+    this.reviewTurnButtons.forEach((btn) => {
+      const isBlack = btn.id === 'btn-review-black';
+      const active = (isBlack && this.uiState.reviewTurn === 'B') || (!isBlack && this.uiState.reviewTurn === 'W');
+      btn.classList.toggle('active', active);
     });
   }
 }

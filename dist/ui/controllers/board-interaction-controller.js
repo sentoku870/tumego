@@ -129,12 +129,14 @@ export class BoardInteractionController {
     }
     handlePlaceStone(pos) {
         var _a;
-        const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
         const mode = this.store.appMode;
+        let color;
         if (mode === 'review') {
+            color = this.uiState.reviewTurn === 'B' ? 1 : 2;
             this.handleReviewBranchMove(pos, color);
             return;
         }
+        color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
         if (mode !== 'edit' && mode !== 'solve') {
             return;
         }

@@ -18,7 +18,31 @@ export class SGFService {
         return this.parser.loadFromClipboard();
     }
     export() {
-        return this.parser.export(this.state);
+        return this.getTextForMode(this.state.appMode);
+    }
+    getTextForMode(mode) {
+        if (mode === "review") {
+            return this.getOriginalSGF();
+        }
+        if (mode === "solve") {
+            return this.getSolutionSGF();
+        }
+        return this.getProblemSGF();
+    }
+    getOriginalSGF() {
+        return this.state.originalSGF || this.parser.export(this.state);
+    }
+    getSolutionSGF() {
+        if (this.state.solutionSGF) {
+            return this.state.solutionSGF;
+        }
+        return this.getProblemSGF();
+    }
+    getProblemSGF() {
+        if (this.state.problemSGF) {
+            return this.state.problemSGF;
+        }
+        return this.buildProblemSGFFromState(this.state);
     }
     async copyToClipboard(text) {
         await this.parser.copyToClipboard(text);

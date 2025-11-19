@@ -66,7 +66,8 @@ export class UIController {
       this.renderer,
       this.boardCapture,
       this.elements,
-      () => this.updateUI()
+      () => this.updateUI(),
+      this.uiState
     );
 
     this.boardController = new BoardInteractionController(
@@ -119,6 +120,7 @@ export class UIController {
     }, 100);
 
     this.updateUI();
+    this.refreshSgfTextarea();
     this.toolbarController.updateAnswerButtonDisplay();
 
     this.historyManager.clear();
@@ -148,6 +150,8 @@ export class UIController {
     this.renderer.updateSlider();
     this.toolbarController.updateModeDependentUI();
     this.updateAppModeToggleUI();
+    this.fileMenuController.updateModeDependentUI(this.store.appMode);
+    this.refreshSgfTextarea();
 
     this.updateLayoutForMode();
   }
@@ -165,19 +169,29 @@ export class UIController {
     wrapper.classList.toggle("review-mode", highlight);
 
     if (slider) {
-      const isReview = mode === "review";
-      slider.disabled = !isReview;
-      slider.classList.toggle("mode-locked", !isReview);
+      const hasSolvePlayback =
+        mode === "solve" && this.store.snapshot.solutionMoveList.length > 0;
+      const sliderEnabled = mode === "review" || hasSolvePlayback;
+      slider.disabled = !sliderEnabled;
+      slider.classList.toggle("mode-locked", !sliderEnabled);
     }
   }
 
-  private syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById(
-      "sgf-text"
-    ) as HTMLTextAreaElement | null;
-    if (sgfTextarea) {
-      sgfTextarea.value = text;
+  private syncSgfTextarea(_text?: string): void {
+    this.refreshSgfTextarea();
+  }
+
+  private refreshSgfTextarea(): void {
+    const sgfTextarea = document.getElementById("sgf-text") as
+      | HTMLTextAreaElement
+      | null;
+    if (!sgfTextarea) {
+      return;
     }
+
+    const mode = this.store.appMode;
+    const sgfText = this.sgfService.getTextForMode(mode);
+    sgfTextarea.value = sgfText;
   }
 
   private createKeyBindings(): KeyBindings {
@@ -264,11 +278,11 @@ export class UIController {
         state.answerMode = "black";
         this.toolbarController.updateAnswerButtonDisplay();
       }
-      this.store.setAppMode("edit");
+      this.store.enterEditMode();
     } else if (mode === "solve") {
-      this.store.setAppMode("solve");
+      this.store.enterSolveMode();
     } else {
-      this.store.setAppMode("review");
+      this.store.enterReviewMode();
     }
 
     this.updateUI();

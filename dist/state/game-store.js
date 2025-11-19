@@ -36,8 +36,32 @@ export class GameStore {
         }
         this.state.appMode = mode;
         if (mode !== "review" && this.tempBranch.length > 0) {
-            this.tempBranch = [];
+            this.resetReviewBranch();
         }
+    }
+    enterEditMode() {
+        this.setAppMode("edit");
+        this.resetReviewBranch();
+        this.restoreProblemBoard();
+        this.state.sgfIndex = 0;
+        this.state.solutionMoveList = [];
+        this.invalidateCache();
+    }
+    enterSolveMode() {
+        this.setAppMode("solve");
+        this.resetReviewBranch();
+        this.rebuildSolveMainLine();
+        this.state.sgfIndex = this.state.numberStartIndex;
+        this.rebuildBoardFromMoves(this.state.sgfIndex);
+        this.invalidateCache();
+    }
+    enterReviewMode() {
+        this.setAppMode("review");
+        this.resetReviewBranch();
+        this.restoreOriginalMoves();
+        this.state.sgfIndex = 0;
+        this.rebuildBoardFromMoves(0);
+        this.invalidateCache();
     }
     getMoveTimeline() {
         if (this.state.appMode === "solve") {
@@ -102,8 +126,13 @@ export class GameStore {
     }
     // === Review mode: reset and return to main line ===
     resetReview() {
+        this.resetReviewBranch();
+    }
+    resetReviewBranch() {
+        if (this.tempBranch.length === 0) {
+            return;
+        }
         this.tempBranch = [];
-        // 本譜だけで盤面を再構築
         this.rebuildBoardFromMoves(this.state.sgfIndex);
         this.invalidateCache();
     }
@@ -192,23 +221,19 @@ export class GameStore {
     }
     setMoveIndex(index) {
         var _a;
-        const timeline = this.getMoveTimeline();
-        const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
-        if (this.handleSolveModeRewind(clamped)) {
-            this.invalidateCache();
-        }
+        const target = this.clampMoveIndex(index);
         if (this.tempBranch.length > 0) {
             this.tempBranch = [];
         }
-        let board = this.resolveBoardThroughCache(clamped);
+        let board = this.resolveBoardThroughCache(target);
         if (!board) {
-            this.performFullReset(clamped);
-            board = (_a = this.cachedBoardTimeline[clamped]) !== null && _a !== void 0 ? _a : this.cachedBoardState;
+            this.performFullReset(target);
+            board = (_a = this.cachedBoardTimeline[target]) !== null && _a !== void 0 ? _a : this.cachedBoardState;
         }
         if (!board) {
             board = this.cloneBoard();
         }
-        this.applyCachedBoard(clamped, board);
+        this.applyCachedBoard(target, board);
     }
     startNumberMode(color) {
         this.startSolveMode(color);
@@ -333,26 +358,34 @@ export class GameStore {
             this.state.solutionMoveList = this.state.solutionMoveList.slice(0, desiredSolutions);
         }
     }
-    handleSolveModeRewind(target) {
-        if (this.state.appMode !== "solve") {
-            return false;
+    clampMoveIndex(index) {
+        if (this.state.appMode === "solve") {
+            const baseIndex = this.state.numberStartIndex;
+            const maxIndex = baseIndex + this.state.solutionMoveList.length;
+            return Math.max(baseIndex, Math.min(index, maxIndex));
         }
-        const baseIndex = this.state.numberStartIndex;
-        if (target <= baseIndex) {
-            if (this.state.solutionMoveList.length === 0) {
-                return false;
-            }
-            this.state.solutionMoveList = [];
-            this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex);
-            return true;
+        const timeline = this.getMoveTimeline();
+        return Math.max(0, Math.min(index, timeline.effectiveLength));
+    }
+    restoreProblemBoard() {
+        this.applyInitialSetup();
+        this.state.history = [];
+        this.state.turn = 0;
+    }
+    restoreOriginalMoves() {
+        if (this.state.originalMoveList.length > 0) {
+            this.state.sgfMoves = this.state.originalMoveList.map((move) => ({
+                ...move,
+            }));
+            return;
         }
-        const desiredSolutions = target - baseIndex;
-        if (desiredSolutions === this.state.solutionMoveList.length) {
-            return false;
-        }
-        this.state.solutionMoveList = this.state.solutionMoveList.slice(0, Math.max(0, desiredSolutions));
-        this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex + desiredSolutions);
-        return true;
+        this.state.sgfMoves = [];
+    }
+    rebuildSolveMainLine() {
+        const baseMoves = this.state.originalMoveList.map((move) => ({ ...move }));
+        const solution = this.state.solutionMoveList.map((move) => ({ ...move }));
+        this.state.sgfMoves = [...baseMoves, ...solution];
+        this.state.numberStartIndex = baseMoves.length;
     }
     cloneBoard(board = this.state.board) {
         return board.map((row) => row.slice());

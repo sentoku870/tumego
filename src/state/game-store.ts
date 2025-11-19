@@ -77,8 +77,35 @@ export class GameStore {
     this.state.appMode = mode;
 
     if (mode !== "review" && this.tempBranch.length > 0) {
-      this.tempBranch = [];
+      this.resetReviewBranch();
     }
+  }
+
+  enterEditMode(): void {
+    this.setAppMode("edit");
+    this.resetReviewBranch();
+    this.restoreProblemBoard();
+    this.state.sgfIndex = 0;
+    this.state.solutionMoveList = [];
+    this.invalidateCache();
+  }
+
+  enterSolveMode(): void {
+    this.setAppMode("solve");
+    this.resetReviewBranch();
+    this.rebuildSolveMainLine();
+    this.state.sgfIndex = this.state.numberStartIndex;
+    this.rebuildBoardFromMoves(this.state.sgfIndex);
+    this.invalidateCache();
+  }
+
+  enterReviewMode(): void {
+    this.setAppMode("review");
+    this.resetReviewBranch();
+    this.restoreOriginalMoves();
+    this.state.sgfIndex = 0;
+    this.rebuildBoardFromMoves(0);
+    this.invalidateCache();
   }
 
   getMoveTimeline(): MoveTimeline {
@@ -154,11 +181,16 @@ export class GameStore {
 
   // === Review mode: reset and return to main line ===
   resetReview(): void {
+    this.resetReviewBranch();
+  }
+
+  private resetReviewBranch(): void {
+    if (this.tempBranch.length === 0) {
+      return;
+    }
+
     this.tempBranch = [];
-
-    // 本譜だけで盤面を再構築
     this.rebuildBoardFromMoves(this.state.sgfIndex);
-
     this.invalidateCache();
   }
 
@@ -273,29 +305,24 @@ export class GameStore {
   }
 
   setMoveIndex(index: number): void {
-    const timeline = this.getMoveTimeline();
-    const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
-
-    if (this.handleSolveModeRewind(clamped)) {
-      this.invalidateCache();
-    }
+    const target = this.clampMoveIndex(index);
 
     if (this.tempBranch.length > 0) {
       this.tempBranch = [];
     }
 
-    let board = this.resolveBoardThroughCache(clamped);
+    let board = this.resolveBoardThroughCache(target);
 
     if (!board) {
-      this.performFullReset(clamped);
-      board = this.cachedBoardTimeline[clamped] ?? this.cachedBoardState;
+      this.performFullReset(target);
+      board = this.cachedBoardTimeline[target] ?? this.cachedBoardState;
     }
 
     if (!board) {
       board = this.cloneBoard();
     }
 
-    this.applyCachedBoard(clamped, board);
+    this.applyCachedBoard(target, board);
   }
 
   startNumberMode(color: StoneColor): void {
@@ -453,32 +480,38 @@ export class GameStore {
     }
   }
 
-  private handleSolveModeRewind(target: number): boolean {
-    if (this.state.appMode !== "solve") {
-      return false;
+  private clampMoveIndex(index: number): number {
+    if (this.state.appMode === "solve") {
+      const baseIndex = this.state.numberStartIndex;
+      const maxIndex = baseIndex + this.state.solutionMoveList.length;
+      return Math.max(baseIndex, Math.min(index, maxIndex));
     }
 
-    const baseIndex = this.state.numberStartIndex;
-    if (target <= baseIndex) {
-      if (this.state.solutionMoveList.length === 0) {
-        return false;
-      }
-      this.state.solutionMoveList = [];
-      this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex);
-      return true;
-    }
+    const timeline = this.getMoveTimeline();
+    return Math.max(0, Math.min(index, timeline.effectiveLength));
+  }
 
-    const desiredSolutions = target - baseIndex;
-    if (desiredSolutions === this.state.solutionMoveList.length) {
-      return false;
-    }
+  private restoreProblemBoard(): void {
+    this.applyInitialSetup();
+    this.state.history = [];
+    this.state.turn = 0;
+  }
 
-    this.state.solutionMoveList = this.state.solutionMoveList.slice(
-      0,
-      Math.max(0, desiredSolutions)
-    );
-    this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex + desiredSolutions);
-    return true;
+  private restoreOriginalMoves(): void {
+    if (this.state.originalMoveList.length > 0) {
+      this.state.sgfMoves = this.state.originalMoveList.map((move) => ({
+        ...move,
+      }));
+      return;
+    }
+    this.state.sgfMoves = [];
+  }
+
+  private rebuildSolveMainLine(): void {
+    const baseMoves = this.state.originalMoveList.map((move) => ({ ...move }));
+    const solution = this.state.solutionMoveList.map((move) => ({ ...move }));
+    this.state.sgfMoves = [...baseMoves, ...solution];
+    this.state.numberStartIndex = baseMoves.length;
   }
 
   private cloneBoard(board: Board = this.state.board): Board {

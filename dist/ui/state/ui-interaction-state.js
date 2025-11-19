@@ -8,6 +8,7 @@ export class UIInteractionState {
         this.boardHasFocus = false;
         this.touchStartY = 0;
         this.activeDropdown = null;
+        this.reviewTurn = 'B'; // PR68 review mode stone color
     }
     resetDrag() {
         this.drag.dragging = false;

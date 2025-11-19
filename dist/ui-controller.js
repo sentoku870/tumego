@@ -32,7 +32,7 @@ export class UIController {
         this.sgfService = new SGFService(this.sgfParser, this.store);
         this.uiState = new UIInteractionState();
         this.dropdownManager = new DropdownManager(this.uiState);
-        this.toolbarController = new ToolbarController(this.store, this.renderer, this.boardCapture, this.elements, () => this.updateUI());
+        this.toolbarController = new ToolbarController(this.store, this.renderer, this.boardCapture, this.elements, () => this.updateUI(), this.uiState);
         this.boardController = new BoardInteractionController(this.store, this.elements, this.uiState, () => this.updateUI(), () => this.toolbarController.disableEraseMode());
         this.keyboardController = new KeyboardController(this.uiState);
         this.featureMenuController = new FeatureMenuController(this.dropdownManager, this.renderer, this.elements, this.store, this.sgfService, () => this.updateUI());
@@ -54,6 +54,7 @@ export class UIController {
             this.updateUI();
         }, 100);
         this.updateUI();
+        this.refreshSgfTextarea();
         this.toolbarController.updateAnswerButtonDisplay();
         this.historyManager.clear();
         this.historyManager.save("アプリケーション開始", this.state);
@@ -77,6 +78,8 @@ export class UIController {
         this.renderer.updateSlider();
         this.toolbarController.updateModeDependentUI();
         this.updateAppModeToggleUI();
+        this.fileMenuController.updateModeDependentUI(this.store.appMode);
+        this.refreshSgfTextarea();
         this.updateLayoutForMode();
     }
     updateLayoutForMode() {
@@ -90,16 +93,23 @@ export class UIController {
         const highlight = mode === "review" && this.store.reviewActive;
         wrapper.classList.toggle("review-mode", highlight);
         if (slider) {
-            const isReview = mode === "review";
-            slider.disabled = !isReview;
-            slider.classList.toggle("mode-locked", !isReview);
+            const hasSolvePlayback = mode === "solve" && this.store.snapshot.solutionMoveList.length > 0;
+            const sliderEnabled = mode === "review" || hasSolvePlayback;
+            slider.disabled = !sliderEnabled;
+            slider.classList.toggle("mode-locked", !sliderEnabled);
         }
     }
-    syncSgfTextarea(text) {
+    syncSgfTextarea(_text) {
+        this.refreshSgfTextarea();
+    }
+    refreshSgfTextarea() {
         const sgfTextarea = document.getElementById("sgf-text");
-        if (sgfTextarea) {
-            sgfTextarea.value = text;
+        if (!sgfTextarea) {
+            return;
         }
+        const mode = this.store.appMode;
+        const sgfText = this.sgfService.getTextForMode(mode);
+        sgfTextarea.value = sgfText;
     }
     createKeyBindings() {
         return {
@@ -171,13 +181,13 @@ export class UIController {
                 state.answerMode = "black";
                 this.toolbarController.updateAnswerButtonDisplay();
             }
-            this.store.setAppMode("edit");
+            this.store.enterEditMode();
         }
         else if (mode === "solve") {
-            this.store.setAppMode("solve");
+            this.store.enterSolveMode();
         }
         else {
-            this.store.setAppMode("review");
+            this.store.enterReviewMode();
         }
         this.updateUI();
     }
