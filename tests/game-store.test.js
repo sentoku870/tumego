@@ -90,7 +90,7 @@ describe('GameStore', () => {
 
   test('truncates SGF moves when editing a loaded record', () => {
     state.sgfLoadedFromExternal = true;
-    state.appMode = 'review';
+    state.appMode = 'edit';
     state.sgfMoves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },

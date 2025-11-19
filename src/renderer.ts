@@ -77,9 +77,6 @@ class RendererViewModelBuilder {
       if (appMode === 'solve') {
         return '解答モード';
       }
-      if (appMode === 'review') {
-        return '検討モード';
-      }
       return ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[
         state.playMode
       ];

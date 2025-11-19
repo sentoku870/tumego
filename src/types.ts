@@ -8,7 +8,7 @@ export interface Position {
 export type StoneColor = 1 | 2; // 1: 黒, 2: 白
 export type CellState = 0 | StoneColor; // 0: 空, 1: 黒, 2: 白
 export type PlayMode = "black" | "white" | "alt";
-export type AppMode = "edit" | "solve" | "review";
+export type AppMode = "edit" | "solve";
 export type AnswerMode = "black" | "white";
 
 export type OriginalMoveList = Move[];

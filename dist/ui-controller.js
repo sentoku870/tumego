@@ -85,14 +85,13 @@ export class UIController {
         if (!wrapper)
             return;
         const mode = this.store.appMode;
-        wrapper.classList.remove("mode-edit", "mode-solve", "mode-review");
+        wrapper.classList.remove("mode-edit", "mode-solve");
         wrapper.classList.add(`mode-${mode}`);
-        const highlight = mode === "review" && this.store.reviewActive;
-        wrapper.classList.toggle("review-mode", highlight);
         if (slider) {
-            const isReview = mode === "review";
-            slider.disabled = !isReview;
-            slider.classList.toggle("mode-locked", !isReview);
+            const timeline = this.store.getMoveTimeline();
+            const hasMoves = timeline.effectiveLength > 0;
+            slider.disabled = !hasMoves;
+            slider.classList.toggle("mode-locked", !hasMoves);
         }
     }
     syncSgfTextarea(text) {
@@ -139,7 +138,6 @@ export class UIController {
         const modes = [
             { mode: "edit", label: "✏️ 編集" },
             { mode: "solve", label: "🧠 解答" },
-            { mode: "review", label: "🔍 検討" },
         ];
         modes.forEach(({ mode, label }) => {
             const button = document.createElement("button");
@@ -160,10 +158,6 @@ export class UIController {
             return;
         }
         const state = this.store.snapshot;
-        const leavingReview = this.store.appMode === "review";
-        if (leavingReview && this.store.reviewActive) {
-            this.store.resetReview();
-        }
         if (mode === "edit") {
             if (state.numberMode) {
                 state.numberMode = false;
@@ -175,9 +169,6 @@ export class UIController {
         }
         else if (mode === "solve") {
             this.store.setAppMode("solve");
-        }
-        else {
-            this.store.setAppMode("review");
         }
         this.updateUI();
     }

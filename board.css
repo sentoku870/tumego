@@ -237,7 +237,6 @@ svg {
   shape-rendering: geometricPrecision;
   text-rendering: geometricPrecision;
 }
-/* === 検討モード：枠色ハイライト === */
 #board-wrapper {
   position: relative;
   width: 100%;
@@ -261,11 +260,3 @@ svg {
   border-color: #ff7043;
 }
 
-#board-wrapper.mode-review {
-  border-color: #3f51b5;
-}
-
-#board-wrapper.review-mode {
-  border-color: #5AFF00;
-  box-shadow: 0 0 0 4px rgba(90, 255, 0, 0.25);
-}

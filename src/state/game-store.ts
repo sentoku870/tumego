@@ -48,9 +48,6 @@ export class GameStore {
   private performanceMetrics: PerformanceMetrics = {
     rebuildBoardFromMoves: this.createRebuildMetrics(),
   };
-  // === Review mode fields ===
-  private tempBranch: Move[] = [];
-
   constructor(
     private readonly state: GameState,
     private readonly engine: GoEngine,
@@ -75,10 +72,6 @@ export class GameStore {
     }
 
     this.state.appMode = mode;
-
-    if (mode !== "review" && this.tempBranch.length > 0) {
-      this.tempBranch = [];
-    }
   }
 
   getMoveTimeline(): MoveTimeline {
@@ -91,25 +84,12 @@ export class GameStore {
       };
     }
 
-    if (this.state.appMode === "review") {
-      return {
-        baseMoves: this.state.sgfMoves,
-        extraMoves: this.tempBranch,
-        currentIndex: this.state.sgfIndex,
-        effectiveLength: this.state.sgfMoves.length,
-      };
-    }
-
     return {
       baseMoves: this.state.sgfMoves,
       extraMoves: [],
       currentIndex: this.state.sgfIndex,
       effectiveLength: this.state.sgfMoves.length,
     };
-  }
-
-  get reviewActive(): boolean {
-    return this.state.appMode === "review" && this.tempBranch.length > 0;
   }
 
   setPerformanceDebugging(enabled: boolean, reset = true): void {
@@ -132,14 +112,6 @@ export class GameStore {
   }
 
   tryMove(pos: Position, color: StoneColor, record = true): boolean {
-    if (this.state.appMode === "review") {
-      const applied = this.performMove(pos, color, false);
-      if (applied) {
-        this.tempBranch.push({ col: pos.col, row: pos.row, color });
-      }
-      return applied;
-    }
-
     if (this.state.appMode === "solve") {
       this.prepareSolveModeForNewMove();
       const applied = this.performMove(pos, color, true);
@@ -152,18 +124,27 @@ export class GameStore {
     return this.performMove(pos, color, record);
   }
 
-  // === Review mode: reset and return to main line ===
-  resetReview(): void {
-    this.tempBranch = [];
-
-    // 本譜だけで盤面を再構築
-    this.rebuildBoardFromMoves(this.state.sgfIndex);
-
-    this.invalidateCache();
-  }
-
   removeStone(pos: Position): boolean {
     if (this.state.appMode === "edit") {
+      if (this.state.sgfLoadedFromExternal && this.state.sgfIndex > 0) {
+        const lastIndex = this.state.sgfIndex - 1;
+        const lastMove = this.state.sgfMoves[lastIndex];
+        if (lastMove && lastMove.col === pos.col && lastMove.row === pos.row) {
+          this.state.sgfMoves.splice(lastIndex, 1);
+          this.state.originalMoveList = this.state.originalMoveList.slice(
+            0,
+            this.state.sgfMoves.length
+          );
+          this.state.sgfIndex = Math.min(
+            lastIndex,
+            this.state.sgfMoves.length
+          );
+          this.rebuildBoardFromMoves(this.state.sgfIndex);
+          this.invalidateCache();
+          return true;
+        }
+      }
+
       const board = this.cloneBoard();
       if (board[pos.row][pos.col] !== 0) {
         board[pos.row][pos.col] = 0;
@@ -188,46 +169,6 @@ export class GameStore {
           return true;
         }
       }
-      return false;
-    }
-
-    if (this.state.appMode === "review") {
-      if (this.tempBranch.length > 0) {
-        const last = this.tempBranch[this.tempBranch.length - 1];
-        if (last.col === pos.col && last.row === pos.row) {
-          this.tempBranch.pop();
-
-          this.rebuildBoardFromMoves(this.state.sgfIndex);
-          for (const mv of this.tempBranch) {
-            const r = this.engine.playMove(
-              this.state,
-              mv,
-              mv.color,
-              this.state.board
-            );
-            if (r) this.state.board = r.board;
-          }
-
-          this.invalidateCache();
-          return true;
-        }
-      }
-
-      if (this.state.sgfIndex > 0 && this.state.sgfIndex === this.state.sgfMoves.length) {
-        const last = this.state.sgfMoves[this.state.sgfIndex - 1];
-        if (last && last.col === pos.col && last.row === pos.row) {
-          this.state.sgfMoves.pop();
-          this.state.originalMoveList = this.state.originalMoveList.slice(
-            0,
-            this.state.sgfMoves.length
-          );
-          this.state.sgfIndex--;
-          this.rebuildBoardFromMoves(this.state.sgfIndex);
-          this.invalidateCache();
-          return true;
-        }
-      }
-
       return false;
     }
 
@@ -278,10 +219,6 @@ export class GameStore {
 
     if (this.handleSolveModeRewind(clamped)) {
       this.invalidateCache();
-    }
-
-    if (this.tempBranch.length > 0) {
-      this.tempBranch = [];
     }
 
     let board = this.resolveBoardThroughCache(clamped);
@@ -555,20 +492,6 @@ export class GameStore {
     }
 
     this.state.board = this.cloneBoard(finalBoard);
-    // === Apply review moves (temporary moves) ===
-    if (this.state.appMode === "review" && this.tempBranch.length > 0) {
-      for (const mv of this.tempBranch) {
-        const result = this.engine.playMove(
-          this.state,
-          mv,
-          mv.color,
-          this.state.board
-        );
-        if (result) {
-          this.state.board = result.board;
-        }
-      }
-    }
 
     if (this.state.numberMode) {
       this.state.turn = Math.max(0, limit - this.state.numberStartIndex);

@@ -183,12 +183,6 @@ export class ToolbarController {
         });
         (_a = this.elements.sliderEl) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (event) => {
             const target = event.target;
-            if (this.store.appMode !== 'review') {
-                return;
-            }
-            if (this.store.reviewActive) {
-                this.store.resetReview();
-            }
             this.store.setMoveIndex(parseInt(target.value, 10));
             this.updateUI();
         });
@@ -227,7 +221,8 @@ export class ToolbarController {
         if (this.answerButton) {
             this.setButtonsEnabled([this.answerButton], mode === 'solve');
         }
-        this.setButtonsEnabled(this.navigationButtons, mode === 'review');
+        const hasMoves = this.store.snapshot.sgfMoves.length > 0;
+        this.setButtonsEnabled(this.navigationButtons, hasMoves);
     }
     setButtonsEnabled(buttons, enabled) {
         buttons.forEach((button) => {

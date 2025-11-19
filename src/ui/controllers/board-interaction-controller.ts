@@ -163,24 +163,11 @@ export class BoardInteractionController {
   private handlePlaceStone(pos: Position): void {
     const color = this.uiState.drag.dragColor ?? this.store.currentColor;
     const mode = this.store.appMode;
-
-    if (mode === 'review') {
-      this.handleReviewBranchMove(pos, color);
-      return;
-    }
-
     if (mode !== 'edit' && mode !== 'solve') {
       return;
     }
 
     if (this.store.tryMove(pos, color)) {
-      this.onBoardUpdated();
-    }
-  }
-
-  private handleReviewBranchMove(pos: Position, color: StoneColor): void {
-    const applied = this.store.tryMove(pos, color, false);
-    if (applied) {
       this.onBoardUpdated();
     }
   }
