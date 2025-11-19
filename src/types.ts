@@ -8,7 +8,11 @@ export interface Position {
 export type StoneColor = 1 | 2; // 1: 黒, 2: 白
 export type CellState = 0 | StoneColor; // 0: 空, 1: 黒, 2: 白
 export type PlayMode = "black" | "white" | "alt";
+export type AppMode = "edit" | "solve" | "review";
 export type AnswerMode = "black" | "white";
+
+export type OriginalMoveList = Move[];
+export type SolutionMoveList = Move[];
 
 export interface Move {
   col: number;
@@ -51,11 +55,14 @@ export interface GameConfig {
 export interface GameState {
   boardSize: number;
   board: CellState[][];
-  mode: PlayMode;
+  playMode: PlayMode;
+  appMode: AppMode;
   eraseMode: boolean;
   history: CellState[][][];
   turn: number;
   sgfMoves: Move[];
+  originalMoveList: OriginalMoveList;
+  solutionMoveList: SolutionMoveList;
   numberMode: boolean;
   startColor: StoneColor;
   sgfIndex: number;
@@ -84,6 +91,9 @@ export interface GameState {
   problemDiagramWhite: Position[];
   gameTree: GameTree | null;
   sgfLoadedFromExternal: boolean;
+  originalSGF: string;
+  problemSGF: string;
+  solutionSGF: string;
 }
 
 // ============ UI要素 ============
@@ -136,6 +146,8 @@ export interface SGFParseResult {
   moves: Move[];
   gameInfo: Partial<GameState>;
   rawSGF?: string;
+  originalSGF?: string;
+  problemSGF?: string;
 }
 
 // ============ イベント関連 ============

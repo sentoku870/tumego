@@ -73,7 +73,7 @@ class RendererViewModelBuilder {
 
     const modeText = state.numberMode
       ? '解答モード'
-      : ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[state.mode];
+      : ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[state.playMode];
 
     const moveInfo = state.sgfMoves.length > 0
       ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}`

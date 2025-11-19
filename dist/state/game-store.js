@@ -265,12 +265,12 @@ export class GameStore {
                 ? this.state.startColor
                 : (3 - this.state.startColor);
         }
-        if (this.state.mode === "alt") {
+        if (this.state.playMode === "alt") {
             return this.state.turn % 2 === 0
                 ? this.state.startColor
                 : (3 - this.state.startColor);
         }
-        return this.state.mode === "black" ? 1 : 2;
+        return this.state.playMode === "black" ? 1 : 2;
     }
     pushHistorySnapshot() {
         this.state.history.push(this.cloneBoard());

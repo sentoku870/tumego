@@ -361,13 +361,13 @@ export class GameStore {
         : ((3 - this.state.startColor) as StoneColor);
     }
 
-    if (this.state.mode === "alt") {
+    if (this.state.playMode === "alt") {
       return this.state.turn % 2 === 0
         ? this.state.startColor
         : ((3 - this.state.startColor) as StoneColor);
     }
 
-    return this.state.mode === "black" ? 1 : 2;
+    return this.state.playMode === "black" ? 1 : 2;
   }
 
   private pushHistorySnapshot(): void {

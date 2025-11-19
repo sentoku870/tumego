@@ -24,6 +24,8 @@ interface InitializationPhaseOutput {
   moves: Move[];
   gameInfo: Partial<GameState>;
   rawSGF?: string;
+  originalSGF?: string;
+  problemSGF?: string;
 }
 
 interface ApplicationPhaseInput extends InitializationPhaseOutput {}
@@ -87,7 +89,10 @@ export class SGFService {
     this.runHistoryAdjustmentPhase(applied);
 
     return {
-      sgfText: validated.rawSGF ?? this.parser.export(this.state),
+      sgfText:
+        validated.originalSGF ??
+        validated.rawSGF ??
+        this.parser.export(this.state),
     };
   }
 
@@ -105,7 +110,7 @@ export class SGFService {
     input: InitializationPhaseInput
   ): InitializationPhaseOutput {
     const { state, result } = input;
-    const { moves, gameInfo, rawSGF } = result;
+    const { moves, gameInfo, rawSGF, originalSGF, problemSGF } = result;
 
     if (
       state.sgfMoves.length > 0 ||
@@ -134,6 +139,8 @@ export class SGFService {
     state.history = [];
     state.turn = 0;
     state.sgfMoves = [];
+    state.originalMoveList = [];
+    state.solutionMoveList = [];
     state.sgfIndex = 0;
     state.numberMode = false;
     state.numberStartIndex = 0;
@@ -147,19 +154,26 @@ export class SGFService {
     state.startColor = 1;
     state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     state.eraseMode = false;
+    state.originalSGF = originalSGF ?? rawSGF ?? "";
+    state.problemSGF =
+      problemSGF ??
+      this.parser.buildProblemSGFFromSetup(state.boardSize, [], []);
+    state.solutionSGF = state.problemSGF;
 
     return {
       state,
       moves,
       gameInfo,
       rawSGF,
+      originalSGF,
+      problemSGF,
     };
   }
 
   private runApplicationPhase(
     input: ApplicationPhaseInput
   ): ApplicationPhaseOutput {
-    const { state, moves, gameInfo } = input;
+    const { state, moves, gameInfo, problemSGF } = input;
 
     if (gameInfo.komi !== undefined) state.komi = gameInfo.komi;
     if (gameInfo.startColor !== undefined)
@@ -213,7 +227,13 @@ export class SGFService {
     }
 
     state.sgfMoves = moves.map((move) => ({ ...move }));
+    state.originalMoveList = moves.map((move) => ({ ...move }));
+    state.solutionMoveList = [];
     state.sgfIndex = 0;
+
+    state.problemSGF =
+      problemSGF ?? this.buildProblemSGFFromState(state);
+    state.solutionSGF = state.problemSGF;
 
     // === 正規化: state の個別フィールドを一次情報として sgfMeta を再構築 ===
     const incomingMeta = (gameInfo as any)?.sgfMeta as
@@ -273,5 +293,30 @@ export class SGFService {
     }
 
     return sequence.length ? sequence.join(" ") : null;
+  }
+
+  appendSolutionMove(move: Move): string {
+    const cloned = { ...move };
+    this.state.solutionMoveList.push(cloned);
+    this.state.solutionSGF = this.parser.appendSolutionMove(
+      this.state.solutionSGF,
+      cloned,
+      this.state.boardSize
+    );
+    return this.state.solutionSGF;
+  }
+
+  private buildProblemSGFFromState(state: GameState): string {
+    const blackSetup = state.problemDiagramSet
+      ? state.problemDiagramBlack
+      : state.handicapPositions;
+    const whiteSetup = state.problemDiagramSet
+      ? state.problemDiagramWhite
+      : [];
+    return this.parser.buildProblemSGFFromSetup(
+      state.boardSize,
+      blackSetup,
+      whiteSetup
+    );
   }
 }

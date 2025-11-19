@@ -225,7 +225,7 @@ export class ToolbarController {
   private setMode(mode: PlayMode, buttonElement: Element): void {
     this.disableEraseMode();
     const state = this.store.snapshot;
-    state.mode = mode;
+    state.playMode = mode;
 
     if (state.numberMode) {
       state.numberMode = false;

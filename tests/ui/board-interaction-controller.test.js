@@ -83,11 +83,14 @@ const createElements = () => {
 const createState = (overrides = {}) => ({
   boardSize: 9,
   board: Array.from({ length: 9 }, () => Array(9).fill(0)),
-  mode: 'black',
+  playMode: 'black',
+  appMode: 'edit',
   eraseMode: false,
   history: [],
   turn: 0,
   sgfMoves: [],
+  originalMoveList: [],
+  solutionMoveList: [],
   numberMode: false,
   startColor: 1,
   sgfIndex: 0,
@@ -101,6 +104,9 @@ const createState = (overrides = {}) => ({
   problemDiagramWhite: [],
   gameTree: null,
   sgfLoadedFromExternal: false,
+  originalSGF: '',
+  problemSGF: '',
+  solutionSGF: '',
   ...overrides
 });
 
@@ -179,7 +185,7 @@ describe('BoardInteractionController pointer handling', () => {
   });
 
   test('sets alternating mode drag color to null', () => {
-    state.mode = 'alt';
+    state.playMode = 'alt';
     const event = createPointerEvent({ button: 0 });
 
     controller.handlePointerDown(event);
@@ -200,7 +206,7 @@ describe('BoardInteractionController pointer handling', () => {
   });
 
   test('ignores pointer move in alternating mode', () => {
-    state.mode = 'alt';
+    state.playMode = 'alt';
     uiState.drag.dragging = true;
 
     controller.handlePointerMove(createPointerEvent());
