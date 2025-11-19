@@ -147,6 +147,7 @@ export class SGFService {
     state.handicapStones = 0;
     state.gameTree = null;
     state.sgfLoadedFromExternal = true;
+    this.store.setAppMode("review");
     state.handicapPositions = [];
     state.problemDiagramSet = false;
     state.problemDiagramBlack = [];

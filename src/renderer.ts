@@ -1,9 +1,11 @@
 // ============ 描画エンジン ============
 import {
+  AppMode,
   BoardRenderModel,
   CoordinateLabel,
   InfoRenderModel,
   MoveNumberRenderInfo,
+  MoveTimeline,
   Position,
   Board,
   GameState,
@@ -67,16 +69,24 @@ class RendererViewModelBuilder {
     };
   }
 
-  buildInfoModel(): InfoRenderModel {
+  buildInfoModel(appMode: AppMode, timeline: MoveTimeline): InfoRenderModel {
     const state = this.store.snapshot;
     const colorText = { 1: '黒', 2: '白' } as const;
 
-    const modeText = state.numberMode
-      ? '解答モード'
-      : ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[state.playMode];
+    const modeText = (() => {
+      if (appMode === 'solve') {
+        return '解答モード';
+      }
+      if (appMode === 'review') {
+        return '検討モード';
+      }
+      return ({ black: '黒配置', white: '白配置', alt: '交互配置' } as const)[
+        state.playMode
+      ];
+    })();
 
-    const moveInfo = state.sgfMoves.length > 0
-      ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}`
+    const moveInfo = timeline.effectiveLength > 0
+      ? `　手数: ${timeline.currentIndex}/${timeline.effectiveLength}`
       : '　手数: 0';
 
     const komiText = `　コミ: ${state.komi}目`;
@@ -98,11 +108,10 @@ class RendererViewModelBuilder {
     };
   }
 
-  buildSliderModel(): SliderRenderModel {
-    const state = this.store.snapshot;
+  buildSliderModel(timeline: MoveTimeline): SliderRenderModel {
     return {
-      max: state.sgfMoves.length,
-      value: state.sgfIndex
+      max: timeline.effectiveLength,
+      value: Math.min(timeline.currentIndex, timeline.effectiveLength)
     };
   }
 
@@ -287,7 +296,11 @@ export class Renderer {
   updateInfo(): void {
     if (!this.elements.infoEl) return;
 
-    const infoModel = this.viewModelBuilder.buildInfoModel();
+    const timeline = this.store.getMoveTimeline();
+    const infoModel = this.viewModelBuilder.buildInfoModel(
+      this.store.appMode,
+      timeline
+    );
     this.elements.infoEl.textContent = infoModel.infoText;
 
     if (this.elements.movesEl) {
@@ -298,7 +311,8 @@ export class Renderer {
 updateSlider(): void {
   if (!this.elements.sliderEl) return;
 
-  const sliderModel = this.viewModelBuilder.buildSliderModel();
+  const timeline = this.store.getMoveTimeline();
+  const sliderModel = this.viewModelBuilder.buildSliderModel(timeline);
   this.elements.sliderEl.max = sliderModel.max.toString();
   this.elements.sliderEl.value = sliderModel.value.toString();
 

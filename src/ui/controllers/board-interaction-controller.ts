@@ -164,16 +164,16 @@ export class BoardInteractionController {
       const color = this.uiState.drag.dragColor ?? this.store.currentColor;
 
       // === SGF を外部から読み込んでいる間は、すべて「検討手」として扱う ===
-      if (this.state.sgfLoadedFromExternal) {
-        this.store.addReviewMove({ col: pos.col, row: pos.row, color });
-        this.onBoardUpdated();
-        return;
-      }
+    if (this.state.appMode === 'review') {
+      this.store.tryMove(pos, color, false);
+      this.onBoardUpdated();
+      return;
+    }
 
-      // 通常モード時のみ、本譜として着手を記録
-      if (this.store.tryMove(pos, color)) {
-        this.onBoardUpdated();
-      }
+    // 通常モード時のみ、本譜として着手を記録
+    if (this.store.tryMove(pos, color)) {
+      this.onBoardUpdated();
+    }
     }
 
 

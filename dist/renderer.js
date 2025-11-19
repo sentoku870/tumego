@@ -45,14 +45,20 @@ class RendererViewModelBuilder {
             showMoveNumbers: state.numberMode
         };
     }
-    buildInfoModel() {
+    buildInfoModel(appMode, timeline) {
         const state = this.store.snapshot;
         const colorText = { 1: '黒', 2: '白' };
-        const modeText = state.numberMode
-            ? '解答モード'
-            : { black: '黒配置', white: '白配置', alt: '交互配置' }[state.playMode];
-        const moveInfo = state.sgfMoves.length > 0
-            ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}`
+        const modeText = (() => {
+            if (appMode === 'solve') {
+                return '解答モード';
+            }
+            if (appMode === 'review') {
+                return '検討モード';
+            }
+            return { black: '黒配置', white: '白配置', alt: '交互配置' }[state.playMode];
+        })();
+        const moveInfo = timeline.effectiveLength > 0
+            ? `　手数: ${timeline.currentIndex}/${timeline.effectiveLength}`
             : '　手数: 0';
         const komiText = `　コミ: ${state.komi}目`;
         let handicapText = '';
@@ -71,11 +77,10 @@ class RendererViewModelBuilder {
             movesText: this.buildMoveSequenceText(state)
         };
     }
-    buildSliderModel() {
-        const state = this.store.snapshot;
+    buildSliderModel(timeline) {
         return {
-            max: state.sgfMoves.length,
-            value: state.sgfIndex
+            max: timeline.effectiveLength,
+            value: Math.min(timeline.currentIndex, timeline.effectiveLength)
         };
     }
     buildStoneModels(board, geometry) {
@@ -228,7 +233,8 @@ export class Renderer {
     updateInfo() {
         if (!this.elements.infoEl)
             return;
-        const infoModel = this.viewModelBuilder.buildInfoModel();
+        const timeline = this.store.getMoveTimeline();
+        const infoModel = this.viewModelBuilder.buildInfoModel(this.store.appMode, timeline);
         this.elements.infoEl.textContent = infoModel.infoText;
         if (this.elements.movesEl) {
             this.elements.movesEl.textContent = infoModel.movesText;
@@ -237,7 +243,8 @@ export class Renderer {
     updateSlider() {
         if (!this.elements.sliderEl)
             return;
-        const sliderModel = this.viewModelBuilder.buildSliderModel();
+        const timeline = this.store.getMoveTimeline();
+        const sliderModel = this.viewModelBuilder.buildSliderModel(timeline);
         this.elements.sliderEl.max = sliderModel.max.toString();
         this.elements.sliderEl.value = sliderModel.value.toString();
     }
