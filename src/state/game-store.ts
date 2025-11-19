@@ -190,6 +190,46 @@ export class GameStore {
     this.invalidateCache();
   }
 
+  applySetupFromPositions(
+    boardSize: number,
+    black: Position[],
+    white: Position[]
+  ): void {
+    this.state.boardSize = boardSize;
+    const board = Array.from({ length: boardSize }, () =>
+      Array<CellState>(boardSize).fill(0)
+    );
+
+    black.forEach((pos) => {
+      if (this.isValidPosition(pos)) {
+        board[pos.row][pos.col] = 1;
+      }
+    });
+
+    white.forEach((pos) => {
+      if (this.isValidPosition(pos)) {
+        board[pos.row][pos.col] = 2;
+      }
+    });
+
+    this.state.board = board;
+    this.state.history = [];
+    this.state.turn = 0;
+    this.state.sgfMoves = [];
+    this.state.originalMoveList = [];
+    this.state.solutionMoveList = [];
+    this.state.sgfIndex = 0;
+    this.state.numberStartIndex = 0;
+    this.state.numberMode = false;
+    this.state.problemDiagramBlack = black.map((pos) => ({ ...pos }));
+    this.state.problemDiagramWhite = white.map((pos) => ({ ...pos }));
+    this.state.problemDiagramSet = black.length > 0 || white.length > 0;
+    this.state.handicapPositions = [];
+    this.state.handicapStones = 0;
+
+    this.invalidateCache();
+  }
+
   undo(): boolean {
     if (this.state.numberMode) {
       this.state.sgfIndex = Math.max(

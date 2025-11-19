@@ -40,6 +40,7 @@ export class UIController {
   private fileMenuController: FileMenuController;
   private appModeButtons: Partial<Record<AppMode, HTMLButtonElement>> = {};
   private modeToggleContainer: HTMLElement | null = null;
+  private sgfTextArea: HTMLTextAreaElement | null = null;
 
   constructor(
     private readonly state: GameState,
@@ -94,12 +95,16 @@ export class UIController {
       this.renderer,
       this.qrManager,
       () => this.updateUI(),
-      (sgfText) => this.syncSgfTextarea(sgfText),
+      () => this.updateSGFPanel(),
       () => this.toolbarController.updateAnswerButtonDisplay()
     );
 
     // デバッグ用：GameStore を globalThis から見えるようにする
     (globalThis as any).store = this.store;
+
+    this.sgfTextArea = document.getElementById(
+      "sgf-text"
+    ) as HTMLTextAreaElement | null;
   }
 
   initialize(): void {
@@ -126,10 +131,9 @@ export class UIController {
 
     const urlResult = this.sgfService.loadFromURL();
     if (urlResult) {
-      const applyResult = this.sgfService.apply(urlResult);
+      this.sgfService.apply(urlResult);
       this.renderer.updateBoardSize();
       this.updateUI();
-      this.syncSgfTextarea(applyResult.sgfText);
       this.toolbarController.updateAnswerButtonDisplay();
       this.renderer.showMessage(
         `URL からSGF読み込み完了 (${urlResult.moves.length}手)`
@@ -143,6 +147,7 @@ export class UIController {
   }
 
   private updateUI(): void {
+    this.syncSGFStateWithMode();
     this.renderer.render();
     this.renderer.updateInfo();
     this.renderer.updateSlider();
@@ -150,6 +155,15 @@ export class UIController {
     this.updateAppModeToggleUI();
 
     this.updateLayoutForMode();
+    this.updateSGFPanel();
+  }
+
+  private syncSGFStateWithMode(): void {
+    if (this.store.appMode === "edit") {
+      this.sgfService.updateProblemSGFFromBoard();
+    } else if (this.store.appMode === "solve") {
+      this.sgfService.buildSolutionSGF();
+    }
   }
 
   private updateLayoutForMode(): void {
@@ -169,12 +183,18 @@ export class UIController {
     }
   }
 
-  private syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById(
-      "sgf-text"
-    ) as HTMLTextAreaElement | null;
-    if (sgfTextarea) {
-      sgfTextarea.value = text;
+  updateSGFPanel(): void {
+    if (!this.sgfTextArea) {
+      return;
+    }
+    const mode = this.store.appMode;
+    const s = this.store.snapshot;
+
+    if (mode === "edit") {
+      this.sgfTextArea.value = s.problemSGF;
+    }
+    if (mode === "solve") {
+      this.sgfTextArea.value = s.solutionSGF;
     }
   }
 
@@ -255,12 +275,42 @@ export class UIController {
         state.answerMode = "black";
         this.toolbarController.updateAnswerButtonDisplay();
       }
-      this.store.setAppMode("edit");
+      this.enterEditMode();
     } else if (mode === "solve") {
-      this.store.setAppMode("solve");
+      this.enterSolveMode();
     }
 
     this.updateUI();
+  }
+
+  private enterEditMode(): void {
+    this.sgfService.applyProblemSGFToBoard();
+    const state = this.store.snapshot;
+    state.solutionMoveList = [];
+    state.originalMoveList = [];
+    state.sgfMoves = [];
+    state.history = [];
+    state.sgfIndex = 0;
+    state.numberStartIndex = 0;
+    state.turn = 0;
+    state.numberMode = false;
+    this.store.setAppMode("edit");
+  }
+
+  private enterSolveMode(): void {
+    this.sgfService.applyProblemSGFToBoard();
+    const state = this.store.snapshot;
+    state.solutionMoveList = [];
+    state.originalMoveList = [];
+    state.sgfMoves = [];
+    state.history = [];
+    state.sgfIndex = 0;
+    state.numberStartIndex = 0;
+    state.turn = 0;
+    state.numberMode = false;
+    state.startColor = state.answerMode === "white" ? 2 : 1;
+    state.solutionSGF = state.problemSGF;
+    this.store.setAppMode("solve");
   }
 
   private updateAppModeToggleUI(): void {

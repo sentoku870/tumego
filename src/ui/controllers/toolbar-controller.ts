@@ -90,8 +90,6 @@ export class ToolbarController {
       this.disableEraseMode();
       this.store.initBoard(state.boardSize);
       this.updateUI();
-      // ★ SGF入力エリアを空にする（追加行）
-      (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
     const undoBtn = document.getElementById('btn-undo');

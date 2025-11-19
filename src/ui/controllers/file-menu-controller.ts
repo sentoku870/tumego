@@ -5,7 +5,7 @@ import { QRManager } from '../../qr-manager.js';
 import { UIUpdater } from './feature-menu-controller.js';
 import { SGFParseResult } from '../../types.js';
 
-export type SgfApplyCallback = (sgfText: string) => void;
+export type SgfApplyCallback = (sgfText?: string) => void;
 export type AnswerButtonUpdater = () => void;
 
 export class FileMenuController {
@@ -100,16 +100,13 @@ export class FileMenuController {
     fileCopyBtn?.addEventListener('click', async () => {
       this.dropdownManager.hide(fileDropdown);
       const sgfData = this.sgfService.export();
-      const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
-      if (sgfTextarea) {
-        sgfTextarea.value = sgfData;
-      }
 
       try {
         await this.sgfService.copyToClipboard(sgfData);
         this.renderer.showMessage('SGF をコピーしました');
       } catch (error) {
-        this.renderer.showMessage('SGF をテキストエリアに表示しました');
+        window.prompt('SGFデータ (手動でコピーしてください)', sgfData);
+        this.renderer.showMessage('クリップボードにコピーできませんでした。表示されたダイアログからコピーしてください');
       }
     });
 

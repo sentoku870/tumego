@@ -42,6 +42,54 @@ export class SGFService {
             sgfText: (_b = (_a = validated.originalSGF) !== null && _a !== void 0 ? _a : validated.rawSGF) !== null && _b !== void 0 ? _b : this.parser.export(this.state),
         };
     }
+    updateProblemSGFFromBoard() {
+        const state = this.state;
+        const { black, white } = this.collectBoardSetup();
+        state.problemDiagramBlack = black.map((pos) => ({ ...pos }));
+        state.problemDiagramWhite = white.map((pos) => ({ ...pos }));
+        state.problemDiagramSet = black.length > 0 || white.length > 0;
+        state.problemSGF = this.parser.buildProblemSGFFromSetup(state.boardSize, black, white);
+        state.solutionSGF = state.problemSGF;
+        return state.problemSGF;
+    }
+    buildSolutionSGF() {
+        var _a;
+        const state = this.state;
+        let base = (_a = state.problemSGF) === null || _a === void 0 ? void 0 : _a.trim();
+        if (!base) {
+            base = this.parser.buildProblemSGFFromSetup(state.boardSize, [], []);
+            state.problemSGF = base;
+        }
+        let normalized = base;
+        if (normalized.endsWith(")")) {
+            normalized = normalized.slice(0, -1);
+        }
+        let sgf = `${normalized}`;
+        for (const move of state.solutionMoveList) {
+            const color = move.color === 1 ? "B" : "W";
+            sgf += `;${color}[${this.encodeMoveCoordinate(move)}]`;
+        }
+        sgf += ")";
+        state.solutionSGF = sgf;
+        return sgf;
+    }
+    applyProblemSGFToBoard() {
+        var _a, _b, _c, _d;
+        const state = this.state;
+        const text = (_a = state.problemSGF) === null || _a === void 0 ? void 0 : _a.trim();
+        if (!text) {
+            this.store.initBoard(state.boardSize);
+            this.updateProblemSGFFromBoard();
+            return;
+        }
+        const parsed = this.parser.parse(text);
+        const boardSize = (_b = parsed.gameInfo.boardSize) !== null && _b !== void 0 ? _b : state.boardSize;
+        const black = (_c = parsed.gameInfo.problemDiagramBlack) !== null && _c !== void 0 ? _c : [];
+        const white = (_d = parsed.gameInfo.problemDiagramWhite) !== null && _d !== void 0 ? _d : [];
+        this.store.applySetupFromPositions(boardSize, black, white);
+        state.problemSGF = this.parser.buildProblemSGFFromSetup(boardSize, black, white);
+        state.solutionSGF = state.problemSGF;
+    }
     validateParseResult(result) {
         const { moves, gameInfo } = result;
         if (!moves || !Array.isArray(moves) || !gameInfo) {
@@ -227,6 +275,28 @@ export class SGFService {
             ? state.problemDiagramWhite
             : [];
         return this.parser.buildProblemSGFFromSetup(state.boardSize, blackSetup, whiteSetup);
+    }
+    collectBoardSetup() {
+        const black = [];
+        const white = [];
+        for (let row = 0; row < this.state.boardSize; row++) {
+            for (let col = 0; col < this.state.boardSize; col++) {
+                const cell = this.state.board[row][col];
+                if (cell === 1) {
+                    black.push({ col, row });
+                }
+                else if (cell === 2) {
+                    white.push({ col, row });
+                }
+            }
+        }
+        return { black, white };
+    }
+    encodeMoveCoordinate(move) {
+        if (move.col < 0 || move.row < 0) {
+            return "";
+        }
+        return `${String.fromCharCode(97 + move.col)}${String.fromCharCode(97 + move.row)}`;
     }
 }
 //# sourceMappingURL=sgf-service.js.map

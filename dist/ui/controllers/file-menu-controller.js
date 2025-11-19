@@ -87,16 +87,13 @@ export class FileMenuController {
         fileCopyBtn === null || fileCopyBtn === void 0 ? void 0 : fileCopyBtn.addEventListener('click', async () => {
             this.dropdownManager.hide(fileDropdown);
             const sgfData = this.sgfService.export();
-            const sgfTextarea = document.getElementById('sgf-text');
-            if (sgfTextarea) {
-                sgfTextarea.value = sgfData;
-            }
             try {
                 await this.sgfService.copyToClipboard(sgfData);
                 this.renderer.showMessage('SGF をコピーしました');
             }
             catch (error) {
-                this.renderer.showMessage('SGF をテキストエリアに表示しました');
+                window.prompt('SGFデータ (手動でコピーしてください)', sgfData);
+                this.renderer.showMessage('クリップボードにコピーできませんでした。表示されたダイアログからコピーしてください');
             }
         });
         fileSaveBtn === null || fileSaveBtn === void 0 ? void 0 : fileSaveBtn.addEventListener('click', async () => {
