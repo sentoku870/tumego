@@ -20,6 +20,13 @@ export interface Move {
   color: StoneColor;
 }
 
+export interface MoveTimeline {
+  readonly baseMoves: Move[];
+  readonly extraMoves: Move[];
+  readonly currentIndex: number;
+  readonly effectiveLength: number;
+}
+
 // ============ SGFノードとゲームツリー ============
 export interface SGFNode {
   id: string;

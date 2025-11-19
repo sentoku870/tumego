@@ -143,12 +143,7 @@ export class UIController {
     if (!wrapper) return;
 
     const state = this.store.snapshot;
-    const reviewMoves = (this.store as any).reviewMoves as
-      | { col: number; row: number }[]
-      | undefined;
-    const hasReview = Array.isArray(reviewMoves) && reviewMoves.length > 0;
-
-    const inReviewMode = state.sgfLoadedFromExternal && hasReview;
+    const inReviewMode = this.store.appMode === "review" && this.store.reviewActive;
 
     if (inReviewMode) {
       wrapper.classList.add("review-mode");

@@ -1,7 +1,10 @@
 import {
+  AppMode,
   Board,
   CellState,
   GameState,
+  Move,
+  MoveTimeline,
   Position,
   StoneColor,
   DEFAULT_CONFIG,
@@ -46,8 +49,7 @@ export class GameStore {
     rebuildBoardFromMoves: this.createRebuildMetrics(),
   };
   // === Review mode fields ===
-  private reviewMoves: { row: number; col: number; color: StoneColor }[] = [];
-  private isReviewMode: boolean = false;
+  private tempBranch: Move[] = [];
 
   constructor(
     private readonly state: GameState,
@@ -63,8 +65,51 @@ export class GameStore {
     return this.history;
   }
 
+  get appMode(): AppMode {
+    return this.state.appMode;
+  }
+
+  setAppMode(mode: AppMode): void {
+    if (this.state.appMode === mode) {
+      return;
+    }
+
+    this.state.appMode = mode;
+
+    if (mode !== "review" && this.tempBranch.length > 0) {
+      this.tempBranch = [];
+    }
+  }
+
+  getMoveTimeline(): MoveTimeline {
+    if (this.state.appMode === "solve") {
+      return {
+        baseMoves: this.state.originalMoveList,
+        extraMoves: this.state.solutionMoveList,
+        currentIndex: this.state.sgfIndex,
+        effectiveLength: this.state.sgfMoves.length,
+      };
+    }
+
+    if (this.state.appMode === "review") {
+      return {
+        baseMoves: this.state.sgfMoves,
+        extraMoves: this.tempBranch,
+        currentIndex: this.state.sgfIndex,
+        effectiveLength: this.state.sgfMoves.length,
+      };
+    }
+
+    return {
+      baseMoves: this.state.sgfMoves,
+      extraMoves: [],
+      currentIndex: this.state.sgfIndex,
+      effectiveLength: this.state.sgfMoves.length,
+    };
+  }
+
   get reviewActive(): boolean {
-    return this.reviewMoves.length > 0;
+    return this.state.appMode === "review" && this.tempBranch.length > 0;
   }
 
   setPerformanceDebugging(enabled: boolean, reset = true): void {
@@ -87,45 +132,29 @@ export class GameStore {
   }
 
   tryMove(pos: Position, color: StoneColor, record = true): boolean {
-    const result = this.engine.playMove(this.state, pos, color);
-    if (!result) {
-      return false;
+    if (this.state.appMode === "review") {
+      const applied = this.performMove(pos, color, false);
+      if (applied) {
+        this.tempBranch.push({ col: pos.col, row: pos.row, color });
+      }
+      return applied;
     }
 
-    this.pushHistorySnapshot();
-    this.state.board = result.board;
-    this.state.turn++;
-
-    if (record) {
-      this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
-      this.state.sgfMoves.push({ col: pos.col, row: pos.row, color });
-      this.state.sgfIndex = this.state.sgfMoves.length;
+    if (this.state.appMode === "solve") {
+      this.prepareSolveModeForNewMove();
+      const applied = this.performMove(pos, color, true);
+      if (applied) {
+        this.state.solutionMoveList.push({ col: pos.col, row: pos.row, color });
+      }
+      return applied;
     }
 
-    this.invalidateCache();
-    return true;
-  }
-  // === Review mode: add temporary move ===
-  addReviewMove(move: { row: number; col: number; color: StoneColor }): void {
-    // 盤面に実際に着手するが、SGF（sgfMoves）は書き換えない
-    const ok = this.tryMove(
-      { row: move.row, col: move.col },
-      move.color,
-      false
-    );
-    if (!ok) {
-      return;
-    }
-
-    this.reviewMoves.push(move);
-    this.isReviewMode = true;
-    // tryMove 内で invalidateCache() 済み
+    return this.performMove(pos, color, record);
   }
 
   // === Review mode: reset and return to main line ===
   resetReview(): void {
-    this.reviewMoves = [];
-    this.isReviewMode = false;
+    this.tempBranch = [];
 
     // 本譜だけで盤面を再構築
     this.rebuildBoardFromMoves(this.state.sgfIndex);
@@ -134,9 +163,7 @@ export class GameStore {
   }
 
   removeStone(pos: Position): boolean {
-    // === 0) 配置モード（numberMode=false & sgfLoadedFromExternal=false）===
-    if (!this.state.numberMode && !this.state.sgfLoadedFromExternal) {
-      // → 完全に自由に削除
+    if (this.state.appMode === "edit") {
       const board = this.cloneBoard();
       if (board[pos.row][pos.col] !== 0) {
         board[pos.row][pos.col] = 0;
@@ -147,13 +174,14 @@ export class GameStore {
       return false;
     }
 
-    // === 1) 解答モード（numberMode=true）===
-    if (this.state.numberMode) {
-      // 常に末尾の手だけ消せる
+    if (this.state.appMode === "solve") {
       if (this.state.sgfIndex > this.state.numberStartIndex) {
         const lastMove = this.state.sgfMoves[this.state.sgfIndex - 1];
         if (lastMove.col === pos.col && lastMove.row === pos.row) {
           this.state.sgfMoves.pop();
+          if (this.state.solutionMoveList.length > 0) {
+            this.state.solutionMoveList.pop();
+          }
           this.state.sgfIndex--;
           this.rebuildBoardFromMoves(this.state.sgfIndex);
           this.invalidateCache();
@@ -163,19 +191,14 @@ export class GameStore {
       return false;
     }
 
-    // === 2) SGF読み込み中の検討モード（sgfLoadedFromExternal=true）===
-    if (this.state.sgfLoadedFromExternal) {
-      // 本譜は原則保護。ただし以下の条件で本譜末尾の手を削除できる:
-      // - 検討モード (reviewMoves) の末尾を削除する場合
-      // - 検討モードでない通常の表示時で、現在の表示位置が本譜の末尾
-      if (this.isReviewMode && this.reviewMoves.length > 0) {
-        const last = this.reviewMoves[this.reviewMoves.length - 1];
+    if (this.state.appMode === "review") {
+      if (this.tempBranch.length > 0) {
+        const last = this.tempBranch[this.tempBranch.length - 1];
         if (last.col === pos.col && last.row === pos.row) {
-          this.reviewMoves.pop();
+          this.tempBranch.pop();
 
-          // 本譜 + 残りの検討手で復元
           this.rebuildBoardFromMoves(this.state.sgfIndex);
-          for (const mv of this.reviewMoves) {
+          for (const mv of this.tempBranch) {
             const r = this.engine.playMove(
               this.state,
               mv,
@@ -190,24 +213,22 @@ export class GameStore {
         }
       }
 
-      // 検討モードでない場合、表示中の手番が本譜の末尾にあるなら末尾の手を切り詰められる
-      if (!this.isReviewMode) {
-        if (
-          this.state.sgfIndex > 0 &&
-          this.state.sgfIndex === this.state.sgfMoves.length
-        ) {
-          const last = this.state.sgfMoves[this.state.sgfIndex - 1];
-          if (last && last.col === pos.col && last.row === pos.row) {
-            this.state.sgfMoves.pop();
-            this.state.sgfIndex--;
-            this.rebuildBoardFromMoves(this.state.sgfIndex);
-            this.invalidateCache();
-            return true;
-          }
+      if (this.state.sgfIndex > 0 && this.state.sgfIndex === this.state.sgfMoves.length) {
+        const last = this.state.sgfMoves[this.state.sgfIndex - 1];
+        if (last && last.col === pos.col && last.row === pos.row) {
+          this.state.sgfMoves.pop();
+          this.state.originalMoveList = this.state.originalMoveList.slice(
+            0,
+            this.state.sgfMoves.length
+          );
+          this.state.sgfIndex--;
+          this.rebuildBoardFromMoves(this.state.sgfIndex);
+          this.invalidateCache();
+          return true;
         }
       }
 
-      return false; // 本譜の途中は消さない
+      return false;
     }
 
     return false;
@@ -252,10 +273,16 @@ export class GameStore {
   }
 
   setMoveIndex(index: number): void {
-    const clamped = Math.max(0, Math.min(index, this.state.sgfMoves.length));
+    const timeline = this.getMoveTimeline();
+    const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
 
-    // ★ここに追加（最も安全で一貫した位置）
-    (this as any).reviewMoves = [];
+    if (this.handleSolveModeRewind(clamped)) {
+      this.invalidateCache();
+    }
+
+    if (this.tempBranch.length > 0) {
+      this.tempBranch = [];
+    }
 
     let board = this.resolveBoardThroughCache(clamped);
 
@@ -272,8 +299,17 @@ export class GameStore {
   }
 
   startNumberMode(color: StoneColor): void {
+    this.startSolveMode(color);
+  }
+
+  startSolveMode(color: StoneColor): void {
+    this.setAppMode("solve");
     this.state.numberMode = true;
     this.state.startColor = color;
+    this.state.originalMoveList = this.state.sgfMoves.map((move) => ({
+      ...move,
+    }));
+    this.state.solutionMoveList = [];
     this.state.numberStartIndex = this.state.sgfMoves.length;
     this.state.sgfIndex = this.state.sgfMoves.length;
     this.state.turn = 0;
@@ -374,6 +410,77 @@ export class GameStore {
     this.state.history.push(this.cloneBoard());
   }
 
+  private performMove(
+    pos: Position,
+    color: StoneColor,
+    recordMove: boolean
+  ): boolean {
+    const result = this.engine.playMove(this.state, pos, color);
+    if (!result) {
+      return false;
+    }
+
+    this.pushHistorySnapshot();
+    this.state.board = result.board;
+    this.state.turn++;
+
+    if (recordMove) {
+      this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
+      this.state.sgfMoves.push({ col: pos.col, row: pos.row, color });
+      this.state.sgfIndex = this.state.sgfMoves.length;
+    }
+
+    this.invalidateCache();
+    return true;
+  }
+
+  private prepareSolveModeForNewMove(): void {
+    if (this.state.appMode !== "solve") {
+      return;
+    }
+
+    const baseIndex = this.state.numberStartIndex;
+    if (this.state.sgfIndex < baseIndex) {
+      this.state.sgfIndex = baseIndex;
+    }
+
+    const desiredSolutions = Math.max(0, this.state.sgfIndex - baseIndex);
+    if (desiredSolutions < this.state.solutionMoveList.length) {
+      this.state.solutionMoveList = this.state.solutionMoveList.slice(
+        0,
+        desiredSolutions
+      );
+    }
+  }
+
+  private handleSolveModeRewind(target: number): boolean {
+    if (this.state.appMode !== "solve") {
+      return false;
+    }
+
+    const baseIndex = this.state.numberStartIndex;
+    if (target <= baseIndex) {
+      if (this.state.solutionMoveList.length === 0) {
+        return false;
+      }
+      this.state.solutionMoveList = [];
+      this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex);
+      return true;
+    }
+
+    const desiredSolutions = target - baseIndex;
+    if (desiredSolutions === this.state.solutionMoveList.length) {
+      return false;
+    }
+
+    this.state.solutionMoveList = this.state.solutionMoveList.slice(
+      0,
+      Math.max(0, desiredSolutions)
+    );
+    this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex + desiredSolutions);
+    return true;
+  }
+
   private cloneBoard(board: Board = this.state.board): Board {
     return board.map((row) => row.slice());
   }
@@ -449,8 +556,8 @@ export class GameStore {
 
     this.state.board = this.cloneBoard(finalBoard);
     // === Apply review moves (temporary moves) ===
-    if (this.isReviewMode && this.reviewMoves.length > 0) {
-      for (const mv of this.reviewMoves) {
+    if (this.state.appMode === "review" && this.tempBranch.length > 0) {
+      for (const mv of this.tempBranch) {
         const result = this.engine.playMove(
           this.state,
           mv,
@@ -518,6 +625,9 @@ export class GameStore {
     this.state.gameTree = null;
     this.state.numberMode = false;
     this.state.sgfLoadedFromExternal = false;
+    this.setAppMode("edit");
+    this.state.originalMoveList = [];
+    this.state.solutionMoveList = [];
   }
 
   private invalidateCache(): void {

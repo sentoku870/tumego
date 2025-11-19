@@ -131,8 +131,8 @@ export class BoardInteractionController {
         var _a;
         const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
         // === SGF を外部から読み込んでいる間は、すべて「検討手」として扱う ===
-        if (this.state.sgfLoadedFromExternal) {
-            this.store.addReviewMove({ col: pos.col, row: pos.row, color });
+        if (this.state.appMode === 'review') {
+            this.store.tryMove(pos, color, false);
             this.onBoardUpdated();
             return;
         }

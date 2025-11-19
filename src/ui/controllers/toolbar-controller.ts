@@ -205,8 +205,6 @@ export class ToolbarController {
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
       this.store.setMoveIndex(parseInt(target.value, 10));
-        // ← これを追加（reviewモード強制解除）
-  (this.store as any).reviewMoves = [];
       this.updateUI();
     });
   }
@@ -231,6 +229,7 @@ export class ToolbarController {
       state.numberMode = false;
       state.turn = state.sgfIndex;
       state.answerMode = 'black';
+      this.store.setAppMode('edit');
       this.updateAnswerButtonDisplay();
     }
 
