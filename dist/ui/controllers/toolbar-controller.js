@@ -196,7 +196,7 @@ export class ToolbarController {
     setMode(mode, buttonElement) {
         this.disableEraseMode();
         const state = this.store.snapshot;
-        state.mode = mode;
+        state.playMode = mode;
         if (state.numberMode) {
             state.numberMode = false;
             state.turn = state.sgfIndex;

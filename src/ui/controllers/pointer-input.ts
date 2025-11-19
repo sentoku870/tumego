@@ -23,7 +23,7 @@ const POINTER_TYPE_TO_DEVICE: Record<string, PointerDevice> = {
 };
 
 export function normalizePointerInput(event: PointerEvent, state: GameState): NormalizedPointerInput {
-  const mode = resolveInteractionMode(state.eraseMode, state.mode);
+  const mode = resolveInteractionMode(state.eraseMode, state.playMode);
   const button = resolvePointerButton(event.button);
   const device = resolvePointerDevice(event.pointerType);
   const isActive = isPointerActive(event);
@@ -33,7 +33,7 @@ export function normalizePointerInput(event: PointerEvent, state: GameState): No
     button,
     device,
     isPointerActive: isActive,
-    colors: resolveColors(state.mode)
+    colors: resolveColors(state.playMode)
   };
 }
 

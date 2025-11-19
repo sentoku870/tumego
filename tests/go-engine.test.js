@@ -4,11 +4,14 @@ import { DEFAULT_CONFIG } from '../dist/types.js';
 const createState = (board) => ({
   boardSize: board.length,
   board: board.map(row => row.slice()),
-  mode: 'alt',
+  playMode: 'alt',
+  appMode: 'edit',
   eraseMode: false,
   history: [],
   turn: 0,
   sgfMoves: [],
+  originalMoveList: [],
+  solutionMoveList: [],
   numberMode: false,
   startColor: 1,
   sgfIndex: 0,
@@ -20,7 +23,11 @@ const createState = (board) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null
+  gameTree: null,
+  sgfLoadedFromExternal: false,
+  originalSGF: '',
+  problemSGF: '',
+  solutionSGF: ''
 });
 
 describe('GoEngine', () => {

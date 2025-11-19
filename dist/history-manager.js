@@ -16,15 +16,31 @@ export class HistoryManager {
                 },
             },
             {
-                key: "mode",
+                key: "playMode",
                 apply: (current, saved) => {
-                    current.mode = saved.mode;
+                    current.playMode = saved.playMode;
                 },
             },
             {
                 key: "sgfMoves",
                 apply: (current, saved) => {
                     current.sgfMoves = saved.sgfMoves.map((move) => ({ ...move }));
+                },
+            },
+            {
+                key: "originalMoveList",
+                apply: (current, saved) => {
+                    current.originalMoveList = saved.originalMoveList.map((move) => ({
+                        ...move,
+                    }));
+                },
+            },
+            {
+                key: "solutionMoveList",
+                apply: (current, saved) => {
+                    current.solutionMoveList = saved.solutionMoveList.map((move) => ({
+                        ...move,
+                    }));
                 },
             },
             {
@@ -78,6 +94,12 @@ export class HistoryManager {
                 },
             },
             {
+                key: "appMode",
+                apply: (current, saved) => {
+                    current.appMode = saved.appMode;
+                },
+            },
+            {
                 key: "problemDiagramSet",
                 apply: (current, saved) => {
                     current.problemDiagramSet = saved.problemDiagramSet;
@@ -97,6 +119,24 @@ export class HistoryManager {
                     current.problemDiagramWhite = saved.problemDiagramWhite.map((pos) => ({
                         ...pos,
                     }));
+                },
+            },
+            {
+                key: "originalSGF",
+                apply: (current, saved) => {
+                    current.originalSGF = saved.originalSGF;
+                },
+            },
+            {
+                key: "problemSGF",
+                apply: (current, saved) => {
+                    current.problemSGF = saved.problemSGF;
+                },
+            },
+            {
+                key: "solutionSGF",
+                apply: (current, saved) => {
+                    current.solutionSGF = saved.solutionSGF;
                 },
             },
             {

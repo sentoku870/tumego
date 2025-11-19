@@ -3,7 +3,7 @@ import { DEFAULT_CONFIG, } from "./types.js";
 export class SGFParser {
     // ============ SGF解析 ============
     parse(sgfText) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const rawText = sgfText.trim();
         console.log("SGF解析開始:", rawText);
         const moves = [];
@@ -84,6 +84,8 @@ export class SGFParser {
         };
         collectSetup("AB", initialBlack);
         collectSetup("AW", initialWhite);
+        const boardSize = (_a = gameInfo.boardSize) !== null && _a !== void 0 ? _a : DEFAULT_CONFIG.DEFAULT_BOARD_SIZE;
+        const problemSGF = this.buildProblemSGFFromSetup(boardSize, initialBlack, initialWhite);
         if (initialBlack.length > 0) {
             if ((gameInfo.handicapStones || 0) > 0) {
                 gameInfo.handicapPositions = initialBlack;
@@ -97,8 +99,8 @@ export class SGFParser {
         if (initialWhite.length > 0) {
             gameInfo.problemDiagramWhite = initialWhite;
         }
-        if ((((_a = gameInfo.problemDiagramBlack) === null || _a === void 0 ? void 0 : _a.length) || 0) > 0 ||
-            (((_b = gameInfo.problemDiagramWhite) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0) {
+        if ((((_b = gameInfo.problemDiagramBlack) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0 ||
+            (((_c = gameInfo.problemDiagramWhite) === null || _c === void 0 ? void 0 : _c.length) || 0) > 0) {
             gameInfo.problemDiagramSet = true;
         }
         // 着手の解析
@@ -123,8 +125,45 @@ export class SGFParser {
         if (playerMatch) {
             gameInfo.startColor = playerMatch[1].toUpperCase() === "B" ? 1 : 2;
         }
-        console.log("解析完了 - 着手数:", moves.length, "置石数:", ((_c = gameInfo.handicapPositions) === null || _c === void 0 ? void 0 : _c.length) || 0);
-        return { moves, gameInfo, rawSGF: rawText };
+        console.log("解析完了 - 着手数:", moves.length, "置石数:", ((_d = gameInfo.handicapPositions) === null || _d === void 0 ? void 0 : _d.length) || 0);
+        return {
+            moves,
+            gameInfo,
+            rawSGF: rawText,
+            originalSGF: rawText,
+            problemSGF,
+        };
+    }
+    buildProblemSGFFromSetup(boardSize, black, white) {
+        const header = `(;GM[1]FF[4]SZ[${boardSize}]`;
+        const blackProp = this.buildSetupProperty("AB", black);
+        const whiteProp = this.buildSetupProperty("AW", white);
+        return `${header}${blackProp}${whiteProp})`;
+    }
+    appendSolutionMove(baseSGF, move, boardSize) {
+        const normalized = (baseSGF || "").trim();
+        const base = normalized ? normalized.replace(/\)\s*$/, "") : this.buildProblemSGFFromSetup(boardSize, [], []);
+        const color = move.color === 1 ? "B" : "W";
+        const coord = this.encodeMoveCoordinate(move);
+        return `${base};${color}[${coord}])`;
+    }
+    buildSetupProperty(property, positions) {
+        if (!positions || positions.length === 0) {
+            return "";
+        }
+        const coords = positions
+            .map((pos) => `[${this.encodeCoordinate(pos.col)}${this.encodeCoordinate(pos.row)}]`)
+            .join("");
+        return `${property}${coords}`;
+    }
+    encodeCoordinate(value) {
+        return String.fromCharCode(97 + Math.max(0, value));
+    }
+    encodeMoveCoordinate(move) {
+        if (move.col < 0 || move.row < 0) {
+            return "";
+        }
+        return `${this.encodeCoordinate(move.col)}${this.encodeCoordinate(move.row)}`;
     }
     // ============ SGF出力 ============
     export(state) {

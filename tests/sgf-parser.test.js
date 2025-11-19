@@ -8,11 +8,14 @@ const createState = (overrides = {}) => {
   return {
     boardSize: size,
     board,
-    mode: 'alt',
+    playMode: 'alt',
+    appMode: 'edit',
     eraseMode: false,
     history: [],
     turn: overrides.turn ?? 0,
     sgfMoves: overrides.sgfMoves ?? [],
+    originalMoveList: overrides.originalMoveList ?? [],
+    solutionMoveList: overrides.solutionMoveList ?? [],
     numberMode: overrides.numberMode ?? false,
     startColor: overrides.startColor ?? 1,
     sgfIndex: overrides.sgfIndex ?? 0,
@@ -24,7 +27,11 @@ const createState = (overrides = {}) => {
     problemDiagramSet: overrides.problemDiagramSet ?? false,
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
-    gameTree: overrides.gameTree ?? null
+    gameTree: overrides.gameTree ?? null,
+    sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? false,
+    originalSGF: overrides.originalSGF ?? '',
+    problemSGF: overrides.problemSGF ?? '',
+    solutionSGF: overrides.solutionSGF ?? ''
   };
 };
 

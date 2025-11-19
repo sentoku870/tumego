@@ -7,11 +7,14 @@ const createBoard = (size) => Array.from({ length: size }, () => Array.from({ le
 const createState = (size = 5) => ({
   boardSize: size,
   board: createBoard(size),
-  mode: 'alt',
+  playMode: 'alt',
+  appMode: 'edit',
   eraseMode: false,
   history: [],
   turn: 0,
   sgfMoves: [],
+  originalMoveList: [],
+  solutionMoveList: [],
   numberMode: false,
   startColor: 1,
   sgfIndex: 0,
@@ -24,7 +27,10 @@ const createState = (size = 5) => ({
   problemDiagramBlack: [],
   problemDiagramWhite: [],
   gameTree: null,
-  sgfLoadedFromExternal: false
+  sgfLoadedFromExternal: false,
+  originalSGF: '',
+  problemSGF: '',
+  solutionSGF: ''
 });
 
 const createHistoryMock = () => ({

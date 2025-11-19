@@ -30,7 +30,7 @@ export class SGFService {
         return this.parser.loadFromURL();
     }
     apply(result) {
-        var _a;
+        var _a, _b;
         const validated = this.validateParseResult(result);
         const initialized = this.runInitializationPhase({
             state: this.state,
@@ -39,7 +39,7 @@ export class SGFService {
         const applied = this.runApplicationPhase(initialized);
         this.runHistoryAdjustmentPhase(applied);
         return {
-            sgfText: (_a = validated.rawSGF) !== null && _a !== void 0 ? _a : this.parser.export(this.state),
+            sgfText: (_b = (_a = validated.originalSGF) !== null && _a !== void 0 ? _a : validated.rawSGF) !== null && _b !== void 0 ? _b : this.parser.export(this.state),
         };
     }
     validateParseResult(result) {
@@ -50,8 +50,9 @@ export class SGFService {
         return result;
     }
     runInitializationPhase(input) {
+        var _a;
         const { state, result } = input;
-        const { moves, gameInfo, rawSGF } = result;
+        const { moves, gameInfo, rawSGF, originalSGF, problemSGF } = result;
         if (state.sgfMoves.length > 0 ||
             state.handicapStones > 0 ||
             state.board.some((row) => row.some((cell) => cell !== 0))) {
@@ -69,6 +70,8 @@ export class SGFService {
         state.history = [];
         state.turn = 0;
         state.sgfMoves = [];
+        state.originalMoveList = [];
+        state.solutionMoveList = [];
         state.sgfIndex = 0;
         state.numberMode = false;
         state.numberStartIndex = 0;
@@ -82,16 +85,22 @@ export class SGFService {
         state.startColor = 1;
         state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         state.eraseMode = false;
+        state.originalSGF = (_a = originalSGF !== null && originalSGF !== void 0 ? originalSGF : rawSGF) !== null && _a !== void 0 ? _a : "";
+        state.problemSGF =
+            problemSGF !== null && problemSGF !== void 0 ? problemSGF : this.parser.buildProblemSGFFromSetup(state.boardSize, [], []);
+        state.solutionSGF = state.problemSGF;
         return {
             state,
             moves,
             gameInfo,
             rawSGF,
+            originalSGF,
+            problemSGF,
         };
     }
     runApplicationPhase(input) {
         var _a, _b, _c, _d;
-        const { state, moves, gameInfo } = input;
+        const { state, moves, gameInfo, problemSGF } = input;
         if (gameInfo.komi !== undefined)
             state.komi = gameInfo.komi;
         if (gameInfo.startColor !== undefined)
@@ -150,7 +159,12 @@ export class SGFService {
                 state.date = gameInfo.date;
         }
         state.sgfMoves = moves.map((move) => ({ ...move }));
+        state.originalMoveList = moves.map((move) => ({ ...move }));
+        state.solutionMoveList = [];
         state.sgfIndex = 0;
+        state.problemSGF =
+            problemSGF !== null && problemSGF !== void 0 ? problemSGF : this.buildProblemSGFFromState(state);
+        state.solutionSGF = state.problemSGF;
         // === 正規化: state の個別フィールドを一次情報として sgfMeta を再構築 ===
         const incomingMeta = gameInfo === null || gameInfo === void 0 ? void 0 : gameInfo.sgfMeta;
         state.sgfMeta = {
@@ -197,6 +211,21 @@ export class SGFService {
             }
         }
         return sequence.length ? sequence.join(" ") : null;
+    }
+    appendSolutionMove(move) {
+        const cloned = { ...move };
+        this.state.solutionMoveList.push(cloned);
+        this.state.solutionSGF = this.parser.appendSolutionMove(this.state.solutionSGF, cloned, this.state.boardSize);
+        return this.state.solutionSGF;
+    }
+    buildProblemSGFFromState(state) {
+        const blackSetup = state.problemDiagramSet
+            ? state.problemDiagramBlack
+            : state.handicapPositions;
+        const whiteSetup = state.problemDiagramSet
+            ? state.problemDiagramWhite
+            : [];
+        return this.parser.buildProblemSGFFromSetup(state.boardSize, blackSetup, whiteSetup);
     }
 }
 //# sourceMappingURL=sgf-service.js.map

@@ -8,11 +8,14 @@ function createInitialState(): GameState {
     boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
     board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () => 
            Array(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE).fill(0)),
-    mode: 'alt',
+    playMode: 'alt',
+    appMode: 'edit',
     eraseMode: false,
     history: [],
     turn: 0,
     sgfMoves: [],
+    originalMoveList: [],
+    solutionMoveList: [],
     numberMode: false,
     startColor: 1,
     sgfIndex: 0,
@@ -25,7 +28,10 @@ function createInitialState(): GameState {
     problemDiagramBlack: [],
     problemDiagramWhite: [],
     gameTree: null,
-    sgfLoadedFromExternal: false
+    sgfLoadedFromExternal: false,
+    originalSGF: '',
+    problemSGF: '',
+    solutionSGF: ''
   };
 }
 

@@ -18,7 +18,8 @@ const createState = (size = 9) => {
   return {
     boardSize: size,
     board,
-    mode: 'white',
+    playMode: 'white',
+    appMode: 'edit',
     eraseMode: false,
     history: [historyBoard],
     turn: 3,
@@ -26,6 +27,8 @@ const createState = (size = 9) => {
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 1, color: 2 }
     ],
+    originalMoveList: [],
+    solutionMoveList: [],
     numberMode: true,
     startColor: 2,
     sgfIndex: 2,
@@ -41,7 +44,10 @@ const createState = (size = 9) => {
     problemDiagramBlack: [{ col: 3, row: 3 }],
     problemDiagramWhite: [{ col: 4, row: 4 }],
     gameTree: null,
-    sgfLoadedFromExternal: true
+    sgfLoadedFromExternal: true,
+    originalSGF: '',
+    problemSGF: '',
+    solutionSGF: ''
   };
 };
 

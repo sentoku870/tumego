@@ -96,6 +96,13 @@ export class SGFParser {
     collectSetup("AB", initialBlack);
     collectSetup("AW", initialWhite);
 
+    const boardSize = gameInfo.boardSize ?? DEFAULT_CONFIG.DEFAULT_BOARD_SIZE;
+    const problemSGF = this.buildProblemSGFFromSetup(
+      boardSize,
+      initialBlack,
+      initialWhite
+    );
+
     if (initialBlack.length > 0) {
       if ((gameInfo.handicapStones || 0) > 0) {
         gameInfo.handicapPositions = initialBlack;
@@ -147,7 +154,57 @@ export class SGFParser {
       "置石数:",
       gameInfo.handicapPositions?.length || 0
     );
-    return { moves, gameInfo, rawSGF: rawText };
+    return {
+      moves,
+      gameInfo,
+      rawSGF: rawText,
+      originalSGF: rawText,
+      problemSGF,
+    };
+  }
+
+  buildProblemSGFFromSetup(
+    boardSize: number,
+    black: Position[],
+    white: Position[]
+  ): string {
+    const header = `(;GM[1]FF[4]SZ[${boardSize}]`;
+    const blackProp = this.buildSetupProperty("AB", black);
+    const whiteProp = this.buildSetupProperty("AW", white);
+    return `${header}${blackProp}${whiteProp})`;
+  }
+
+  appendSolutionMove(
+    baseSGF: string,
+    move: Move,
+    boardSize: number
+  ): string {
+    const normalized = (baseSGF || "").trim();
+    const base = normalized ? normalized.replace(/\)\s*$/, "") : this.buildProblemSGFFromSetup(boardSize, [], []);
+    const color = move.color === 1 ? "B" : "W";
+    const coord = this.encodeMoveCoordinate(move);
+    return `${base};${color}[${coord}])`;
+  }
+
+  private buildSetupProperty(property: "AB" | "AW", positions: Position[]): string {
+    if (!positions || positions.length === 0) {
+      return "";
+    }
+    const coords = positions
+      .map((pos) => `[${this.encodeCoordinate(pos.col)}${this.encodeCoordinate(pos.row)}]`)
+      .join("");
+    return `${property}${coords}`;
+  }
+
+  private encodeCoordinate(value: number): string {
+    return String.fromCharCode(97 + Math.max(0, value));
+  }
+
+  private encodeMoveCoordinate(move: Move): string {
+    if (move.col < 0 || move.row < 0) {
+      return "";
+    }
+    return `${this.encodeCoordinate(move.col)}${this.encodeCoordinate(move.row)}`;
   }
 
   // ============ SGF出力 ============
