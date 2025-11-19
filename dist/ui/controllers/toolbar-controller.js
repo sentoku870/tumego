@@ -5,6 +5,9 @@ export class ToolbarController {
         this.boardCapture = boardCapture;
         this.elements = elements;
         this.updateUI = updateUI;
+        this.playButtons = [];
+        this.answerButton = null;
+        this.navigationButtons = [];
     }
     initialize() {
         this.initSizeButtons();
@@ -101,6 +104,7 @@ export class ToolbarController {
             state.startColor = state.startColor === 1 ? 2 : 1;
             this.setMode('alt', altBtn);
         });
+        this.playButtons = [blackBtn, altBtn, whiteBtn].filter((btn) => Boolean(btn));
     }
     initGameButtons() {
         var _a;
@@ -120,7 +124,9 @@ export class ToolbarController {
                 this.updateUI();
             }
         });
+        this.navigationButtons = [prevBtn, nextBtn].filter((btn) => Boolean(btn));
         const answerBtn = document.getElementById('btn-answer');
+        this.answerButton = answerBtn;
         answerBtn === null || answerBtn === void 0 ? void 0 : answerBtn.addEventListener('click', () => {
             this.disableEraseMode();
             const state = this.store.snapshot;
@@ -177,6 +183,12 @@ export class ToolbarController {
         });
         (_a = this.elements.sliderEl) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (event) => {
             const target = event.target;
+            if (this.store.appMode !== 'review') {
+                return;
+            }
+            if (this.store.reviewActive) {
+                this.store.resetReview();
+            }
             this.store.setMoveIndex(parseInt(target.value, 10));
             this.updateUI();
         });
@@ -208,6 +220,21 @@ export class ToolbarController {
     setActiveButton(element, groupClass) {
         document.querySelectorAll(`.${groupClass}`).forEach(btn => btn.classList.remove('active'));
         element.classList.add('active');
+    }
+    updateModeDependentUI() {
+        const mode = this.store.appMode;
+        this.setButtonsEnabled(this.playButtons, mode === 'edit');
+        if (this.answerButton) {
+            this.setButtonsEnabled([this.answerButton], mode === 'solve');
+        }
+        this.setButtonsEnabled(this.navigationButtons, mode === 'review');
+    }
+    setButtonsEnabled(buttons, enabled) {
+        buttons.forEach((button) => {
+            button.disabled = !enabled;
+            button.classList.toggle('disabled', !enabled);
+            button.setAttribute('aria-disabled', String(!enabled));
+        });
     }
 }
 //# sourceMappingURL=toolbar-controller.js.map

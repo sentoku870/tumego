@@ -130,14 +130,21 @@ export class BoardInteractionController {
     handlePlaceStone(pos) {
         var _a;
         const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
-        // === SGF を外部から読み込んでいる間は、すべて「検討手」として扱う ===
-        if (this.state.appMode === 'review') {
-            this.store.tryMove(pos, color, false);
-            this.onBoardUpdated();
+        const mode = this.store.appMode;
+        if (mode === 'review') {
+            this.handleReviewBranchMove(pos, color);
             return;
         }
-        // 通常モード時のみ、本譜として着手を記録
+        if (mode !== 'edit' && mode !== 'solve') {
+            return;
+        }
         if (this.store.tryMove(pos, color)) {
+            this.onBoardUpdated();
+        }
+    }
+    handleReviewBranchMove(pos, color) {
+        const applied = this.store.tryMove(pos, color, false);
+        if (applied) {
             this.onBoardUpdated();
         }
     }
