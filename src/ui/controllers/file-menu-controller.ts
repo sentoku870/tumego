@@ -4,8 +4,6 @@ import { Renderer } from '../../renderer.js';
 import { QRManager } from '../../qr-manager.js';
 import { UIUpdater } from './feature-menu-controller.js';
 import { SGFParseResult } from '../../types.js';
-
-export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
 
 export class FileMenuController {
@@ -15,7 +13,6 @@ export class FileMenuController {
     private readonly renderer: Renderer,
     private readonly qrManager: QRManager,
     private readonly updateUI: UIUpdater,
-    private readonly onSgfApplied: SgfApplyCallback,
     private readonly updateAnswerButtonDisplay: AnswerButtonUpdater
   ) {}
 
@@ -81,35 +78,18 @@ export class FileMenuController {
         this.applySgf(result);
         this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
       } catch (error) {
-        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
-        if (sgfTextarea?.value.trim()) {
-          try {
-            const parsed = this.sgfService.parse(sgfTextarea.value.trim());
-            this.applySgf(parsed);
-            this.renderer.showMessage('テキストエリアからSGF読み込み完了');
-          } catch (parseError) {
-            console.error('SGF文字列解析失敗', parseError);
-            this.renderer.showMessage('SGF読み込みに失敗しました');
-          }
-        } else {
-          this.renderer.showMessage('クリップボードまたはテキストエリアにSGFがありません');
-        }
+        this.renderer.showMessage('クリップボードからSGFを取得できませんでした');
       }
     });
 
     fileCopyBtn?.addEventListener('click', async () => {
       this.dropdownManager.hide(fileDropdown);
       const sgfData = this.sgfService.export();
-      const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
-      if (sgfTextarea) {
-        sgfTextarea.value = sgfData;
-      }
-
       try {
         await this.sgfService.copyToClipboard(sgfData);
         this.renderer.showMessage('SGF をコピーしました');
       } catch (error) {
-        this.renderer.showMessage('SGF をテキストエリアに表示しました');
+        this.renderer.showMessage('クリップボードにコピーできませんでした');
       }
     });
 
@@ -138,10 +118,9 @@ export class FileMenuController {
   }
 
 private applySgf(result: SGFParseResult): void {
-  const applyResult = this.sgfService.apply(result);
+  this.sgfService.apply(result);
   this.renderer.updateBoardSize();
   this.updateUI();
-  this.onSgfApplied(applyResult.sgfText);
   this.updateAnswerButtonDisplay();
 
   // ===== SGF対局情報のUI表示処理 =====

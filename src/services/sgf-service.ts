@@ -87,6 +87,7 @@ export class SGFService {
     });
     const applied = this.runApplicationPhase(initialized);
     this.runHistoryAdjustmentPhase(applied);
+    this.store.initializeEditTimeline();
 
     return {
       sgfText:

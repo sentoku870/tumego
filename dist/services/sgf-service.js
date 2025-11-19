@@ -38,6 +38,7 @@ export class SGFService {
         });
         const applied = this.runApplicationPhase(initialized);
         this.runHistoryAdjustmentPhase(applied);
+        this.store.initializeEditTimeline();
         return {
             sgfText: (_b = (_a = validated.originalSGF) !== null && _a !== void 0 ? _a : validated.rawSGF) !== null && _b !== void 0 ? _b : this.parser.export(this.state),
         };

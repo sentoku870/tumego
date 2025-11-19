@@ -90,8 +90,6 @@ export class ToolbarController {
       this.disableEraseMode();
       this.store.initBoard(state.boardSize);
       this.updateUI();
-      // ★ SGF入力エリアを空にする（追加行）
-      (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
     const undoBtn = document.getElementById('btn-undo');
@@ -134,18 +132,18 @@ export class ToolbarController {
   private initGameButtons(): void {
     const prevBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     prevBtn?.addEventListener('click', () => {
-      const state = this.store.snapshot;
-      if (state.sgfIndex > 0) {
-        this.store.setMoveIndex(state.sgfIndex - 1);
+      const timeline = this.store.getMoveTimeline();
+      if (timeline.currentIndex > 0) {
+        this.store.setMoveIndex(timeline.currentIndex - 1);
         this.updateUI();
       }
     });
 
     const nextBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     nextBtn?.addEventListener('click', () => {
-      const state = this.store.snapshot;
-      if (state.sgfIndex < state.sgfMoves.length) {
-        this.store.setMoveIndex(state.sgfIndex + 1);
+      const timeline = this.store.getMoveTimeline();
+      if (timeline.currentIndex < timeline.effectiveLength) {
+        this.store.setMoveIndex(timeline.currentIndex + 1);
         this.updateUI();
       }
     });
@@ -261,7 +259,7 @@ export class ToolbarController {
     if (this.answerButton) {
       this.setButtonsEnabled([this.answerButton], mode === 'solve');
     }
-    const hasMoves = this.store.snapshot.sgfMoves.length > 0;
+    const hasMoves = this.store.getMoveTimeline().effectiveLength > 0;
     this.setButtonsEnabled(this.navigationButtons, hasMoves);
   }
 

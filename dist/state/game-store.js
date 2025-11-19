@@ -1,10 +1,12 @@
 import { DEFAULT_CONFIG, } from "../types.js";
+import { SGFParser } from "../sgf-parser.js";
 /**
  * Centralizes all mutations against {@link GameState}. Rendering and UI layers
  * interact through this class to keep domain logic encapsulated.
  */
 export class GameStore {
     constructor(state, engine, history) {
+        var _a, _b;
         this.state = state;
         this.engine = engine;
         this.history = history;
@@ -13,11 +15,17 @@ export class GameStore {
         this.cachedAppliedMoveIndex = null;
         this.cachedBoardTimeline = [];
         this.cachedMoveApplied = [];
+        this.sgfParser = new SGFParser();
+        this.solveBaseBoard = null;
         // === Performance metrics (from main branch) ===
         this.performanceDebug = false;
         this.performanceMetrics = {
             rebuildBoardFromMoves: this.createRebuildMetrics(),
         };
+        (_b = (_a = this.boardHistory).initializeBoardHistory) === null || _b === void 0 ? void 0 : _b.call(_a, this.state.board);
+    }
+    get boardHistory() {
+        return this.history;
     }
     get snapshot() {
         return this.state;
@@ -34,20 +42,66 @@ export class GameStore {
         }
         this.state.appMode = mode;
     }
+    enterSolveMode(startColor) {
+        var _a, _b;
+        if (this.state.appMode === "solve") {
+            return;
+        }
+        this.setAppMode("solve");
+        this.state.startColor = startColor;
+        this.state.answerMode = startColor === 1 ? "black" : "white";
+        this.state.originalMoveList = this.state.sgfMoves.map((move) => ({ ...move }));
+        this.state.solutionMoveList = [];
+        this.state.sgfMoves = [];
+        this.state.sgfIndex = 0;
+        this.state.numberStartIndex = 0;
+        this.state.solutionSGF = this.state.problemSGF;
+        this.state.turn = 0;
+        this.state.history = [];
+        this.state.numberMode = false;
+        const board = this.buildBoardFromProblemSGF();
+        this.solveBaseBoard = this.cloneBoard(board);
+        this.state.boardSize = board.length;
+        this.state.board = this.cloneBoard(board);
+        (_b = (_a = this.boardHistory).initializeBoardHistory) === null || _b === void 0 ? void 0 : _b.call(_a, this.state.board);
+        this.invalidateCache();
+    }
+    enterEditMode() {
+        if (this.state.appMode === "edit") {
+            return;
+        }
+        this.setAppMode("edit");
+        this.state.solutionMoveList = [];
+        this.state.solutionSGF = this.state.problemSGF;
+        this.state.sgfMoves = this.state.originalMoveList.map((move) => ({ ...move }));
+        const board = this.buildBoardFromProblemSGF();
+        this.state.boardSize = board.length;
+        this.state.board = this.cloneBoard(board);
+        this.state.turn = 0;
+        this.state.history = [];
+        this.state.playMode = "black";
+        this.state.answerMode = "black";
+        this.resetEditHistory();
+        this.invalidateCache();
+    }
+    initializeEditTimeline() {
+        this.resetEditHistory();
+    }
     getMoveTimeline() {
+        var _a, _b, _c, _d, _e, _f;
         if (this.state.appMode === "solve") {
             return {
-                baseMoves: this.state.originalMoveList,
+                baseMoves: [],
                 extraMoves: this.state.solutionMoveList,
                 currentIndex: this.state.sgfIndex,
-                effectiveLength: this.state.sgfMoves.length,
+                effectiveLength: this.state.solutionMoveList.length,
             };
         }
         return {
-            baseMoves: this.state.sgfMoves,
+            baseMoves: [],
             extraMoves: [],
-            currentIndex: this.state.sgfIndex,
-            effectiveLength: this.state.sgfMoves.length,
+            currentIndex: (_c = (_b = (_a = this.boardHistory).getBoardHistoryIndex) === null || _b === void 0 ? void 0 : _b.call(_a)) !== null && _c !== void 0 ? _c : this.state.sgfIndex,
+            effectiveLength: (_f = (_e = (_d = this.boardHistory).getBoardHistoryLength) === null || _e === void 0 ? void 0 : _e.call(_d)) !== null && _f !== void 0 ? _f : this.state.sgfMoves.length,
         };
     }
     setPerformanceDebugging(enabled, reset = true) {
@@ -72,6 +126,7 @@ export class GameStore {
             const applied = this.performMove(pos, color, true);
             if (applied) {
                 this.state.solutionMoveList.push({ col: pos.col, row: pos.row, color });
+                this.rebuildSolutionSGF();
             }
             return applied;
         }
@@ -88,6 +143,7 @@ export class GameStore {
                     this.state.sgfIndex = Math.min(lastIndex, this.state.sgfMoves.length);
                     this.rebuildBoardFromMoves(this.state.sgfIndex);
                     this.invalidateCache();
+                    this.resetEditHistory();
                     return true;
                 }
             }
@@ -96,12 +152,13 @@ export class GameStore {
                 board[pos.row][pos.col] = 0;
                 this.state.board = board;
                 this.invalidateCache();
+                this.handleEditBoardMutation();
                 return true;
             }
             return false;
         }
         if (this.state.appMode === "solve") {
-            if (this.state.sgfIndex > this.state.numberStartIndex) {
+            if (this.state.sgfIndex > 0) {
                 const lastMove = this.state.sgfMoves[this.state.sgfIndex - 1];
                 if (lastMove.col === pos.col && lastMove.row === pos.row) {
                     this.state.sgfMoves.pop();
@@ -111,6 +168,7 @@ export class GameStore {
                     this.state.sgfIndex--;
                     this.rebuildBoardFromMoves(this.state.sgfIndex);
                     this.invalidateCache();
+                    this.rebuildSolutionSGF();
                     return true;
                 }
             }
@@ -125,6 +183,8 @@ export class GameStore {
         this.state.boardSize = size;
         this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
         this.resetGameState();
+        this.state.problemSGF = this.sgfParser.buildProblemSGFFromSetup(size, [], []);
+        this.resetEditHistory();
         this.invalidateCache();
     }
     undo() {
@@ -148,6 +208,14 @@ export class GameStore {
         var _a;
         const timeline = this.getMoveTimeline();
         const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
+        if (this.state.appMode === "edit") {
+            if (!this.restoreEditHistory(clamped)) {
+                this.state.sgfIndex = Math.min(clamped, this.state.sgfMoves.length);
+                this.rebuildBoardFromMoves(this.state.sgfIndex);
+                this.resetEditHistory();
+            }
+            return;
+        }
         if (this.handleSolveModeRewind(clamped)) {
             this.invalidateCache();
         }
@@ -206,6 +274,8 @@ export class GameStore {
         this.state.numberStartIndex = 0;
         this.state.history = [];
         this.applyInitialSetup();
+        this.state.problemSGF = this.buildProblemSGFFromBoard();
+        this.resetEditHistory();
         this.invalidateCache();
     }
     restoreProblemDiagram() {
@@ -215,6 +285,7 @@ export class GameStore {
         this.state.sgfIndex = 0;
         this.rebuildBoardFromMoves(0);
         this.invalidateCache();
+        this.resetEditHistory();
         if (this.state.numberMode) {
             this.state.turn = 0;
             this.state.history = [];
@@ -255,6 +326,103 @@ export class GameStore {
     pushHistorySnapshot() {
         this.state.history.push(this.cloneBoard());
     }
+    buildBoardFromProblemSGF() {
+        const problemText = this.state.problemSGF || "";
+        const sizeMatch = problemText.match(/SZ\[(\d+)\]/i);
+        const boardSize = sizeMatch ? parseInt(sizeMatch[1], 10) : this.state.boardSize;
+        const size = Number.isFinite(boardSize) ? boardSize : this.state.boardSize;
+        const board = Array.from({ length: size }, () => Array(size).fill(0));
+        const applySetup = (property, color) => {
+            const pattern = new RegExp(`${property}(?:\\[[a-z]{2}\\])+`, "gi");
+            const matches = problemText.match(pattern);
+            if (!matches) {
+                return;
+            }
+            matches.forEach((match) => {
+                const coords = match.match(/\[([a-z]{2})\]/gi);
+                coords === null || coords === void 0 ? void 0 : coords.forEach((coord) => {
+                    const clean = coord.slice(1, -1).toLowerCase();
+                    if (clean.length !== 2) {
+                        return;
+                    }
+                    const col = clean.charCodeAt(0) - 97;
+                    const row = clean.charCodeAt(1) - 97;
+                    if (col >= 0 && col < size && row >= 0 && row < size) {
+                        board[row][col] = color;
+                    }
+                });
+            });
+        };
+        applySetup("AB", 1);
+        applySetup("AW", 2);
+        return board;
+    }
+    rebuildSolutionSGF() {
+        let base = this.state.problemSGF;
+        if (!base || !base.trim()) {
+            base = this.buildProblemSGFFromBoard();
+        }
+        this.state.solutionSGF = this.state.solutionMoveList.reduce((sgf, move) => this.sgfParser.appendSolutionMove(sgf, move, this.state.boardSize), base);
+    }
+    resetEditHistory() {
+        var _a, _b, _c, _d;
+        (_b = (_a = this.boardHistory).initializeBoardHistory) === null || _b === void 0 ? void 0 : _b.call(_a, this.state.board);
+        const historyIndex = (_d = (_c = this.boardHistory).getBoardHistoryIndex) === null || _d === void 0 ? void 0 : _d.call(_c);
+        if (historyIndex !== undefined) {
+            this.state.sgfIndex = historyIndex;
+        }
+        this.state.originalMoveList = this.state.sgfMoves.map((move) => ({ ...move }));
+        if (!this.state.problemSGF) {
+            this.state.problemSGF = this.buildProblemSGFFromBoard();
+        }
+    }
+    handleEditBoardMutation() {
+        var _a, _b, _c, _d, _e;
+        if (this.state.appMode !== "edit") {
+            return;
+        }
+        const { black, white } = this.collectBoardPositions();
+        this.state.problemDiagramBlack = black.map((pos) => ({ ...pos }));
+        this.state.problemDiagramWhite = white.map((pos) => ({ ...pos }));
+        this.state.problemDiagramSet = true;
+        this.state.handicapPositions = [];
+        this.state.handicapStones = 0;
+        (_b = (_a = this.boardHistory).pushBoardHistory) === null || _b === void 0 ? void 0 : _b.call(_a, this.state.board);
+        this.state.sgfIndex = (_e = (_d = (_c = this.boardHistory).getBoardHistoryIndex) === null || _d === void 0 ? void 0 : _d.call(_c)) !== null && _e !== void 0 ? _e : this.state.sgfIndex;
+        this.state.problemSGF = this.buildProblemSGFFromBoard();
+        this.state.originalMoveList = this.state.sgfMoves.map((move) => ({ ...move }));
+    }
+    collectBoardPositions() {
+        const black = [];
+        const white = [];
+        for (let row = 0; row < this.state.board.length; row++) {
+            for (let col = 0; col < this.state.board[row].length; col++) {
+                if (this.state.board[row][col] === 1) {
+                    black.push({ col, row });
+                }
+                else if (this.state.board[row][col] === 2) {
+                    white.push({ col, row });
+                }
+            }
+        }
+        return { black, white };
+    }
+    buildProblemSGFFromBoard() {
+        const { black, white } = this.collectBoardPositions();
+        return this.sgfParser.buildProblemSGFFromSetup(this.state.boardSize, black, white);
+    }
+    restoreEditHistory(index) {
+        var _a, _b;
+        const board = (_b = (_a = this.boardHistory).restoreBoardHistory) === null || _b === void 0 ? void 0 : _b.call(_a, index);
+        if (!board) {
+            return false;
+        }
+        this.state.board = board;
+        this.state.turn = index;
+        this.state.sgfIndex = index;
+        this.invalidateCache();
+        return true;
+    }
     performMove(pos, color, recordMove) {
         const result = this.engine.playMove(this.state, pos, color);
         if (!result) {
@@ -269,40 +437,32 @@ export class GameStore {
             this.state.sgfIndex = this.state.sgfMoves.length;
         }
         this.invalidateCache();
+        this.handleEditBoardMutation();
         return true;
     }
     prepareSolveModeForNewMove() {
         if (this.state.appMode !== "solve") {
             return;
         }
-        const baseIndex = this.state.numberStartIndex;
-        if (this.state.sgfIndex < baseIndex) {
-            this.state.sgfIndex = baseIndex;
-        }
-        const desiredSolutions = Math.max(0, this.state.sgfIndex - baseIndex);
+        const desiredSolutions = Math.max(0, this.state.sgfIndex);
         if (desiredSolutions < this.state.solutionMoveList.length) {
             this.state.solutionMoveList = this.state.solutionMoveList.slice(0, desiredSolutions);
+            this.state.sgfMoves = this.state.sgfMoves.slice(0, desiredSolutions);
+            this.rebuildSolutionSGF();
         }
     }
     handleSolveModeRewind(target) {
         if (this.state.appMode !== "solve") {
             return false;
         }
-        const baseIndex = this.state.numberStartIndex;
-        if (target <= baseIndex) {
-            if (this.state.solutionMoveList.length === 0) {
-                return false;
-            }
-            this.state.solutionMoveList = [];
-            this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex);
-            return true;
-        }
-        const desiredSolutions = target - baseIndex;
+        const desiredSolutions = Math.max(0, target);
         if (desiredSolutions === this.state.solutionMoveList.length) {
             return false;
         }
         this.state.solutionMoveList = this.state.solutionMoveList.slice(0, Math.max(0, desiredSolutions));
-        this.state.sgfMoves = this.state.sgfMoves.slice(0, baseIndex + desiredSolutions);
+        this.state.sgfMoves = this.state.sgfMoves.slice(0, desiredSolutions);
+        this.state.sgfIndex = desiredSolutions;
+        this.rebuildSolutionSGF();
         return true;
     }
     cloneBoard(board = this.state.board) {

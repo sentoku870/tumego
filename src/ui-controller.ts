@@ -40,6 +40,7 @@ export class UIController {
   private fileMenuController: FileMenuController;
   private appModeButtons: Partial<Record<AppMode, HTMLButtonElement>> = {};
   private modeToggleContainer: HTMLElement | null = null;
+  private lastSgfPanelValue: string | null = null;
 
   constructor(
     private readonly state: GameState,
@@ -94,7 +95,6 @@ export class UIController {
       this.renderer,
       this.qrManager,
       () => this.updateUI(),
-      (sgfText) => this.syncSgfTextarea(sgfText),
       () => this.toolbarController.updateAnswerButtonDisplay()
     );
 
@@ -126,10 +126,9 @@ export class UIController {
 
     const urlResult = this.sgfService.loadFromURL();
     if (urlResult) {
-      const applyResult = this.sgfService.apply(urlResult);
+      this.sgfService.apply(urlResult);
       this.renderer.updateBoardSize();
       this.updateUI();
-      this.syncSgfTextarea(applyResult.sgfText);
       this.toolbarController.updateAnswerButtonDisplay();
       this.renderer.showMessage(
         `URL からSGF読み込み完了 (${urlResult.moves.length}手)`
@@ -150,6 +149,10 @@ export class UIController {
     this.updateAppModeToggleUI();
 
     this.updateLayoutForMode();
+    const state = this.store.snapshot;
+    const sgfText =
+      this.store.appMode === "solve" ? state.solutionSGF : state.problemSGF;
+    this.updateSGFPanel(sgfText);
   }
 
   private updateLayoutForMode(): void {
@@ -169,13 +172,20 @@ export class UIController {
     }
   }
 
-  private syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById(
-      "sgf-text"
-    ) as HTMLTextAreaElement | null;
-    if (sgfTextarea) {
-      sgfTextarea.value = text;
+  private updateSGFPanel(text: string): void {
+    const sgfTextarea = document.getElementById("sgf-text") as
+      | HTMLTextAreaElement
+      | null;
+    if (!sgfTextarea) {
+      return;
     }
+
+    if (this.lastSgfPanelValue === text) {
+      return;
+    }
+
+    sgfTextarea.value = text;
+    this.lastSgfPanelValue = text;
   }
 
   private createKeyBindings(): KeyBindings {
@@ -247,19 +257,20 @@ export class UIController {
       return;
     }
 
-    const state = this.store.snapshot;
     if (mode === "edit") {
-      if (state.numberMode) {
-        state.numberMode = false;
-        state.turn = state.sgfIndex;
-        state.answerMode = "black";
-        this.toolbarController.updateAnswerButtonDisplay();
-      }
-      this.store.setAppMode("edit");
-    } else if (mode === "solve") {
-      this.store.setAppMode("solve");
+      this.store.enterEditMode();
+    } else {
+      const state = this.store.snapshot;
+      const solveColor =
+        state.playMode === "white"
+          ? 2
+          : state.playMode === "black"
+          ? 1
+          : state.startColor;
+      this.store.enterSolveMode(solveColor);
     }
 
+    this.toolbarController.updateAnswerButtonDisplay();
     this.updateUI();
   }
 

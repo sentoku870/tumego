@@ -18,6 +18,8 @@ interface RestoreFieldMapping {
 export class HistoryManager implements OperationHistory {
   private snapshots: HistorySnapshot[] = [];
   private readonly maxSnapshots = 5;
+  private boardTimeline: CellState[][][] = [];
+  private boardTimelineIndex = 0;
   private readonly restoreFieldMappings: RestoreFieldMapping[] = [
     {
       key: "boardSize",
@@ -240,6 +242,45 @@ export class HistoryManager implements OperationHistory {
   // ============ 履歴クリア ============
   clear(): void {
     this.snapshots = [];
+  }
+
+  // ============ 盤面タイムライン管理 ============
+  initializeBoardHistory(board: CellState[][]): void {
+    this.boardTimeline = [this.cloneBoard(board)];
+    this.boardTimelineIndex = 0;
+  }
+
+  pushBoardHistory(board: CellState[][]): void {
+    if (this.boardTimeline.length === 0) {
+      this.initializeBoardHistory(board);
+      return;
+    }
+
+    const snapshot = this.cloneBoard(board);
+    if (this.boardTimelineIndex < this.boardTimeline.length - 1) {
+      this.boardTimeline = this.boardTimeline.slice(0, this.boardTimelineIndex + 1);
+    }
+
+    this.boardTimeline.push(snapshot);
+    this.boardTimelineIndex = this.boardTimeline.length - 1;
+  }
+
+  getBoardHistoryLength(): number {
+    return Math.max(0, this.boardTimeline.length - 1);
+  }
+
+  getBoardHistoryIndex(): number {
+    return this.boardTimelineIndex;
+  }
+
+  restoreBoardHistory(index: number): CellState[][] | null {
+    if (this.boardTimeline.length === 0) {
+      return null;
+    }
+
+    const clamped = Math.max(0, Math.min(index, this.boardTimeline.length - 1));
+    this.boardTimelineIndex = clamped;
+    return this.cloneBoard(this.boardTimeline[clamped]);
   }
 
   // ============ 履歴ダイアログ表示 ============
