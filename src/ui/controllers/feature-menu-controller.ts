@@ -78,11 +78,7 @@ export class FeatureMenuController {
         await this.sgfService.copyToClipboard(spoilerText);
         this.renderer.showMessage('解答手順をコピーしました');
       } catch (error) {
-        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
-        if (sgfTextarea) {
-          sgfTextarea.value = spoilerText;
-        }
-        this.renderer.showMessage('クリップボードにコピーできませんでしたがテキストエリアに表示しました');
+        this.renderer.showMessage('解答手順をコピーできませんでした');
       }
     });
   }

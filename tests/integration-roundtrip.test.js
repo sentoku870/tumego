@@ -33,6 +33,7 @@ const createState = (size = 9) => {
     startColor: 2,
     sgfIndex: 2,
     numberStartIndex: 1,
+    reviewTurn: 1,
     komi: 5.5,
     handicapStones: 2,
     handicapPositions: [

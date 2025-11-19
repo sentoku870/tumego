@@ -40,6 +40,7 @@ export class UIController {
   private fileMenuController: FileMenuController;
   private appModeButtons: Partial<Record<AppMode, HTMLButtonElement>> = {};
   private modeToggleContainer: HTMLElement | null = null;
+  private sgfTextarea: HTMLTextAreaElement | null = null;
 
   constructor(
     private readonly state: GameState,
@@ -94,7 +95,6 @@ export class UIController {
       this.renderer,
       this.qrManager,
       () => this.updateUI(),
-      (sgfText) => this.syncSgfTextarea(sgfText),
       () => this.toolbarController.updateAnswerButtonDisplay()
     );
 
@@ -103,6 +103,7 @@ export class UIController {
   }
 
   initialize(): void {
+    this.sgfTextarea = document.getElementById("sgf-text") as HTMLTextAreaElement | null;
     this.initAppModeToggle();
     this.boardController.initialize();
     this.toolbarController.initialize();
@@ -129,7 +130,6 @@ export class UIController {
       const applyResult = this.sgfService.apply(urlResult);
       this.renderer.updateBoardSize();
       this.updateUI();
-      this.syncSgfTextarea(applyResult.sgfText);
       this.toolbarController.updateAnswerButtonDisplay();
       this.renderer.showMessage(
         `URL からSGF読み込み完了 (${urlResult.moves.length}手)`
@@ -147,9 +147,15 @@ export class UIController {
     this.renderer.updateInfo();
     this.renderer.updateSlider();
     this.toolbarController.updateModeDependentUI();
+    this.toolbarController.updateAnswerButtonDisplay();
     this.updateAppModeToggleUI();
 
+    if (this.store.appMode === "solve") {
+      this.sgfService.buildSolutionSGF();
+    }
+
     this.updateLayoutForMode();
+    this.updateSgfTextarea();
   }
 
   private updateLayoutForMode(): void {
@@ -158,6 +164,7 @@ export class UIController {
     if (!wrapper) return;
 
     const mode = this.store.appMode;
+    const timeline = this.store.getMoveTimeline();
     wrapper.classList.remove("mode-edit", "mode-solve", "mode-review");
     wrapper.classList.add(`mode-${mode}`);
 
@@ -165,19 +172,37 @@ export class UIController {
     wrapper.classList.toggle("review-mode", highlight);
 
     if (slider) {
-      const isReview = mode === "review";
-      slider.disabled = !isReview;
-      slider.classList.toggle("mode-locked", !isReview);
+      const sliderActive =
+        (mode === "review" || mode === "solve") && timeline.effectiveLength > 0;
+      slider.disabled = !sliderActive;
+      slider.classList.toggle("mode-locked", !sliderActive);
     }
   }
 
-  private syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById(
-      "sgf-text"
-    ) as HTMLTextAreaElement | null;
-    if (sgfTextarea) {
-      sgfTextarea.value = text;
+  private updateSgfTextarea(): void {
+    if (!this.sgfTextarea) {
+      this.sgfTextarea = document.getElementById("sgf-text") as HTMLTextAreaElement | null;
     }
+
+    if (!this.sgfTextarea) {
+      return;
+    }
+
+    const text = this.resolveSgfTextForMode();
+    if (this.sgfTextarea.value !== text) {
+      this.sgfTextarea.value = text;
+    }
+  }
+
+  private resolveSgfTextForMode(): string {
+    const state = this.store.snapshot;
+    if (this.store.appMode === "solve") {
+      return state.solutionSGF ?? "";
+    }
+    if (this.store.appMode === "review") {
+      return state.originalSGF ?? "";
+    }
+    return state.problemSGF ?? "";
   }
 
   private createKeyBindings(): KeyBindings {
@@ -250,25 +275,12 @@ export class UIController {
       return;
     }
 
-    const state = this.store.snapshot;
-    const leavingReview = this.store.appMode === "review";
-
-    if (leavingReview && this.store.reviewActive) {
-      this.store.resetReview();
-    }
-
     if (mode === "edit") {
-      if (state.numberMode) {
-        state.numberMode = false;
-        state.turn = state.sgfIndex;
-        state.answerMode = "black";
-        this.toolbarController.updateAnswerButtonDisplay();
-      }
-      this.store.setAppMode("edit");
+      this.store.enterEditMode();
     } else if (mode === "solve") {
-      this.store.setAppMode("solve");
+      this.store.enterSolveMode();
     } else {
-      this.store.setAppMode("review");
+      this.store.enterReviewMode();
     }
 
     this.updateUI();

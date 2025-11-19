@@ -11,6 +11,7 @@ import {
 } from "../types.js";
 import { GoEngine } from "../go-engine.js";
 import { HistoryManager } from "../history-manager.js";
+import { buildProblemSGF } from "../services/sgf-builder.js";
 
 interface RebuildMetrics {
   callCount: number;
@@ -112,6 +113,18 @@ export class GameStore {
     return this.state.appMode === "review" && this.tempBranch.length > 0;
   }
 
+  get reviewTurn(): StoneColor {
+    return this.state.reviewTurn;
+  }
+
+  setReviewTurn(color: StoneColor): void {
+    this.state.reviewTurn = color;
+  }
+
+  private advanceReviewTurn(): void {
+    this.state.reviewTurn = this.state.reviewTurn === 1 ? 2 : 1;
+  }
+
   setPerformanceDebugging(enabled: boolean, reset = true): void {
     this.performanceDebug = enabled;
     if (reset) {
@@ -136,6 +149,7 @@ export class GameStore {
       const applied = this.performMove(pos, color, false);
       if (applied) {
         this.tempBranch.push({ col: pos.col, row: pos.row, color });
+        this.advanceReviewTurn();
       }
       return applied;
     }
@@ -149,7 +163,11 @@ export class GameStore {
       return applied;
     }
 
-    return this.performMove(pos, color, record);
+    const applied = this.performMove(pos, color, false);
+    if (applied) {
+      this.refreshProblemDiagramFromBoard();
+    }
+    return applied;
   }
 
   // === Review mode: reset and return to main line ===
@@ -160,6 +178,7 @@ export class GameStore {
     this.rebuildBoardFromMoves(this.state.sgfIndex);
 
     this.invalidateCache();
+    this.state.reviewTurn = this.state.startColor;
   }
 
   removeStone(pos: Position): boolean {
@@ -169,6 +188,7 @@ export class GameStore {
         board[pos.row][pos.col] = 0;
         this.state.board = board;
         this.invalidateCache();
+        this.refreshProblemDiagramFromBoard();
         return true;
       }
       return false;
@@ -196,6 +216,7 @@ export class GameStore {
         const last = this.tempBranch[this.tempBranch.length - 1];
         if (last.col === pos.col && last.row === pos.row) {
           this.tempBranch.pop();
+          this.state.reviewTurn = last.color;
 
           this.rebuildBoardFromMoves(this.state.sgfIndex);
           for (const mv of this.tempBranch) {
@@ -217,6 +238,7 @@ export class GameStore {
         const last = this.state.sgfMoves[this.state.sgfIndex - 1];
         if (last && last.col === pos.col && last.row === pos.row) {
           this.state.sgfMoves.pop();
+          this.state.reviewTurn = last.color;
           this.state.originalMoveList = this.state.originalMoveList.slice(
             0,
             this.state.sgfMoves.length
@@ -246,6 +268,7 @@ export class GameStore {
       Array<CellState>(size).fill(0)
     );
     this.resetGameState();
+    this.refreshProblemDiagramFromBoard();
     this.invalidateCache();
   }
 
@@ -298,42 +321,8 @@ export class GameStore {
     this.applyCachedBoard(clamped, board);
   }
 
-  startNumberMode(color: StoneColor): void {
-    this.startSolveMode(color);
-  }
-
-  startSolveMode(color: StoneColor): void {
-    this.setAppMode("solve");
-    this.state.numberMode = true;
-    this.state.startColor = color;
-    this.state.originalMoveList = this.state.sgfMoves.map((move) => ({
-      ...move,
-    }));
-    this.state.solutionMoveList = [];
-    this.state.numberStartIndex = this.state.sgfMoves.length;
-    this.state.sgfIndex = this.state.sgfMoves.length;
-    this.state.turn = 0;
-    this.state.history = [];
-    this.invalidateCache();
-  }
-
   setProblemDiagram(): void {
-    const blackPositions: Position[] = [];
-    const whitePositions: Position[] = [];
-
-    for (let row = 0; row < this.state.boardSize; row++) {
-      for (let col = 0; col < this.state.boardSize; col++) {
-        const cell = this.state.board[row][col];
-        if (cell === 1) {
-          blackPositions.push({ col, row });
-        } else if (cell === 2) {
-          whitePositions.push({ col, row });
-        }
-      }
-    }
-
-    this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
-    this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
+    this.refreshProblemDiagramFromBoard();
     this.state.problemDiagramSet = true;
 
     this.state.handicapPositions = [];
@@ -366,6 +355,86 @@ export class GameStore {
     }
   }
 
+  resetBoardToProblemSetup(): void {
+    this.applyInitialSetup();
+    this.state.history = [];
+    this.state.turn = 0;
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+    this.state.numberStartIndex = 0;
+    this.state.numberMode = false;
+    this.invalidateCache();
+  }
+
+  enterEditMode(): void {
+    this.resetBoardToProblemSetup();
+    this.resetSolutionSequence();
+    this.state.playMode = "alt";
+    this.state.reviewTurn = this.state.startColor;
+    this.setAppMode("edit");
+  }
+
+  enterSolveMode(): void {
+    this.resetBoardToProblemSetup();
+    this.resetSolutionSequence();
+    this.state.playMode = "alt";
+    this.state.startColor = this.state.answerMode === "white" ? 2 : 1;
+    this.state.numberMode = true;
+    this.state.reviewTurn = this.state.startColor;
+    this.setAppMode("solve");
+  }
+
+  enterReviewMode(): void {
+    this.resetSolutionSequence();
+    this.tempBranch = [];
+    this.state.numberMode = false;
+    this.state.sgfMoves = this.state.originalMoveList.map((move) => ({
+      ...move,
+    }));
+    this.state.sgfIndex = 0;
+    this.state.turn = 0;
+    this.state.history = [];
+    this.invalidateCache();
+    this.setAppMode("review");
+    this.setMoveIndex(0);
+    this.state.reviewTurn = this.state.startColor;
+  }
+
+  private refreshProblemDiagramFromBoard(): void {
+    const blackPositions: Position[] = [];
+    const whitePositions: Position[] = [];
+
+    for (let row = 0; row < this.state.boardSize; row++) {
+      for (let col = 0; col < this.state.boardSize; col++) {
+        const cell = this.state.board[row][col];
+        if (cell === 1) {
+          blackPositions.push({ col, row });
+        } else if (cell === 2) {
+          whitePositions.push({ col, row });
+        }
+      }
+    }
+
+    this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+    this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
+    this.state.problemDiagramSet =
+      blackPositions.length > 0 || whitePositions.length > 0;
+    this.state.problemSGF = buildProblemSGF(
+      this.state.boardSize,
+      this.state.problemDiagramBlack,
+      this.state.problemDiagramWhite
+    );
+
+    if (this.state.solutionMoveList.length === 0) {
+      this.state.solutionSGF = this.state.problemSGF;
+    }
+  }
+
+  private resetSolutionSequence(): void {
+    this.state.solutionMoveList = [];
+    this.state.solutionSGF = this.state.problemSGF;
+  }
+
   hasProblemDiagram(): boolean {
     return this.state.problemDiagramSet;
   }
@@ -387,10 +456,15 @@ export class GameStore {
     this.placeHandicapStones(context);
     this.updateHandicapMetadata(context);
 
+    this.refreshProblemDiagramFromBoard();
     this.invalidateCache();
   }
 
   get currentColor(): StoneColor {
+    if (this.state.appMode === "review") {
+      return this.state.reviewTurn;
+    }
+
     if (this.state.numberMode) {
       return this.state.turn % 2 === 0
         ? this.state.startColor
@@ -615,6 +689,7 @@ export class GameStore {
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.numberStartIndex = 0;
+    this.state.reviewTurn = 1;
     this.state.eraseMode = false;
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     this.state.handicapStones = 0;
@@ -628,6 +703,13 @@ export class GameStore {
     this.setAppMode("edit");
     this.state.originalMoveList = [];
     this.state.solutionMoveList = [];
+    this.state.originalSGF = "";
+    this.state.problemSGF = buildProblemSGF(
+      this.state.boardSize,
+      [],
+      []
+    );
+    this.state.solutionSGF = this.state.problemSGF;
   }
 
   private invalidateCache(): void {

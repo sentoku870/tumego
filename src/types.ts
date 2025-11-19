@@ -74,6 +74,7 @@ export interface GameState {
   startColor: StoneColor;
   sgfIndex: number;
   numberStartIndex: number;
+  reviewTurn: StoneColor;
   komi: number;
   blackName?: string;
   whiteName?: string;

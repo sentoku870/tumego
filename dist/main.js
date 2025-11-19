@@ -18,6 +18,7 @@ function createInitialState() {
         startColor: 1,
         sgfIndex: 0,
         numberStartIndex: 0,
+        reviewTurn: 1,
         komi: DEFAULT_CONFIG.DEFAULT_KOMI,
         handicapStones: 0,
         handicapPositions: [],

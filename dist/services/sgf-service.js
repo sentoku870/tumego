@@ -1,5 +1,6 @@
 import { DEFAULT_CONFIG, } from "../types.js";
 import { getCircleNumber } from "../renderer.js";
+import { buildProblemSGF, buildSolutionSGF } from "./sgf-builder.js";
 export class SGFService {
     constructor(parser, store) {
         this.parser = parser;
@@ -87,8 +88,7 @@ export class SGFService {
         state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         state.eraseMode = false;
         state.originalSGF = (_a = originalSGF !== null && originalSGF !== void 0 ? originalSGF : rawSGF) !== null && _a !== void 0 ? _a : "";
-        state.problemSGF =
-            problemSGF !== null && problemSGF !== void 0 ? problemSGF : this.parser.buildProblemSGFFromSetup(state.boardSize, [], []);
+        state.problemSGF = problemSGF !== null && problemSGF !== void 0 ? problemSGF : buildProblemSGF(state.boardSize, [], []);
         state.solutionSGF = state.problemSGF;
         return {
             state,
@@ -164,7 +164,7 @@ export class SGFService {
         state.solutionMoveList = [];
         state.sgfIndex = 0;
         state.problemSGF =
-            problemSGF !== null && problemSGF !== void 0 ? problemSGF : this.buildProblemSGFFromState(state);
+            problemSGF !== null && problemSGF !== void 0 ? problemSGF : buildProblemSGF(state.boardSize, state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions, state.problemDiagramSet ? state.problemDiagramWhite : []);
         state.solutionSGF = state.problemSGF;
         // === 正規化: state の個別フィールドを一次情報として sgfMeta を再構築 ===
         const incomingMeta = gameInfo === null || gameInfo === void 0 ? void 0 : gameInfo.sgfMeta;
@@ -213,20 +213,9 @@ export class SGFService {
         }
         return sequence.length ? sequence.join(" ") : null;
     }
-    appendSolutionMove(move) {
-        const cloned = { ...move };
-        this.state.solutionMoveList.push(cloned);
-        this.state.solutionSGF = this.parser.appendSolutionMove(this.state.solutionSGF, cloned, this.state.boardSize);
+    buildSolutionSGF() {
+        this.state.solutionSGF = buildSolutionSGF(this.state.problemSGF, this.state.solutionMoveList, this.state.boardSize);
         return this.state.solutionSGF;
-    }
-    buildProblemSGFFromState(state) {
-        const blackSetup = state.problemDiagramSet
-            ? state.problemDiagramBlack
-            : state.handicapPositions;
-        const whiteSetup = state.problemDiagramSet
-            ? state.problemDiagramWhite
-            : [];
-        return this.parser.buildProblemSGFFromSetup(state.boardSize, blackSetup, whiteSetup);
     }
 }
 //# sourceMappingURL=sgf-service.js.map

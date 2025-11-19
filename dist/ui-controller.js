@@ -21,6 +21,7 @@ export class UIController {
         this.elements = elements;
         this.appModeButtons = {};
         this.modeToggleContainer = null;
+        this.sgfTextarea = null;
         this.engine = new GoEngine();
         this.sgfParser = new SGFParser();
         this.qrManager = new QRManager();
@@ -36,11 +37,12 @@ export class UIController {
         this.boardController = new BoardInteractionController(this.store, this.elements, this.uiState, () => this.updateUI(), () => this.toolbarController.disableEraseMode());
         this.keyboardController = new KeyboardController(this.uiState);
         this.featureMenuController = new FeatureMenuController(this.dropdownManager, this.renderer, this.elements, this.store, this.sgfService, () => this.updateUI());
-        this.fileMenuController = new FileMenuController(this.dropdownManager, this.sgfService, this.renderer, this.qrManager, () => this.updateUI(), (sgfText) => this.syncSgfTextarea(sgfText), () => this.toolbarController.updateAnswerButtonDisplay());
+        this.fileMenuController = new FileMenuController(this.dropdownManager, this.sgfService, this.renderer, this.qrManager, () => this.updateUI(), () => this.toolbarController.updateAnswerButtonDisplay());
         // デバッグ用：GameStore を globalThis から見えるようにする
         globalThis.store = this.store;
     }
     initialize() {
+        this.sgfTextarea = document.getElementById("sgf-text");
         this.initAppModeToggle();
         this.boardController.initialize();
         this.toolbarController.initialize();
@@ -62,7 +64,6 @@ export class UIController {
             const applyResult = this.sgfService.apply(urlResult);
             this.renderer.updateBoardSize();
             this.updateUI();
-            this.syncSgfTextarea(applyResult.sgfText);
             this.toolbarController.updateAnswerButtonDisplay();
             this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
         }
@@ -76,8 +77,13 @@ export class UIController {
         this.renderer.updateInfo();
         this.renderer.updateSlider();
         this.toolbarController.updateModeDependentUI();
+        this.toolbarController.updateAnswerButtonDisplay();
         this.updateAppModeToggleUI();
+        if (this.store.appMode === "solve") {
+            this.sgfService.buildSolutionSGF();
+        }
         this.updateLayoutForMode();
+        this.updateSgfTextarea();
     }
     updateLayoutForMode() {
         const wrapper = this.elements.boardWrapper;
@@ -85,21 +91,39 @@ export class UIController {
         if (!wrapper)
             return;
         const mode = this.store.appMode;
+        const timeline = this.store.getMoveTimeline();
         wrapper.classList.remove("mode-edit", "mode-solve", "mode-review");
         wrapper.classList.add(`mode-${mode}`);
         const highlight = mode === "review" && this.store.reviewActive;
         wrapper.classList.toggle("review-mode", highlight);
         if (slider) {
-            const isReview = mode === "review";
-            slider.disabled = !isReview;
-            slider.classList.toggle("mode-locked", !isReview);
+            const sliderActive = (mode === "review" || mode === "solve") && timeline.effectiveLength > 0;
+            slider.disabled = !sliderActive;
+            slider.classList.toggle("mode-locked", !sliderActive);
         }
     }
-    syncSgfTextarea(text) {
-        const sgfTextarea = document.getElementById("sgf-text");
-        if (sgfTextarea) {
-            sgfTextarea.value = text;
+    updateSgfTextarea() {
+        if (!this.sgfTextarea) {
+            this.sgfTextarea = document.getElementById("sgf-text");
         }
+        if (!this.sgfTextarea) {
+            return;
+        }
+        const text = this.resolveSgfTextForMode();
+        if (this.sgfTextarea.value !== text) {
+            this.sgfTextarea.value = text;
+        }
+    }
+    resolveSgfTextForMode() {
+        var _a, _b, _c;
+        const state = this.store.snapshot;
+        if (this.store.appMode === "solve") {
+            return (_a = state.solutionSGF) !== null && _a !== void 0 ? _a : "";
+        }
+        if (this.store.appMode === "review") {
+            return (_b = state.originalSGF) !== null && _b !== void 0 ? _b : "";
+        }
+        return (_c = state.problemSGF) !== null && _c !== void 0 ? _c : "";
     }
     createKeyBindings() {
         return {
@@ -159,25 +183,14 @@ export class UIController {
         if (this.store.appMode === mode) {
             return;
         }
-        const state = this.store.snapshot;
-        const leavingReview = this.store.appMode === "review";
-        if (leavingReview && this.store.reviewActive) {
-            this.store.resetReview();
-        }
         if (mode === "edit") {
-            if (state.numberMode) {
-                state.numberMode = false;
-                state.turn = state.sgfIndex;
-                state.answerMode = "black";
-                this.toolbarController.updateAnswerButtonDisplay();
-            }
-            this.store.setAppMode("edit");
+            this.store.enterEditMode();
         }
         else if (mode === "solve") {
-            this.store.setAppMode("solve");
+            this.store.enterSolveMode();
         }
         else {
-            this.store.setAppMode("review");
+            this.store.enterReviewMode();
         }
         this.updateUI();
     }

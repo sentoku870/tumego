@@ -90,8 +90,6 @@ export class ToolbarController {
       this.disableEraseMode();
       this.store.initBoard(state.boardSize);
       this.updateUI();
-      // ★ SGF入力エリアを空にする（追加行）
-      (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
     const undoBtn = document.getElementById('btn-undo');
@@ -120,11 +118,7 @@ export class ToolbarController {
     whiteBtn?.addEventListener('click', () => this.setMode('white', whiteBtn!));
 
     const altBtn = document.getElementById('btn-alt') as HTMLButtonElement | null;
-    altBtn?.addEventListener('click', () => {
-      const state = this.store.snapshot;
-      state.startColor = state.startColor === 1 ? 2 : 1;
-      this.setMode('alt', altBtn!);
-    });
+    altBtn?.addEventListener('click', () => this.setMode('alt', altBtn!));
 
     this.playButtons = [blackBtn, altBtn, whiteBtn].filter(
       (btn): btn is HTMLButtonElement => Boolean(btn)
@@ -160,19 +154,9 @@ export class ToolbarController {
       this.disableEraseMode();
       const state = this.store.snapshot;
 
-      if (!state.numberMode) {
-        if (state.sgfMoves.length > 0 || state.board.some(row => row.some(cell => cell !== 0))) {
-          this.store.historyManager.save(`黒先解答開始前（${state.sgfMoves.length}手）`, state);
-        }
-        state.answerMode = 'black';
-        this.store.startNumberMode(1);
-      } else if (state.answerMode === 'black') {
-        state.answerMode = 'white';
-        this.store.startNumberMode(2);
-      } else {
-        state.answerMode = 'black';
-        this.store.startNumberMode(1);
-      }
+      state.answerMode = state.answerMode === 'white' ? 'black' : 'white';
+      state.startColor = state.answerMode === 'white' ? 2 : 1;
+      this.store.enterSolveMode();
 
       this.updateAnswerButtonDisplay();
       this.updateUI();
@@ -217,11 +201,12 @@ export class ToolbarController {
 
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
-      if (this.store.appMode !== 'review') {
+      const mode = this.store.appMode;
+      if (mode !== 'review' && mode !== 'solve') {
         return;
       }
 
-      if (this.store.reviewActive) {
+      if (mode === 'review' && this.store.reviewActive) {
         this.store.resetReview();
       }
 
@@ -242,17 +227,24 @@ export class ToolbarController {
   }
 
   private setMode(mode: PlayMode, buttonElement: Element): void {
+    const currentMode = this.store.appMode;
+
+    if (currentMode === 'review') {
+      if (mode === 'black' || mode === 'white') {
+        this.store.setReviewTurn(mode === 'black' ? 1 : 2);
+        this.setActiveButton(buttonElement, 'play-btn');
+        this.updateUI();
+      }
+      return;
+    }
+
+    if (currentMode !== 'edit') {
+      return;
+    }
+
     this.disableEraseMode();
     const state = this.store.snapshot;
     state.playMode = mode;
-
-    if (state.numberMode) {
-      state.numberMode = false;
-      state.turn = state.sgfIndex;
-      state.answerMode = 'black';
-      this.store.setAppMode('edit');
-      this.updateAnswerButtonDisplay();
-    }
 
     this.setActiveButton(buttonElement, 'play-btn');
     this.updateUI();
@@ -265,11 +257,22 @@ export class ToolbarController {
 
   updateModeDependentUI(): void {
     const mode = this.store.appMode;
-    this.setButtonsEnabled(this.playButtons, mode === 'edit');
+    const timeline = this.store.getMoveTimeline();
+    const altButton = this.playButtons.find((btn) => btn.id === 'btn-alt');
+    const colorButtons = this.playButtons.filter((btn) => btn.id !== 'btn-alt');
+
+    this.setButtonsEnabled(colorButtons, mode === 'edit' || mode === 'review');
+    if (altButton) {
+      this.setButtonsEnabled([altButton], mode === 'edit');
+    }
+
     if (this.answerButton) {
       this.setButtonsEnabled([this.answerButton], mode === 'solve');
     }
-    this.setButtonsEnabled(this.navigationButtons, mode === 'review');
+
+    const navEnabled =
+      (mode === 'solve' || mode === 'review') && timeline.effectiveLength > 0;
+    this.setButtonsEnabled(this.navigationButtons, navEnabled);
   }
 
   private setButtonsEnabled(buttons: HTMLButtonElement[], enabled: boolean): void {

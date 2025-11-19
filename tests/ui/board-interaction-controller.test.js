@@ -95,6 +95,7 @@ const createState = (overrides = {}) => ({
   startColor: 1,
   sgfIndex: 0,
   numberStartIndex: 0,
+  reviewTurn: 1,
   komi: 6.5,
   handicapStones: 0,
   handicapPositions: [],

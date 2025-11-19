@@ -1,5 +1,6 @@
 // ============ SGF処理エンジン ============
 import { DEFAULT_CONFIG, } from "./types.js";
+import { buildProblemSGF } from "./services/sgf-builder.js";
 export class SGFParser {
     // ============ SGF解析 ============
     parse(sgfText) {
@@ -85,7 +86,7 @@ export class SGFParser {
         collectSetup("AB", initialBlack);
         collectSetup("AW", initialWhite);
         const boardSize = (_a = gameInfo.boardSize) !== null && _a !== void 0 ? _a : DEFAULT_CONFIG.DEFAULT_BOARD_SIZE;
-        const problemSGF = this.buildProblemSGFFromSetup(boardSize, initialBlack, initialWhite);
+        const problemSGF = buildProblemSGF(boardSize, initialBlack, initialWhite);
         if (initialBlack.length > 0) {
             if ((gameInfo.handicapStones || 0) > 0) {
                 gameInfo.handicapPositions = initialBlack;
@@ -134,36 +135,8 @@ export class SGFParser {
             problemSGF,
         };
     }
-    buildProblemSGFFromSetup(boardSize, black, white) {
-        const header = `(;GM[1]FF[4]SZ[${boardSize}]`;
-        const blackProp = this.buildSetupProperty("AB", black);
-        const whiteProp = this.buildSetupProperty("AW", white);
-        return `${header}${blackProp}${whiteProp})`;
-    }
-    appendSolutionMove(baseSGF, move, boardSize) {
-        const normalized = (baseSGF || "").trim();
-        const base = normalized ? normalized.replace(/\)\s*$/, "") : this.buildProblemSGFFromSetup(boardSize, [], []);
-        const color = move.color === 1 ? "B" : "W";
-        const coord = this.encodeMoveCoordinate(move);
-        return `${base};${color}[${coord}])`;
-    }
-    buildSetupProperty(property, positions) {
-        if (!positions || positions.length === 0) {
-            return "";
-        }
-        const coords = positions
-            .map((pos) => `[${this.encodeCoordinate(pos.col)}${this.encodeCoordinate(pos.row)}]`)
-            .join("");
-        return `${property}${coords}`;
-    }
     encodeCoordinate(value) {
         return String.fromCharCode(97 + Math.max(0, value));
-    }
-    encodeMoveCoordinate(move) {
-        if (move.col < 0 || move.row < 0) {
-            return "";
-        }
-        return `${this.encodeCoordinate(move.col)}${this.encodeCoordinate(move.row)}`;
     }
     // ============ SGF出力 ============
     export(state) {

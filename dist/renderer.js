@@ -48,14 +48,27 @@ class RendererViewModelBuilder {
     buildInfoModel(appMode, timeline) {
         const state = this.store.snapshot;
         const colorText = { 1: '黒', 2: '白' };
-        const modeText = (() => {
+        const modeLabel = (() => {
             if (appMode === 'solve') {
-                return '解答モード';
+                return '解答';
             }
             if (appMode === 'review') {
-                return '検討モード';
+                return '検討';
             }
-            return { black: '黒配置', white: '白配置', alt: '交互配置' }[state.playMode];
+            return '編集';
+        })();
+        const detailText = (() => {
+            if (appMode === 'edit') {
+                return `配置:${{
+                    black: '黒配置',
+                    white: '白配置',
+                    alt: '交互配置'
+                }[state.playMode]}`;
+            }
+            if (appMode === 'solve') {
+                return `先手:${state.answerMode === 'white' ? '白先' : '黒先'}`;
+            }
+            return `分岐:${colorText[this.store.reviewTurn]}`;
         })();
         const moveInfo = timeline.effectiveLength > 0
             ? `　手数: ${timeline.currentIndex}/${timeline.effectiveLength}`
@@ -71,7 +84,7 @@ class RendererViewModelBuilder {
         else {
             handicapText = '　互先';
         }
-        const infoText = `${state.boardSize}路 ${moveInfo.trim()} モード:${modeText} 手番:${colorText[this.store.currentColor]}`;
+        const infoText = `${state.boardSize}路 ${moveInfo.trim()} モード:${modeLabel}${detailText ? `（${detailText}）` : ''} 手番:${colorText[this.store.currentColor]}${komiText}${handicapText}`;
         return {
             infoText,
             movesText: this.buildMoveSequenceText(state)

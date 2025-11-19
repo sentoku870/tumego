@@ -1,11 +1,10 @@
 export class FileMenuController {
-    constructor(dropdownManager, sgfService, renderer, qrManager, updateUI, onSgfApplied, updateAnswerButtonDisplay) {
+    constructor(dropdownManager, sgfService, renderer, qrManager, updateUI, updateAnswerButtonDisplay) {
         this.dropdownManager = dropdownManager;
         this.sgfService = sgfService;
         this.renderer = renderer;
         this.qrManager = qrManager;
         this.updateUI = updateUI;
-        this.onSgfApplied = onSgfApplied;
         this.updateAnswerButtonDisplay = updateAnswerButtonDisplay;
     }
     initialize() {
@@ -87,16 +86,12 @@ export class FileMenuController {
         fileCopyBtn === null || fileCopyBtn === void 0 ? void 0 : fileCopyBtn.addEventListener('click', async () => {
             this.dropdownManager.hide(fileDropdown);
             const sgfData = this.sgfService.export();
-            const sgfTextarea = document.getElementById('sgf-text');
-            if (sgfTextarea) {
-                sgfTextarea.value = sgfData;
-            }
             try {
                 await this.sgfService.copyToClipboard(sgfData);
                 this.renderer.showMessage('SGF をコピーしました');
             }
             catch (error) {
-                this.renderer.showMessage('SGF をテキストエリアに表示しました');
+                this.renderer.showMessage('クリップボードにコピーできませんでした');
             }
         });
         fileSaveBtn === null || fileSaveBtn === void 0 ? void 0 : fileSaveBtn.addEventListener('click', async () => {
@@ -122,10 +117,9 @@ export class FileMenuController {
     }
     applySgf(result) {
         var _a, _b, _c, _d, _e, _f;
-        const applyResult = this.sgfService.apply(result);
+        this.sgfService.apply(result);
         this.renderer.updateBoardSize();
         this.updateUI();
-        this.onSgfApplied(applyResult.sgfText);
         this.updateAnswerButtonDisplay();
         // ===== SGF対局情報のUI表示処理 =====
         const info = result.gameInfo;

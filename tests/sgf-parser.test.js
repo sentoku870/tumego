@@ -20,6 +20,7 @@ const createState = (overrides = {}) => {
     startColor: overrides.startColor ?? 1,
     sgfIndex: overrides.sgfIndex ?? 0,
     numberStartIndex: overrides.numberStartIndex ?? 0,
+    reviewTurn: overrides.reviewTurn ?? 1,
     komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
     handicapStones: overrides.handicapStones ?? 0,
     handicapPositions: overrides.handicapPositions ?? [],

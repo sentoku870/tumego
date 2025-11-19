@@ -19,6 +19,7 @@ const createState = (size = 5) => ({
   startColor: 1,
   sgfIndex: 0,
   numberStartIndex: 0,
+  reviewTurn: 1,
   komi: DEFAULT_CONFIG.DEFAULT_KOMI,
   handicapStones: 0,
   handicapPositions: [],
@@ -57,7 +58,8 @@ describe('GameStore', () => {
     expect(success).toBe(true);
     expect(state.board[1][1]).toBe(1);
     expect(state.turn).toBe(1);
-    expect(state.sgfMoves).toEqual([{ col: 1, row: 1, color: 1 }]);
+    expect(state.problemDiagramBlack).toEqual([{ col: 1, row: 1 }]);
+    expect(state.problemSGF).toContain('AB[bb]');
     expect(state.history.length).toBe(1);
   });
 
@@ -67,8 +69,8 @@ describe('GameStore', () => {
 
     expect(removed).toBe(true);
     expect(state.board[1][1]).toBe(0);
-    expect(state.sgfMoves).toEqual([{ col: 1, row: 1, color: 1 }]);
-    expect(state.sgfIndex).toBe(1);
+    expect(state.problemDiagramBlack).toHaveLength(0);
+    expect(state.problemSGF.includes('AB[bb]')).toBe(false);
   });
 
   test('free edit removal keeps later stones intact', () => {
@@ -84,8 +86,7 @@ describe('GameStore', () => {
     expect(state.board[0][1]).toBe(2);
     expect(state.board[0][2]).toBe(0);
     expect(state.board[0][3]).toBe(2);
-    expect(state.sgfMoves).toHaveLength(4);
-    expect(state.sgfIndex).toBe(4);
+    expect(state.problemDiagramBlack).toEqual([{ col: 0, row: 0 }]);
   });
 
   test('truncates SGF moves when editing a loaded record', () => {
@@ -172,5 +173,64 @@ describe('GameStore', () => {
     expect(state.startColor).toBe(2);
     expect(state.board[2][2]).toBe(1);
     expect(state.board[6][6]).toBe(1);
+  });
+
+  test('enters solve mode with a clean solution timeline (PR69)', () => {
+    store.tryMove({ col: 0, row: 0 }, 1);
+    store.tryMove({ col: 1, row: 1 }, 2);
+
+    state.playMode = 'white';
+    state.answerMode = 'white';
+
+    store.enterSolveMode();
+
+    expect(state.appMode).toBe('solve');
+    expect(state.playMode).toBe('alt');
+    expect(state.numberMode).toBe(true);
+    expect(state.startColor).toBe(2);
+    expect(state.solutionMoveList).toHaveLength(0);
+    expect(state.sgfMoves).toHaveLength(0);
+    expect(state.board[0][0]).toBe(1);
+    expect(state.board[1][1]).toBe(2);
+
+    const nextColor = store.currentColor;
+    const success = store.tryMove({ col: 2, row: 2 }, nextColor);
+
+    expect(success).toBe(true);
+    expect(state.solutionMoveList).toEqual([
+      { col: 2, row: 2, color: nextColor }
+    ]);
+    expect(state.sgfMoves).toEqual([
+      { col: 2, row: 2, color: nextColor }
+    ]);
+  });
+
+  test('review mode keeps branches separate and slider clears them (PR69)', () => {
+    state.originalMoveList = [
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 }
+    ];
+    store.enterReviewMode();
+
+    expect(state.appMode).toBe('review');
+    expect(store.reviewActive).toBe(false);
+
+    const firstColor = store.reviewTurn;
+    expect(store.tryMove({ col: 2, row: 0 }, firstColor)).toBe(true);
+    expect(store.reviewActive).toBe(true);
+    expect(store.reviewTurn).toBe(firstColor === 1 ? 2 : 1);
+
+    const secondColor = store.reviewTurn;
+    expect(store.tryMove({ col: 3, row: 0 }, secondColor)).toBe(true);
+    expect(store.reviewActive).toBe(true);
+
+    store.setMoveIndex(1);
+
+    expect(store.reviewActive).toBe(false);
+    expect(state.sgfIndex).toBe(1);
+    expect(state.sgfMoves).toEqual([
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 }
+    ]);
   });
 });

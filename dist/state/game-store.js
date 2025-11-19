@@ -1,4 +1,5 @@
 import { DEFAULT_CONFIG, } from "../types.js";
+import { buildProblemSGF } from "../services/sgf-builder.js";
 /**
  * Centralizes all mutations against {@link GameState}. Rendering and UI layers
  * interact through this class to keep domain logic encapsulated.
@@ -66,6 +67,15 @@ export class GameStore {
     get reviewActive() {
         return this.state.appMode === "review" && this.tempBranch.length > 0;
     }
+    get reviewTurn() {
+        return this.state.reviewTurn;
+    }
+    setReviewTurn(color) {
+        this.state.reviewTurn = color;
+    }
+    advanceReviewTurn() {
+        this.state.reviewTurn = this.state.reviewTurn === 1 ? 2 : 1;
+    }
     setPerformanceDebugging(enabled, reset = true) {
         this.performanceDebug = enabled;
         if (reset) {
@@ -87,6 +97,7 @@ export class GameStore {
             const applied = this.performMove(pos, color, false);
             if (applied) {
                 this.tempBranch.push({ col: pos.col, row: pos.row, color });
+                this.advanceReviewTurn();
             }
             return applied;
         }
@@ -98,7 +109,11 @@ export class GameStore {
             }
             return applied;
         }
-        return this.performMove(pos, color, record);
+        const applied = this.performMove(pos, color, false);
+        if (applied) {
+            this.refreshProblemDiagramFromBoard();
+        }
+        return applied;
     }
     // === Review mode: reset and return to main line ===
     resetReview() {
@@ -106,6 +121,7 @@ export class GameStore {
         // 本譜だけで盤面を再構築
         this.rebuildBoardFromMoves(this.state.sgfIndex);
         this.invalidateCache();
+        this.state.reviewTurn = this.state.startColor;
     }
     removeStone(pos) {
         if (this.state.appMode === "edit") {
@@ -114,6 +130,7 @@ export class GameStore {
                 board[pos.row][pos.col] = 0;
                 this.state.board = board;
                 this.invalidateCache();
+                this.refreshProblemDiagramFromBoard();
                 return true;
             }
             return false;
@@ -139,6 +156,7 @@ export class GameStore {
                 const last = this.tempBranch[this.tempBranch.length - 1];
                 if (last.col === pos.col && last.row === pos.row) {
                     this.tempBranch.pop();
+                    this.state.reviewTurn = last.color;
                     this.rebuildBoardFromMoves(this.state.sgfIndex);
                     for (const mv of this.tempBranch) {
                         const r = this.engine.playMove(this.state, mv, mv.color, this.state.board);
@@ -153,6 +171,7 @@ export class GameStore {
                 const last = this.state.sgfMoves[this.state.sgfIndex - 1];
                 if (last && last.col === pos.col && last.row === pos.row) {
                     this.state.sgfMoves.pop();
+                    this.state.reviewTurn = last.color;
                     this.state.originalMoveList = this.state.originalMoveList.slice(0, this.state.sgfMoves.length);
                     this.state.sgfIndex--;
                     this.rebuildBoardFromMoves(this.state.sgfIndex);
@@ -171,6 +190,7 @@ export class GameStore {
         this.state.boardSize = size;
         this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
         this.resetGameState();
+        this.refreshProblemDiagramFromBoard();
         this.invalidateCache();
     }
     undo() {
@@ -210,39 +230,8 @@ export class GameStore {
         }
         this.applyCachedBoard(clamped, board);
     }
-    startNumberMode(color) {
-        this.startSolveMode(color);
-    }
-    startSolveMode(color) {
-        this.setAppMode("solve");
-        this.state.numberMode = true;
-        this.state.startColor = color;
-        this.state.originalMoveList = this.state.sgfMoves.map((move) => ({
-            ...move,
-        }));
-        this.state.solutionMoveList = [];
-        this.state.numberStartIndex = this.state.sgfMoves.length;
-        this.state.sgfIndex = this.state.sgfMoves.length;
-        this.state.turn = 0;
-        this.state.history = [];
-        this.invalidateCache();
-    }
     setProblemDiagram() {
-        const blackPositions = [];
-        const whitePositions = [];
-        for (let row = 0; row < this.state.boardSize; row++) {
-            for (let col = 0; col < this.state.boardSize; col++) {
-                const cell = this.state.board[row][col];
-                if (cell === 1) {
-                    blackPositions.push({ col, row });
-                }
-                else if (cell === 2) {
-                    whitePositions.push({ col, row });
-                }
-            }
-        }
-        this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
-        this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
+        this.refreshProblemDiagramFromBoard();
         this.state.problemDiagramSet = true;
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
@@ -269,6 +258,74 @@ export class GameStore {
             this.state.history = [];
         }
     }
+    resetBoardToProblemSetup() {
+        this.applyInitialSetup();
+        this.state.history = [];
+        this.state.turn = 0;
+        this.state.sgfMoves = [];
+        this.state.sgfIndex = 0;
+        this.state.numberStartIndex = 0;
+        this.state.numberMode = false;
+        this.invalidateCache();
+    }
+    enterEditMode() {
+        this.resetBoardToProblemSetup();
+        this.resetSolutionSequence();
+        this.state.playMode = "alt";
+        this.state.reviewTurn = this.state.startColor;
+        this.setAppMode("edit");
+    }
+    enterSolveMode() {
+        this.resetBoardToProblemSetup();
+        this.resetSolutionSequence();
+        this.state.playMode = "alt";
+        this.state.startColor = this.state.answerMode === "white" ? 2 : 1;
+        this.state.numberMode = true;
+        this.state.reviewTurn = this.state.startColor;
+        this.setAppMode("solve");
+    }
+    enterReviewMode() {
+        this.resetSolutionSequence();
+        this.tempBranch = [];
+        this.state.numberMode = false;
+        this.state.sgfMoves = this.state.originalMoveList.map((move) => ({
+            ...move,
+        }));
+        this.state.sgfIndex = 0;
+        this.state.turn = 0;
+        this.state.history = [];
+        this.invalidateCache();
+        this.setAppMode("review");
+        this.setMoveIndex(0);
+        this.state.reviewTurn = this.state.startColor;
+    }
+    refreshProblemDiagramFromBoard() {
+        const blackPositions = [];
+        const whitePositions = [];
+        for (let row = 0; row < this.state.boardSize; row++) {
+            for (let col = 0; col < this.state.boardSize; col++) {
+                const cell = this.state.board[row][col];
+                if (cell === 1) {
+                    blackPositions.push({ col, row });
+                }
+                else if (cell === 2) {
+                    whitePositions.push({ col, row });
+                }
+            }
+        }
+        this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+        this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
+        this.state.problemDiagramSet =
+            blackPositions.length > 0 || whitePositions.length > 0;
+        this.state.problemSGF = buildProblemSGF(this.state.boardSize, this.state.problemDiagramBlack, this.state.problemDiagramWhite);
+        if (this.state.solutionMoveList.length === 0) {
+            this.state.solutionSGF = this.state.problemSGF;
+        }
+    }
+    resetSolutionSequence() {
+        this.state.solutionMoveList = [];
+        this.state.solutionSGF = this.state.problemSGF;
+    }
     hasProblemDiagram() {
         return this.state.problemDiagramSet;
     }
@@ -286,9 +343,13 @@ export class GameStore {
         this.resetBoardForHandicap(context);
         this.placeHandicapStones(context);
         this.updateHandicapMetadata(context);
+        this.refreshProblemDiagramFromBoard();
         this.invalidateCache();
     }
     get currentColor() {
+        if (this.state.appMode === "review") {
+            return this.state.reviewTurn;
+        }
         if (this.state.numberMode) {
             return this.state.turn % 2 === 0
                 ? this.state.startColor
@@ -459,6 +520,7 @@ export class GameStore {
         this.state.sgfMoves = [];
         this.state.sgfIndex = 0;
         this.state.numberStartIndex = 0;
+        this.state.reviewTurn = 1;
         this.state.eraseMode = false;
         this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         this.state.handicapStones = 0;
@@ -472,6 +534,9 @@ export class GameStore {
         this.setAppMode("edit");
         this.state.originalMoveList = [];
         this.state.solutionMoveList = [];
+        this.state.originalSGF = "";
+        this.state.problemSGF = buildProblemSGF(this.state.boardSize, [], []);
+        this.state.solutionSGF = this.state.problemSGF;
     }
     invalidateCache() {
         this.cachedBoardState = null;

@@ -9,6 +9,7 @@ import {
 } from "../types.js";
 import { SGFParser } from "../sgf-parser.js";
 import { getCircleNumber } from "../renderer.js";
+import { buildProblemSGF, buildSolutionSGF } from "./sgf-builder.js";
 
 export interface ApplyResult {
   sgfText: string;
@@ -156,9 +157,7 @@ export class SGFService {
     state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     state.eraseMode = false;
     state.originalSGF = originalSGF ?? rawSGF ?? "";
-    state.problemSGF =
-      problemSGF ??
-      this.parser.buildProblemSGFFromSetup(state.boardSize, [], []);
+    state.problemSGF = problemSGF ?? buildProblemSGF(state.boardSize, [], []);
     state.solutionSGF = state.problemSGF;
 
     return {
@@ -233,7 +232,12 @@ export class SGFService {
     state.sgfIndex = 0;
 
     state.problemSGF =
-      problemSGF ?? this.buildProblemSGFFromState(state);
+      problemSGF ??
+      buildProblemSGF(
+        state.boardSize,
+        state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions,
+        state.problemDiagramSet ? state.problemDiagramWhite : []
+      );
     state.solutionSGF = state.problemSGF;
 
     // === 正規化: state の個別フィールドを一次情報として sgfMeta を再構築 ===
@@ -296,28 +300,12 @@ export class SGFService {
     return sequence.length ? sequence.join(" ") : null;
   }
 
-  appendSolutionMove(move: Move): string {
-    const cloned = { ...move };
-    this.state.solutionMoveList.push(cloned);
-    this.state.solutionSGF = this.parser.appendSolutionMove(
-      this.state.solutionSGF,
-      cloned,
+  buildSolutionSGF(): string {
+    this.state.solutionSGF = buildSolutionSGF(
+      this.state.problemSGF,
+      this.state.solutionMoveList,
       this.state.boardSize
     );
     return this.state.solutionSGF;
-  }
-
-  private buildProblemSGFFromState(state: GameState): string {
-    const blackSetup = state.problemDiagramSet
-      ? state.problemDiagramBlack
-      : state.handicapPositions;
-    const whiteSetup = state.problemDiagramSet
-      ? state.problemDiagramWhite
-      : [];
-    return this.parser.buildProblemSGFFromSetup(
-      state.boardSize,
-      blackSetup,
-      whiteSetup
-    );
   }
 }

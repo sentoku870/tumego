@@ -56,6 +56,12 @@ export class HistoryManager {
                 },
             },
             {
+                key: "reviewTurn",
+                apply: (current, saved) => {
+                    current.reviewTurn = saved.reviewTurn;
+                },
+            },
+            {
                 key: "handicapStones",
                 apply: (current, saved) => {
                     current.handicapStones = saved.handicapStones;
