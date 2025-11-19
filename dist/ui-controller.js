@@ -1,5 +1,5 @@
 // ============ UI制御エンジン ============
-import { DEFAULT_CONFIG } from "./types.js";
+import { DEFAULT_CONFIG, } from "./types.js";
 import { GoEngine } from "./go-engine.js";
 import { Renderer } from "./renderer.js";
 import { SGFParser } from "./sgf-parser.js";
@@ -19,6 +19,8 @@ export class UIController {
     constructor(state, elements) {
         this.state = state;
         this.elements = elements;
+        this.appModeButtons = {};
+        this.modeToggleContainer = null;
         this.engine = new GoEngine();
         this.sgfParser = new SGFParser();
         this.qrManager = new QRManager();
@@ -39,6 +41,7 @@ export class UIController {
         globalThis.store = this.store;
     }
     initialize() {
+        this.initAppModeToggle();
         this.boardController.initialize();
         this.toolbarController.initialize();
         this.featureMenuController.initialize();
@@ -72,17 +75,24 @@ export class UIController {
         this.renderer.render();
         this.renderer.updateInfo();
         this.renderer.updateSlider();
-        // === 検討モード中は盤枠に色を付ける ===
+        this.toolbarController.updateModeDependentUI();
+        this.updateAppModeToggleUI();
+        this.updateLayoutForMode();
+    }
+    updateLayoutForMode() {
         const wrapper = this.elements.boardWrapper;
+        const slider = this.elements.sliderEl;
         if (!wrapper)
             return;
-        const state = this.store.snapshot;
-        const inReviewMode = this.store.appMode === "review" && this.store.reviewActive;
-        if (inReviewMode) {
-            wrapper.classList.add("review-mode");
-        }
-        else {
-            wrapper.classList.remove("review-mode");
+        const mode = this.store.appMode;
+        wrapper.classList.remove("mode-edit", "mode-solve", "mode-review");
+        wrapper.classList.add(`mode-${mode}`);
+        const highlight = mode === "review" && this.store.reviewActive;
+        wrapper.classList.toggle("review-mode", highlight);
+        if (slider) {
+            const isReview = mode === "review";
+            slider.disabled = !isReview;
+            slider.classList.toggle("mode-locked", !isReview);
         }
     }
     syncSgfTextarea(text) {
@@ -114,6 +124,73 @@ export class UIController {
         };
         window.addEventListener("orientationchange", handleResize);
         window.addEventListener("resize", handleResize);
+    }
+    initAppModeToggle() {
+        if (this.modeToggleContainer) {
+            return;
+        }
+        const controls = document.getElementById("controls");
+        if (!controls) {
+            return;
+        }
+        const container = document.createElement("div");
+        container.classList.add("app-mode-toggle");
+        container.style.gridColumn = "1 / -1";
+        const modes = [
+            { mode: "edit", label: "✏️ 編集" },
+            { mode: "solve", label: "🧠 解答" },
+            { mode: "review", label: "🔍 検討" },
+        ];
+        modes.forEach(({ mode, label }) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.classList.add("ctrl-btn", "mode-btn");
+            button.dataset.mode = mode;
+            button.textContent = label;
+            button.addEventListener("click", () => this.handleAppModeToggle(mode));
+            container.appendChild(button);
+            this.appModeButtons[mode] = button;
+        });
+        controls.prepend(container);
+        this.modeToggleContainer = container;
+        this.updateAppModeToggleUI();
+    }
+    handleAppModeToggle(mode) {
+        if (this.store.appMode === mode) {
+            return;
+        }
+        const state = this.store.snapshot;
+        const leavingReview = this.store.appMode === "review";
+        if (leavingReview && this.store.reviewActive) {
+            this.store.resetReview();
+        }
+        if (mode === "edit") {
+            if (state.numberMode) {
+                state.numberMode = false;
+                state.turn = state.sgfIndex;
+                state.answerMode = "black";
+                this.toolbarController.updateAnswerButtonDisplay();
+            }
+            this.store.setAppMode("edit");
+        }
+        else if (mode === "solve") {
+            this.store.setAppMode("solve");
+        }
+        else {
+            this.store.setAppMode("review");
+        }
+        this.updateUI();
+    }
+    updateAppModeToggleUI() {
+        const currentMode = this.store.appMode;
+        Object.entries(this.appModeButtons).forEach(([mode, button]) => {
+            if (!button) {
+                return;
+            }
+            const isActive = mode === currentMode;
+            button.classList.toggle("active", isActive);
+            button.setAttribute("aria-pressed", String(isActive));
+        });
     }
 }
 //# sourceMappingURL=ui-controller.js.map

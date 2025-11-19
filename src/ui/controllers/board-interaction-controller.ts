@@ -1,4 +1,4 @@
-import { UIElements, Position, DEFAULT_CONFIG } from '../../types.js';
+import { UIElements, Position, DEFAULT_CONFIG, StoneColor } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
 import { UIInteractionState } from '../state/ui-interaction-state.js';
 import { BoardInputStateMachine, PointerDownDecision, PointerMoveDecision } from './board-input-state-machine.js';
@@ -160,21 +160,30 @@ export class BoardInteractionController {
     }
   }
 
-    private handlePlaceStone(pos: Position): void {
-      const color = this.uiState.drag.dragColor ?? this.store.currentColor;
+  private handlePlaceStone(pos: Position): void {
+    const color = this.uiState.drag.dragColor ?? this.store.currentColor;
+    const mode = this.store.appMode;
 
-      // === SGF を外部から読み込んでいる間は、すべて「検討手」として扱う ===
-    if (this.state.appMode === 'review') {
-      this.store.tryMove(pos, color, false);
-      this.onBoardUpdated();
+    if (mode === 'review') {
+      this.handleReviewBranchMove(pos, color);
       return;
     }
 
-    // 通常モード時のみ、本譜として着手を記録
+    if (mode !== 'edit' && mode !== 'solve') {
+      return;
+    }
+
     if (this.store.tryMove(pos, color)) {
       this.onBoardUpdated();
     }
+  }
+
+  private handleReviewBranchMove(pos: Position, color: StoneColor): void {
+    const applied = this.store.tryMove(pos, color, false);
+    if (applied) {
+      this.onBoardUpdated();
     }
+  }
 
 
 private handleErase(pos: Position): boolean {

@@ -5,6 +5,10 @@ import { UIElements, PlayMode } from '../../types.js';
 import { UIUpdater } from './feature-menu-controller.js';
 
 export class ToolbarController {
+  private playButtons: HTMLButtonElement[] = [];
+  private answerButton: HTMLButtonElement | null = null;
+  private navigationButtons: HTMLButtonElement[] = [];
+
   constructor(
     private readonly store: GameStore,
     private readonly renderer: Renderer,
@@ -86,8 +90,8 @@ export class ToolbarController {
       this.disableEraseMode();
       this.store.initBoard(state.boardSize);
       this.updateUI();
-          // ★ SGF入力エリアを空にする（追加行）
-    (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
+      // ★ SGF入力エリアを空にする（追加行）
+      (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
     const undoBtn = document.getElementById('btn-undo');
@@ -109,22 +113,26 @@ export class ToolbarController {
       }
     });
 
-    const blackBtn = document.getElementById('btn-black');
+    const blackBtn = document.getElementById('btn-black') as HTMLButtonElement | null;
     blackBtn?.addEventListener('click', () => this.setMode('black', blackBtn!));
 
-    const whiteBtn = document.getElementById('btn-white');
+    const whiteBtn = document.getElementById('btn-white') as HTMLButtonElement | null;
     whiteBtn?.addEventListener('click', () => this.setMode('white', whiteBtn!));
 
-    const altBtn = document.getElementById('btn-alt');
+    const altBtn = document.getElementById('btn-alt') as HTMLButtonElement | null;
     altBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
       state.startColor = state.startColor === 1 ? 2 : 1;
       this.setMode('alt', altBtn!);
     });
+
+    this.playButtons = [blackBtn, altBtn, whiteBtn].filter(
+      (btn): btn is HTMLButtonElement => Boolean(btn)
+    );
   }
 
   private initGameButtons(): void {
-    const prevBtn = document.getElementById('btn-prev-move');
+    const prevBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     prevBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
       if (state.sgfIndex > 0) {
@@ -133,7 +141,7 @@ export class ToolbarController {
       }
     });
 
-    const nextBtn = document.getElementById('btn-next-move');
+    const nextBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     nextBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
       if (state.sgfIndex < state.sgfMoves.length) {
@@ -142,7 +150,12 @@ export class ToolbarController {
       }
     });
 
-    const answerBtn = document.getElementById('btn-answer');
+    this.navigationButtons = [prevBtn, nextBtn].filter(
+      (btn): btn is HTMLButtonElement => Boolean(btn)
+    );
+
+    const answerBtn = document.getElementById('btn-answer') as HTMLButtonElement | null;
+    this.answerButton = answerBtn;
     answerBtn?.addEventListener('click', () => {
       this.disableEraseMode();
       const state = this.store.snapshot;
@@ -204,6 +217,14 @@ export class ToolbarController {
 
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
+      if (this.store.appMode !== 'review') {
+        return;
+      }
+
+      if (this.store.reviewActive) {
+        this.store.resetReview();
+      }
+
       this.store.setMoveIndex(parseInt(target.value, 10));
       this.updateUI();
     });
@@ -240,5 +261,22 @@ export class ToolbarController {
   private setActiveButton(element: Element, groupClass: string): void {
     document.querySelectorAll(`.${groupClass}`).forEach(btn => btn.classList.remove('active'));
     element.classList.add('active');
+  }
+
+  updateModeDependentUI(): void {
+    const mode = this.store.appMode;
+    this.setButtonsEnabled(this.playButtons, mode === 'edit');
+    if (this.answerButton) {
+      this.setButtonsEnabled([this.answerButton], mode === 'solve');
+    }
+    this.setButtonsEnabled(this.navigationButtons, mode === 'review');
+  }
+
+  private setButtonsEnabled(buttons: HTMLButtonElement[], enabled: boolean): void {
+    buttons.forEach((button) => {
+      button.disabled = !enabled;
+      button.classList.toggle('disabled', !enabled);
+      button.setAttribute('aria-disabled', String(!enabled));
+    });
   }
 }
