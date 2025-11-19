@@ -131,20 +131,10 @@ export class BoardInteractionController {
         var _a;
         const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
         const mode = this.store.appMode;
-        if (mode === 'review') {
-            this.handleReviewBranchMove(pos, color);
-            return;
-        }
         if (mode !== 'edit' && mode !== 'solve') {
             return;
         }
         if (this.store.tryMove(pos, color)) {
-            this.onBoardUpdated();
-        }
-    }
-    handleReviewBranchMove(pos, color) {
-        const applied = this.store.tryMove(pos, color, false);
-        if (applied) {
             this.onBoardUpdated();
         }
     }
