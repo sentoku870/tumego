@@ -52,7 +52,9 @@ export class GameStore {
     private readonly state: GameState,
     private readonly engine: GoEngine,
     private readonly history: HistoryManager
-  ) {}
+  ) {
+    this.resetEditHistoryTimeline(); // PR72
+  }
 
   get snapshot(): GameState {
     return this.state;
@@ -141,6 +143,7 @@ export class GameStore {
           );
           this.rebuildBoardFromMoves(this.state.sgfIndex);
           this.invalidateCache();
+          this.recordEditHistorySnapshot(); // PR72
           return true;
         }
       }
@@ -150,6 +153,7 @@ export class GameStore {
         board[pos.row][pos.col] = 0;
         this.state.board = board;
         this.invalidateCache();
+        this.recordEditHistorySnapshot(); // PR72
         return true;
       }
       return false;
@@ -188,6 +192,7 @@ export class GameStore {
     );
     this.resetGameState();
     this.invalidateCache();
+    this.resetEditHistoryTimeline(); // PR72
   }
 
   undo(): boolean {
@@ -214,6 +219,11 @@ export class GameStore {
   }
 
   setMoveIndex(index: number): void {
+    if (this.state.appMode === "edit" && this.restoreEditHistory(index)) {
+      this.invalidateCache();
+      return;
+    }
+
     const timeline = this.getMoveTimeline();
     const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
 
@@ -233,6 +243,10 @@ export class GameStore {
     }
 
     this.applyCachedBoard(clamped, board);
+
+    if (this.state.appMode === "edit") {
+      this.resetEditHistoryTimeline(); // PR72
+    }
   }
 
   startNumberMode(color: StoneColor): void {
@@ -286,6 +300,7 @@ export class GameStore {
 
     this.applyInitialSetup();
     this.invalidateCache();
+    this.resetEditHistoryTimeline(); // PR72
   }
 
   restoreProblemDiagram(): void {
@@ -301,6 +316,8 @@ export class GameStore {
       this.state.turn = 0;
       this.state.history = [];
     }
+
+    this.resetEditHistoryTimeline(); // PR72
   }
 
   hasProblemDiagram(): boolean {
@@ -368,7 +385,33 @@ export class GameStore {
     }
 
     this.invalidateCache();
+    if (this.state.appMode === "edit") {
+      this.recordEditHistorySnapshot(); // PR72
+    }
     return true;
+  }
+
+  private resetEditHistoryTimeline(): void {
+    if (typeof (this.history as any).initializeEditTimeline === "function") {
+      this.history.initializeEditTimeline(this.state); // PR72
+    }
+  }
+
+  private recordEditHistorySnapshot(): void {
+    if (typeof (this.history as any).recordEditState === "function") {
+      this.history.recordEditState(this.state); // PR72
+    }
+  }
+
+  private restoreEditHistory(index: number): boolean {
+    if (
+      typeof (this.history as any).restoreEditState === "function" &&
+      typeof (this.history as any).hasEditHistory === "function" &&
+      this.history.hasEditHistory()
+    ) {
+      return this.history.restoreEditState(index, this.state); // PR72
+    }
+    return false;
   }
 
   private prepareSolveModeForNewMove(): void {

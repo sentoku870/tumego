@@ -150,6 +150,7 @@ export class UIController {
     this.updateAppModeToggleUI();
 
     this.updateLayoutForMode();
+    this.updateEditSlider(); // PR72
   }
 
   private updateLayoutForMode(): void {
@@ -162,11 +163,41 @@ export class UIController {
     wrapper.classList.add(`mode-${mode}`);
 
     if (slider) {
-      const timeline = this.store.getMoveTimeline();
-      const hasMoves = timeline.effectiveLength > 0;
-      slider.disabled = !hasMoves;
-      slider.classList.toggle("mode-locked", !hasMoves);
+      if (mode === "edit" && this.historyManager.hasEditHistory()) {
+        const hasHistory = this.historyManager.getEditTimelineLength() > 1;
+        slider.disabled = !hasHistory;
+        slider.classList.toggle("mode-locked", !hasHistory);
+      } else {
+        const timeline = this.store.getMoveTimeline();
+        const hasMoves = timeline.effectiveLength > 0;
+        slider.disabled = !hasMoves;
+        slider.classList.toggle("mode-locked", !hasMoves);
+      }
     }
+  }
+
+  private updateEditSlider(): void {
+    if (this.store.appMode !== "edit") {
+      return;
+    }
+
+    if (!this.historyManager.hasEditHistory()) {
+      return;
+    }
+
+    const slider = this.elements.sliderEl;
+    if (!slider) {
+      return;
+    }
+
+    const length = this.historyManager.getEditTimelineLength();
+    const maxIndex = Math.max(0, length - 1);
+    slider.max = maxIndex.toString();
+    const currentIndex = Math.min(
+      this.historyManager.getEditTimelineIndex(),
+      maxIndex
+    );
+    slider.value = currentIndex.toString();
   }
 
   private syncSgfTextarea(text: string): void {

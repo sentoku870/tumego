@@ -18,6 +18,8 @@ interface RestoreFieldMapping {
 export class HistoryManager implements OperationHistory {
   private snapshots: HistorySnapshot[] = [];
   private readonly maxSnapshots = 5;
+  private editSnapshots: HistorySnapshot[] = []; // PR72: 編集モード用スナップショット
+  private editTimelineIndex = 0; // PR72
   private readonly restoreFieldMappings: RestoreFieldMapping[] = [
     {
       key: "boardSize",
@@ -215,16 +217,71 @@ export class HistoryManager implements OperationHistory {
     if (index < 0 || index >= this.snapshots.length) return false;
 
     const snapshot = this.snapshots[index];
-    const savedState = snapshot.state;
-
-    this.restoreFieldMappings.forEach((mapping) => {
-      mapping.apply(currentState, savedState);
-    });
-
-    currentState.eraseMode = false; // 復元時は消去モードを無効化
+    this.applySnapshotState(currentState, snapshot.state);
 
     console.log(`履歴復元: ${snapshot.description}`);
     return true;
+  }
+
+  // PR72: 編集モード履歴の初期化
+  initializeEditTimeline(state: GameState): void {
+    const snapshot: HistorySnapshot = {
+      timestamp: new Date(),
+      description: "edit:init",
+      state: this.cloneGameState(state),
+    };
+    this.editSnapshots = [snapshot];
+    this.editTimelineIndex = 0;
+  }
+
+  // PR72: 編集モードの履歴を追加
+  recordEditState(state: GameState): void {
+    if (this.editSnapshots.length === 0) {
+      this.initializeEditTimeline(state);
+      return;
+    }
+
+    if (this.editTimelineIndex < this.editSnapshots.length - 1) {
+      this.editSnapshots = this.editSnapshots.slice(0, this.editTimelineIndex + 1);
+    }
+
+    const snapshot: HistorySnapshot = {
+      timestamp: new Date(),
+      description: `edit:${this.editSnapshots.length}`,
+      state: this.cloneGameState(state),
+    };
+    this.editSnapshots.push(snapshot);
+    this.editTimelineIndex = this.editSnapshots.length - 1;
+  }
+
+  // PR72: 編集モードの履歴を復元
+  restoreEditState(index: number, currentState: GameState): boolean {
+    if (this.editSnapshots.length === 0) {
+      return false;
+    }
+
+    const clamped = Math.max(0, Math.min(index, this.editSnapshots.length - 1));
+    const snapshot = this.editSnapshots[clamped];
+    if (!snapshot) {
+      return false;
+    }
+
+    this.applySnapshotState(currentState, snapshot.state);
+    this.editTimelineIndex = clamped;
+    return true;
+  }
+
+  // PR72: 編集モード履歴の状態取得
+  getEditTimelineLength(): number {
+    return this.editSnapshots.length;
+  }
+
+  getEditTimelineIndex(): number {
+    return this.editTimelineIndex;
+  }
+
+  hasEditHistory(): boolean {
+    return this.editSnapshots.length > 1;
   }
 
   // ============ 履歴一覧取得 ============
@@ -423,5 +480,15 @@ export class HistoryManager implements OperationHistory {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  private applySnapshotState(
+    currentState: GameState,
+    savedState: GameState
+  ): void {
+    this.restoreFieldMappings.forEach((mapping) => {
+      mapping.apply(currentState, savedState);
+    });
+    currentState.eraseMode = false;
   }
 }

@@ -18,6 +18,7 @@ export class GameStore {
         this.performanceMetrics = {
             rebuildBoardFromMoves: this.createRebuildMetrics(),
         };
+        this.resetEditHistoryTimeline(); // PR72
     }
     get snapshot() {
         return this.state;
@@ -88,6 +89,7 @@ export class GameStore {
                     this.state.sgfIndex = Math.min(lastIndex, this.state.sgfMoves.length);
                     this.rebuildBoardFromMoves(this.state.sgfIndex);
                     this.invalidateCache();
+                    this.recordEditHistorySnapshot(); // PR72
                     return true;
                 }
             }
@@ -96,6 +98,7 @@ export class GameStore {
                 board[pos.row][pos.col] = 0;
                 this.state.board = board;
                 this.invalidateCache();
+                this.recordEditHistorySnapshot(); // PR72
                 return true;
             }
             return false;
@@ -126,6 +129,7 @@ export class GameStore {
         this.state.board = Array.from({ length: size }, () => Array(size).fill(0));
         this.resetGameState();
         this.invalidateCache();
+        this.resetEditHistoryTimeline(); // PR72
     }
     undo() {
         if (this.state.numberMode) {
@@ -146,6 +150,10 @@ export class GameStore {
     }
     setMoveIndex(index) {
         var _a;
+        if (this.state.appMode === "edit" && this.restoreEditHistory(index)) {
+            this.invalidateCache();
+            return;
+        }
         const timeline = this.getMoveTimeline();
         const clamped = Math.max(0, Math.min(index, timeline.effectiveLength));
         if (this.handleSolveModeRewind(clamped)) {
@@ -160,6 +168,9 @@ export class GameStore {
             board = this.cloneBoard();
         }
         this.applyCachedBoard(clamped, board);
+        if (this.state.appMode === "edit") {
+            this.resetEditHistoryTimeline(); // PR72
+        }
     }
     startNumberMode(color) {
         this.startSolveMode(color);
@@ -207,6 +218,7 @@ export class GameStore {
         this.state.history = [];
         this.applyInitialSetup();
         this.invalidateCache();
+        this.resetEditHistoryTimeline(); // PR72
     }
     restoreProblemDiagram() {
         if (!this.state.problemDiagramSet) {
@@ -219,6 +231,7 @@ export class GameStore {
             this.state.turn = 0;
             this.state.history = [];
         }
+        this.resetEditHistoryTimeline(); // PR72
     }
     hasProblemDiagram() {
         return this.state.problemDiagramSet;
@@ -269,7 +282,28 @@ export class GameStore {
             this.state.sgfIndex = this.state.sgfMoves.length;
         }
         this.invalidateCache();
+        if (this.state.appMode === "edit") {
+            this.recordEditHistorySnapshot(); // PR72
+        }
         return true;
+    }
+    resetEditHistoryTimeline() {
+        if (typeof this.history.initializeEditTimeline === "function") {
+            this.history.initializeEditTimeline(this.state); // PR72
+        }
+    }
+    recordEditHistorySnapshot() {
+        if (typeof this.history.recordEditState === "function") {
+            this.history.recordEditState(this.state); // PR72
+        }
+    }
+    restoreEditHistory(index) {
+        if (typeof this.history.restoreEditState === "function" &&
+            typeof this.history.hasEditHistory === "function" &&
+            this.history.hasEditHistory()) {
+            return this.history.restoreEditState(index, this.state); // PR72
+        }
+        return false;
     }
     prepareSolveModeForNewMove() {
         if (this.state.appMode !== "solve") {
