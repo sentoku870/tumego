@@ -222,16 +222,8 @@ export class ToolbarController {
 
   private setMode(mode: PlayMode, buttonElement: Element): void {
     this.disableEraseMode();
-    const state = this.store.snapshot;
-    state.mode = mode;
-
-    if (state.numberMode) {
-      state.numberMode = false;
-      state.turn = state.sgfIndex;
-      state.answerMode = 'black';
-      this.updateAnswerButtonDisplay();
-    }
-
+    this.store.setMode(mode);
+    this.updateAnswerButtonDisplay();
     this.setActiveButton(buttonElement, 'play-btn');
     this.updateUI();
   }

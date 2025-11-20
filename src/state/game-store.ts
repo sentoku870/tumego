@@ -4,10 +4,12 @@ import {
   GameState,
   Position,
   StoneColor,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  PlayMode
 } from '../types.js';
 import { GoEngine } from '../go-engine.js';
 import { HistoryManager } from '../history-manager.js';
+import { debugLog } from '../ui/debug-logger.js';
 
 interface RebuildMetrics {
   callCount: number;
@@ -95,6 +97,7 @@ export class GameStore {
     }
 
     this.invalidateCache();
+    debugLog.log(`石を配置: color=${color} col=${pos.col} row=${pos.row} index=${this.state.sgfIndex}`);
     return true;
   }
 
@@ -117,6 +120,7 @@ export class GameStore {
         board[pos.row][pos.col] = 0;
         this.state.board = board;
         this.invalidateCache();
+        debugLog.log(`石を削除（ローカル）: col=${pos.col} row=${pos.row}`);
         return true;
       }
 
@@ -124,6 +128,7 @@ export class GameStore {
       this.state.sgfIndex = this.state.sgfMoves.length;
       this.rebuildBoardFromMoves(this.state.sgfIndex);
       this.invalidateCache();
+      debugLog.log(`着手履歴から石を削除: index=${removeIndex}, col=${pos.col}, row=${pos.row}`);
       return true;
     }
 
@@ -131,6 +136,7 @@ export class GameStore {
     board[pos.row][pos.col] = 0;
     this.state.board = board;
     this.invalidateCache();
+    debugLog.log(`石を削除: col=${pos.col} row=${pos.row}`);
     return true;
   }
 
@@ -143,6 +149,7 @@ export class GameStore {
     this.state.board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
     this.resetGameState();
     this.invalidateCache();
+    debugLog.log(`盤面初期化: size=${size}`);
   }
 
   undo(): boolean {
@@ -179,6 +186,7 @@ export class GameStore {
     }
 
     this.applyCachedBoard(clamped, board);
+    debugLog.log(`手順移動: sgfIndex=${clamped}`);
   }
 
   startNumberMode(color: StoneColor): void {
@@ -189,6 +197,7 @@ export class GameStore {
     this.state.turn = 0;
     this.state.history = [];
     this.invalidateCache();
+    debugLog.log(`解答モード開始: color=${color}, startIndex=${this.state.numberStartIndex}`);
   }
 
   setProblemDiagram(): void {
@@ -223,6 +232,7 @@ export class GameStore {
 
     this.applyInitialSetup();
     this.invalidateCache();
+    debugLog.log('問題図を確定');
   }
 
   restoreProblemDiagram(): void {
@@ -238,6 +248,7 @@ export class GameStore {
       this.state.turn = 0;
       this.state.history = [];
     }
+    debugLog.log('問題図を復元');
   }
 
   hasProblemDiagram(): boolean {
@@ -262,6 +273,7 @@ export class GameStore {
     this.updateHandicapMetadata(context);
 
     this.invalidateCache();
+    debugLog.log(`置石設定: mode=${context.mode}, stones=${context.stones}`);
   }
 
   get currentColor(): StoneColor {
@@ -314,6 +326,19 @@ export class GameStore {
     }
 
     this.state.board = board;
+  }
+
+  setMode(mode: PlayMode): void {
+    const previous = this.state.mode;
+    this.state.mode = mode;
+
+    if (this.state.numberMode) {
+      this.state.numberMode = false;
+      this.state.turn = this.state.sgfIndex;
+      this.state.answerMode = 'black';
+    }
+
+    debugLog.log(`モード切替: ${previous} -> ${mode} (startColor=${this.state.startColor})`);
   }
 
   private rebuildBoardFromMoves(limit: number): Board | null {

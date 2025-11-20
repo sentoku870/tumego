@@ -1,5 +1,6 @@
 // ============ 描画エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
+import { debugLog } from './ui/debug-logger.js';
 export function getCircleNumber(n) {
     if (n >= 1 && n <= 20)
         return String.fromCharCode(0x2460 + n - 1);
@@ -194,6 +195,22 @@ export class Renderer {
         this.viewModelBuilder = new RendererViewModelBuilder(store);
     }
     render() {
+        const state = this.store.snapshot;
+        debugLog.log(`描画開始: boardSize=${state.boardSize}, stones=${state.board.flat().filter(cell => cell !== 0).length}`);
+        // === 数字用影フィルタ ===
+        const defs = this.createSVGElement('defs', {});
+        const shadow = this.createSVGElement('filter', { id: 'num-shadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+        const fe = this.createSVGElement('feDropShadow', {
+            dx: '1.0',
+            dy: '1.0',
+            stdDeviation: '1.0',
+            'flood-color': '#000',
+            'flood-opacity': '0.55'
+        });
+        shadow.appendChild(fe);
+        defs.appendChild(shadow);
+        this.elements.svg.appendChild(defs);
+        // =========================
         const model = this.viewModelBuilder.buildBoardModel();
         const size = model.geometry.viewBoxSize;
         this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
@@ -201,6 +218,7 @@ export class Renderer {
         this.drawBoardLines(model.geometry);
         this.drawStars(model.geometry, model.stars);
         this.drawCoordinates(model.coordinates);
+        debugLog.log('drawBoard 呼び出し完了');
         this.drawStones(model.stones);
         if (model.showMoveNumbers) {
             this.drawMoveNumbers(model.moveNumbers);
@@ -310,6 +328,7 @@ export class Renderer {
         });
     }
     drawStones(stones) {
+        debugLog.log(`drawStones 呼び出し: count=${stones.length}`);
         stones.forEach(stone => {
             this.elements.svg.appendChild(this.createSVGElement('circle', {
                 cx: stone.cx.toString(),
@@ -324,13 +343,44 @@ export class Renderer {
     }
     drawMoveNumbers(numbers) {
         numbers.forEach(number => {
+            // === 背景円（透け防止＋視認性最大化） ===
+            // 石の半径 ≒ number.fontSize * 約1.3〜1.35 に近い
+            // → これに合わせて背景円を95%ほどに設定
+            const bgRadius = number.fontSize * 1.15;
+            // 白石の上の黒数字 → 背景は濃い黒
+            // 黒石の上の白数字 → 背景は純白
+            // （別ソフトもこの方式）
+            const bgColor = number.fill === '#000'
+                ? '#ffffff'
+                : '#000000';
+            const bg = this.createSVGElement('circle', {
+                cx: number.cx.toString(),
+                cy: number.cy.toString(),
+                r: bgRadius.toString(),
+                fill: bgColor,
+                filter: 'url(#num-shadow)' // 背景ごと影を付けて浮かせる
+            });
+            this.elements.svg.appendChild(bg);
+            // === 数字本体 ===
             const text = this.createSVGElement('text', {
                 x: number.cx.toString(),
                 y: number.cy.toString(),
-                'font-size': number.fontSize.toString(),
-                fill: number.fill,
+                fill: number.fill, // 白 or 黒
                 class: 'move-num'
             });
+            // 超太字（900相当）
+            text.setAttribute('font-weight', '900');
+            // 数字の大きさ
+            const size = number.fontSize * 1.20;
+            text.setAttribute('font-size', size.toString());
+            // 視認性の肝：太い縁取り（石画像みたいに見える）
+            const strokeColor = number.fill === '#000' ? '#fff' : '#000';
+            text.setAttribute('stroke', strokeColor);
+            text.setAttribute('stroke-width', (size * 0.22).toString());
+            text.setAttribute('paint-order', 'stroke');
+            text.setAttribute('dominant-baseline', 'central');
+            // 数字にも影を微弱に乗せる
+            text.setAttribute('filter', 'url(#num-shadow)');
             text.textContent = number.text;
             this.elements.svg.appendChild(text);
         });

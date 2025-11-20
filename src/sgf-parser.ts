@@ -1,11 +1,12 @@
 // ============ SGF処理エンジン ============
 import { GameState, Move, Position, SGFParseResult, DEFAULT_CONFIG } from './types.js';
+import { debugLog } from './ui/debug-logger.js';
 
 export class SGFParser {
   // ============ SGF解析 ============
   parse(sgfText: string): SGFParseResult {
     const rawText = sgfText.trim();
-    console.log('SGF解析開始:', rawText);
+    debugLog.log(`SGF解析開始 (${rawText.length}文字)`);
 
     const moves: Move[] = [];
     const gameInfo: Partial<GameState> = {
@@ -22,21 +23,21 @@ export class SGFParser {
     const sizeMatch = rawText.match(/SZ\[(\d+)\]/i);
     if (sizeMatch) {
       gameInfo.boardSize = parseInt(sizeMatch[1], 10);
-      console.log('盤サイズ:', gameInfo.boardSize);
+      debugLog.log(`盤サイズ検出: ${gameInfo.boardSize}`);
     }
 
     // コミの解析
     const komiMatch = rawText.match(/KM\[([0-9.]+)\]/i);
     if (komiMatch) {
       gameInfo.komi = parseFloat(komiMatch[1]);
-      console.log('コミ:', gameInfo.komi);
+      debugLog.log(`コミ検出: ${gameInfo.komi}`);
     }
 
     // ハンディキャップ（置石数）の解析
     const handicapMatch = rawText.match(/HA\[(\d+)\]/i);
     if (handicapMatch) {
       gameInfo.handicapStones = parseInt(handicapMatch[1], 10);
-      console.log('置石数:', gameInfo.handicapStones);
+      debugLog.log(`置石数検出: ${gameInfo.handicapStones}`);
     }
 
     const initialBlack: Position[] = [];
@@ -58,7 +59,7 @@ export class SGFParser {
           const row = clean.charCodeAt(1) - 97;
           if (col >= 0 && row >= 0) {
             target.push({ col, row });
-            console.log(`${property} 初期配置:`, col, row);
+            debugLog.log(`${property} 初期配置: col=${col}, row=${row}`);
           }
         });
       });
@@ -71,7 +72,7 @@ export class SGFParser {
       if ((gameInfo.handicapStones || 0) > 0) {
         gameInfo.handicapPositions = initialBlack;
         gameInfo.startColor = 2;
-        console.log('白番開始に設定');
+        debugLog.log('白番開始に設定');
       } else {
         gameInfo.problemDiagramBlack = initialBlack;
       }
@@ -92,12 +93,13 @@ export class SGFParser {
       const color = match[1].toUpperCase() === 'B' ? 1 : 2;
       const coord = (match[2] || '').toLowerCase();
       if (coord.length !== 2) {
-        console.log('パス着手を検出:', match[0]);
+        debugLog.log(`パス着手を検出: ${match[0]}`);
         continue;
       }
       const col = coord.charCodeAt(0) - 97;
       const row = coord.charCodeAt(1) - 97;
       if (col < 0 || row < 0) continue;
+      debugLog.log(`ノード解析: 手数=${moves.length + 1} color=${color} col=${col} row=${row}`);
       moves.push({ col, row, color: color as 1 | 2 });
     }
 
@@ -110,7 +112,7 @@ export class SGFParser {
       gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
     }
 
-    console.log('解析完了 - 着手数:', moves.length, '置石数:', gameInfo.handicapPositions?.length || 0);
+    debugLog.log(`SGF解析完了 - 着手数: ${moves.length}, 置石数: ${gameInfo.handicapPositions?.length || 0}`);
     return { moves, gameInfo, rawSGF: rawText };
   }
 
@@ -147,7 +149,7 @@ export class SGFParser {
     }
 
     sgf += ')';
-    console.log('SGF出力:', sgf);
+    debugLog.log(`SGF出力完了 (${state.sgfMoves.length}手, ${state.boardSize}路)`);
     return sgf;
   }
 
@@ -163,10 +165,10 @@ export class SGFParser {
         .replace(/\s*\)\s*/g, ')')
         .trim();
 
-      console.log(`圧縮前: ${sgfData.length}文字 → 圧縮後: ${compressed.length}文字`);
+      debugLog.log(`SGF圧縮: ${sgfData.length}文字 → ${compressed.length}文字`);
       return compressed;
     } catch (error) {
-      console.error('圧縮エラー:', error);
+      debugLog.log(`圧縮エラー: ${(error as Error).message}`);
       return sgfData;
     }
   }
@@ -176,7 +178,7 @@ export class SGFParser {
     try {
       return btoa(sgfData);
     } catch (error) {
-      console.error('URL エンコードエラー:', error);
+      debugLog.log(`URL エンコードエラー: ${(error as Error).message}`);
       return '';
     }
   }
@@ -186,7 +188,7 @@ export class SGFParser {
     try {
       return atob(encodedData);
     } catch (error) {
-      console.error('URL デコードエラー:', error);
+      debugLog.log(`URL デコードエラー: ${(error as Error).message}`);
       return '';
     }
   }
@@ -199,10 +201,10 @@ export class SGFParser {
       reader.onload = () => {
         try {
           const result = this.parse(reader.result as string);
-          console.log(`ファイル読み込み完了: ${result.moves.length}手`);
+          debugLog.log(`ファイル読み込み完了: ${result.moves.length}手`);
           resolve(result);
         } catch (error) {
-          console.error('SGF読み込みエラー:', error);
+          debugLog.log(`SGF読み込みエラー: ${(error as Error).message}`);
           reject(error);
         }
       };
@@ -222,12 +224,12 @@ export class SGFParser {
       if (!text.trim()) {
         throw new Error('クリップボードにSGFがありません');
       }
-      
+
       const result = this.parse(text);
-      console.log('クリップボードからSGF読み込み完了');
+      debugLog.log(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
       return result;
     } catch (error) {
-      console.error('クリップボードの読み込みに失敗:', error);
+      debugLog.log(`クリップボード読み込み失敗: ${(error as Error).message}`);
       throw error;
     }
   }
@@ -240,15 +242,15 @@ export class SGFParser {
     if (canUseClipboardApi) {
       try {
         await navigator.clipboard.writeText(sgfData);
-        console.log('SGF をクリップボードにコピーしました');
+        debugLog.log('SGF をクリップボードにコピーしました');
         return;
       } catch (error) {
-        console.warn('クリップボードAPIでのコピーに失敗。フォールバックを試みます:', error);
+        debugLog.log(`クリップボードAPIでのコピーに失敗。フォールバックを試みます: ${(error as Error).message}`);
       }
     }
 
     if (this.copyToClipboardFallback(sgfData)) {
-      console.log('フォールバックでクリップボードにコピーしました');
+      debugLog.log('フォールバックでクリップボードにコピーしました');
       return;
     }
 
@@ -274,7 +276,7 @@ export class SGFParser {
       document.body.removeChild(textArea);
       return successful;
     } catch (error) {
-      console.error('フォールバックコピーに失敗:', error);
+      debugLog.log(`フォールバックコピーに失敗: ${(error as Error).message}`);
       return false;
     }
   }
@@ -304,7 +306,7 @@ export class SGFParser {
         const writable = await fileHandle.createWritable();
         await writable.write(sgfData);
         await writable.close();
-        console.log('SGFファイルを保存しました');
+        debugLog.log('SGFファイルを保存しました');
       } else {
         // Fallback: download via blob
         const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
@@ -316,11 +318,11 @@ export class SGFParser {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        console.log('SGFファイルをダウンロードしました');
+        debugLog.log('SGFファイルをダウンロードしました');
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        console.error('SGF保存エラー:', error);
+        debugLog.log(`SGF保存エラー: ${(error as Error).message}`);
         throw error;
       }
     }
@@ -344,7 +346,7 @@ export class SGFParser {
       const sgfParam = urlParams.get('sgf');
       
       if (sgfParam) {
-        console.log('URL SGFパラメータ発見');
+        debugLog.log('URL SGFパラメータ発見');
         const sgfData = this.decodeFromURL(sgfParam);
         const result = this.parse(sgfData);
         
@@ -353,14 +355,14 @@ export class SGFParser {
           const newURL = window.location.protocol + "//" + window.location.host + window.location.pathname;
           window.history.replaceState({}, document.title, newURL);
         }
-        
-        console.log(`URL からSGF読み込み完了: ${result.moves.length}手`);
+
+        debugLog.log(`URL からSGF読み込み完了: ${result.moves.length}手`);
         return result;
       }
-      
+
       return null;
     } catch (error) {
-      console.error('URL からのSGF読み込みエラー:', error);
+      debugLog.log(`URL からのSGF読み込みエラー: ${(error as Error).message}`);
       return null;
     }
   }

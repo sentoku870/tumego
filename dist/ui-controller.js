@@ -15,6 +15,7 @@ import { KeyboardController } from './ui/controllers/keyboard-controller.js';
 import { ToolbarController } from './ui/controllers/toolbar-controller.js';
 import { FeatureMenuController } from './ui/controllers/feature-menu-controller.js';
 import { FileMenuController } from './ui/controllers/file-menu-controller.js';
+import { debugLog } from './ui/debug-logger.js';
 export class UIController {
     constructor(state, elements) {
         this.state = state;
@@ -42,6 +43,7 @@ export class UIController {
         this.fileMenuController.initialize();
         this.keyboardController.initialize(this.createKeyBindings());
         this.initResizeEvents();
+        this.initDebugLogging();
         this.store.initBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE);
         setTimeout(() => {
             this.renderer.updateBoardSize();
@@ -69,6 +71,56 @@ export class UIController {
         this.renderer.render();
         this.renderer.updateInfo();
         this.renderer.updateSlider();
+    }
+    initDebugLogging() {
+        this.registerDebugButtonLog('btn-answer', () => {
+            const state = this.store.snapshot;
+            return `解答モードボタン押下: mode=${state.answerMode}, numberMode=${state.numberMode}`;
+        });
+        this.registerDebugButtonLog('btn-erase', '編集モードボタン押下: 消去');
+        this.registerDebugButtonLog('btn-black', () => `配置モード切替: 黒配置 startColor=${this.store.snapshot.startColor}`);
+        this.registerDebugButtonLog('btn-white', () => `配置モード切替: 白配置 startColor=${this.store.snapshot.startColor}`);
+        this.registerDebugButtonLog('btn-alt', () => `配置モード切替: 交互配置 startColor=${this.store.snapshot.startColor}`);
+        const slider = this.elements.sliderEl;
+        slider === null || slider === void 0 ? void 0 : slider.addEventListener('input', () => {
+            const state = this.store.snapshot;
+            debugLog.log(`スライダー変更: index=${slider.value}/${state.sgfMoves.length}`);
+        });
+        const sgfTextarea = document.getElementById('sgf-text');
+        sgfTextarea === null || sgfTextarea === void 0 ? void 0 : sgfTextarea.addEventListener('paste', (event) => {
+            var _a, _b;
+            const pasted = (_b = (_a = event.clipboardData) === null || _a === void 0 ? void 0 : _a.getData('text')) !== null && _b !== void 0 ? _b : '';
+            debugLog.log(`SGF貼り付け検知: ${pasted.length}文字`);
+        });
+        const debugToggle = document.getElementById('btn-debug-toggle');
+        if (debugToggle) {
+            this.updateDebugToggleLabel(debugToggle);
+            debugToggle.addEventListener('click', () => {
+                const nextEnabled = !debugLog.enabled;
+                if (!nextEnabled) {
+                    debugLog.log('デバッグログを無効化');
+                }
+                debugLog.enabled = nextEnabled;
+                this.updateDebugToggleLabel(debugToggle);
+                if (nextEnabled) {
+                    debugLog.log('デバッグログを有効化');
+                }
+            });
+        }
+    }
+    registerDebugButtonLog(elementId, message) {
+        const button = document.getElementById(elementId);
+        if (!button) {
+            return;
+        }
+        button.addEventListener('click', () => {
+            const text = typeof message === 'function' ? message() : message;
+            debugLog.log(text);
+        });
+    }
+    updateDebugToggleLabel(element) {
+        const button = element;
+        button.textContent = debugLog.enabled ? 'ログOFF' : 'ログON';
     }
     syncSgfTextarea(text) {
         const sgfTextarea = document.getElementById('sgf-text');

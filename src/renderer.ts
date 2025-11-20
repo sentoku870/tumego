@@ -13,6 +13,7 @@ import {
   DEFAULT_CONFIG
 } from './types.js';
 import { GameStore } from './state/game-store.js';
+import { debugLog } from './ui/debug-logger.js';
 
 export function getCircleNumber(n: number): string {
   if (n >= 1 && n <= 20) return String.fromCharCode(0x2460 + n - 1);
@@ -245,6 +246,8 @@ export class Renderer {
   }
 
   render(): void {
+    const state = this.store.snapshot;
+    debugLog.log(`描画開始: boardSize=${state.boardSize}, stones=${state.board.flat().filter(cell => cell !== 0).length}`);
         // === 数字用影フィルタ ===
     const defs = this.createSVGElement('defs', {});
     const shadow = this.createSVGElement('filter', { id: 'num-shadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
@@ -270,6 +273,7 @@ export class Renderer {
     this.drawBoardLines(model.geometry);
     this.drawStars(model.geometry, model.stars);
     this.drawCoordinates(model.coordinates);
+    debugLog.log('drawBoard 呼び出し完了');
     this.drawStones(model.stones);
 
     if (model.showMoveNumbers) {
@@ -396,6 +400,7 @@ export class Renderer {
   }
 
   private drawStones(stones: StoneRenderInfo[]): void {
+    debugLog.log(`drawStones 呼び出し: count=${stones.length}`);
     stones.forEach(stone => {
       this.elements.svg.appendChild(this.createSVGElement('circle', {
         cx: stone.cx.toString(),

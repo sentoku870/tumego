@@ -9,8 +9,23 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="path/to/your/icon.png"> 
-  
+  <link rel="apple-touch-icon" href="path/to/your/icon.png">
+
+  <style>
+    #debug-log {
+      background: #fff;
+      border: 1px solid #ccc;
+      font-family: 'Roboto Mono', 'Noto Sans JP', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 8px;
+      max-height: 200px;
+      overflow: auto;
+      padding: 8px;
+      white-space: pre-wrap;
+    }
+  </style>
+
   <!-- CSSファイルの読み込み -->
   <link rel="stylesheet" href="layout.css" />
   <link rel="stylesheet" href="board.css" />
@@ -80,6 +95,7 @@
 
         <button class="ctrl-btn" id="btn-answer-steps">解答手順</button>
         <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
+        <button class="ctrl-btn" id="btn-debug-toggle">ログON/OFF</button>
       </div>
       
       <!-- 隠しファイル入力 -->
@@ -90,6 +106,8 @@
       
       <!-- メッセージ表示 -->
       <div class="msg" id="msg"></div>
+
+      <div id="debug-log">[Debug Log Initialized]</div>
 
     </div>
   </div>

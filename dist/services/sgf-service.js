@@ -1,5 +1,6 @@
 import { DEFAULT_CONFIG } from '../types.js';
 import { getCircleNumber } from '../renderer.js';
+import { debugLog } from '../ui/debug-logger.js';
 export class SGFService {
     constructor(parser, store) {
         this.parser = parser;
@@ -31,16 +32,25 @@ export class SGFService {
     }
     apply(result) {
         var _a;
-        const validated = this.validateParseResult(result);
-        const initialized = this.runInitializationPhase({
-            state: this.state,
-            result: validated
-        });
-        const applied = this.runApplicationPhase(initialized);
-        this.runHistoryAdjustmentPhase(applied);
-        return {
-            sgfText: (_a = validated.rawSGF) !== null && _a !== void 0 ? _a : this.parser.export(this.state)
-        };
+        debugLog.log(`SGF適用開始: moves=${result.moves.length}`);
+        try {
+            const validated = this.validateParseResult(result);
+            const initialized = this.runInitializationPhase({
+                state: this.state,
+                result: validated
+            });
+            const applied = this.runApplicationPhase(initialized);
+            this.runHistoryAdjustmentPhase(applied);
+            const appliedBoardSize = this.state.boardSize;
+            debugLog.log(`SGF適用完了: boardSize=${appliedBoardSize}, moves=${this.state.sgfMoves.length}`);
+            return {
+                sgfText: (_a = validated.rawSGF) !== null && _a !== void 0 ? _a : this.parser.export(this.state)
+            };
+        }
+        catch (error) {
+            debugLog.log(`SGF適用エラー: ${error.message}`);
+            throw error;
+        }
     }
     validateParseResult(result) {
         const { moves, gameInfo } = result;
@@ -60,10 +70,12 @@ export class SGFService {
             const newSize = gameInfo.boardSize;
             state.boardSize = newSize;
             state.board = Array.from({ length: newSize }, () => Array.from({ length: newSize }, () => 0));
+            debugLog.log(`SGF初期化: 盤サイズを ${newSize} 路に設定`);
         }
         else {
             const currentSize = state.boardSize;
             state.board = Array.from({ length: currentSize }, () => Array.from({ length: currentSize }, () => 0));
+            debugLog.log(`SGF初期化: 現在の盤サイズ ${currentSize} 路を維持`);
         }
         state.history = [];
         state.turn = 0;
@@ -113,6 +125,8 @@ export class SGFService {
         }
         state.sgfMoves = moves.map(move => ({ ...move }));
         state.sgfIndex = 0;
+        debugLog.log(`SGF適用: 着手を ${moves.length} 手反映`);
+        debugLog.log(`SGFヘッダー反映: komi=${state.komi}, handicap=${state.handicapStones}, startColor=${state.startColor}, problemDiagram=${state.problemDiagramSet}`);
         return {
             state,
             appliedMoves: state.sgfMoves
@@ -120,6 +134,7 @@ export class SGFService {
     }
     runHistoryAdjustmentPhase(input) {
         this.store.setMoveIndex(0);
+        debugLog.log('SGF履歴調整: 最初の手にリセット');
         return { state: input.state };
     }
     buildAnswerSequence() {

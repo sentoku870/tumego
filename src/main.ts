@@ -1,6 +1,7 @@
 // ============ メインエントリーポイント ============
 import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
+import { debugLog } from './ui/debug-logger.js';
 
 // ============ グローバル状態初期化 ============
 function createInitialState(): GameState {
@@ -57,6 +58,7 @@ function getUIElements(): UIElements {
 function initializeApp(): void {
   try {
     console.log('Tumego TypeScript版 初期化開始...');
+    debugLog.log('アプリケーション初期化開始');
     
     // 状態とUI要素を初期化
     const gameState = createInitialState();
@@ -70,11 +72,13 @@ function initializeApp(): void {
     
     // 初期化完了
     uiController.initialize();
-    
+
     console.log('Tumego TypeScript版 初期化完了！');
-    
+    debugLog.log('アプリケーション初期化完了');
+
   } catch (error) {
     console.error('初期化エラー:', error);
+    debugLog.log(`初期化エラー: ${(error as Error).message}`);
     alert('アプリケーションの初期化に失敗しました: ' + (error as Error).message);
   }
 }
