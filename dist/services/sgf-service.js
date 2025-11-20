@@ -1,5 +1,6 @@
 import { DEFAULT_CONFIG } from '../types.js';
 import { getCircleNumber } from '../renderer.js';
+import { DebugLog } from '../debug-log.js';
 export class SGFService {
     constructor(parser, store) {
         this.parser = parser;
@@ -38,6 +39,7 @@ export class SGFService {
         });
         const applied = this.runApplicationPhase(initialized);
         this.runHistoryAdjustmentPhase(applied);
+        this.logBoardDump(this.state);
         return {
             sgfText: (_a = validated.rawSGF) !== null && _a !== void 0 ? _a : this.parser.export(this.state)
         };
@@ -121,6 +123,14 @@ export class SGFService {
     runHistoryAdjustmentPhase(input) {
         this.store.setMoveIndex(0);
         return { state: input.state };
+    }
+    logBoardDump(state) {
+        const timestamp = new Date().toISOString();
+        const size = state.boardSize;
+        const rows = state.board
+            .map((row, index) => `row ${index}: ${row.join(' ')}`)
+            .join('\n');
+        DebugLog.log(`[${timestamp}] Board dump (size=${size}):\n${rows}`);
     }
     buildAnswerSequence() {
         const state = this.state;
