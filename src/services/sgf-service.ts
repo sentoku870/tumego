@@ -9,6 +9,7 @@ import {
 } from '../types.js';
 import { SGFParser } from '../sgf-parser.js';
 import { getCircleNumber } from '../renderer.js';
+import { DebugLog } from '../debug-log.js';
 
 export interface ApplyResult {
   sgfText: string;
@@ -85,6 +86,7 @@ export class SGFService {
     });
     const applied = this.runApplicationPhase(initialized);
     this.runHistoryAdjustmentPhase(applied);
+    this.logBoardDump(this.state);
 
     return {
       sgfText: validated.rawSGF ?? this.parser.export(this.state)
@@ -179,6 +181,16 @@ export class SGFService {
   private runHistoryAdjustmentPhase(input: HistoryAdjustmentInput): HistoryAdjustmentOutput {
     this.store.setMoveIndex(0);
     return { state: input.state };
+  }
+
+  private logBoardDump(state: GameState): void {
+    const timestamp = new Date().toISOString();
+    const size = state.boardSize;
+    const rows = state.board
+      .map((row, index) => `row ${index}: ${row.join(' ')}`)
+      .join('\n');
+
+    DebugLog.log(`[${timestamp}] Board dump (size=${size}):\n${rows}`);
   }
 
   buildAnswerSequence(): string | null {
