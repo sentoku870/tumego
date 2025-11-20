@@ -2,7 +2,7 @@
 node_modules/
 
 # ビルド結果（任意 - distを含めるかは選択）
-# dist/
+dist/
 
 # ログファイル
 *.log
