@@ -9,6 +9,7 @@ import {
 } from '../types.js';
 import { SGFParser } from '../sgf-parser.js';
 import { getCircleNumber } from '../renderer.js';
+
 import { debugLog } from '../ui/debug-logger.js';
 
 export interface ApplyResult {
@@ -100,6 +101,7 @@ export class SGFService {
       debugLog.log(`SGF適用エラー: ${(error as Error).message}`);
       throw error;
     }
+
   }
 
   private validateParseResult(result: SGFParseResult): SGFParseResult {
@@ -195,6 +197,16 @@ export class SGFService {
     this.store.setMoveIndex(0);
     debugLog.log('SGF履歴調整: 最初の手にリセット');
     return { state: input.state };
+  }
+
+  private logBoardDump(state: GameState): void {
+    const timestamp = new Date().toISOString();
+    const size = state.boardSize;
+    const rows = state.board
+      .map((row, index) => `row ${index}: ${row.join(' ')}`)
+      .join('\n');
+
+    DebugLog.log(`[${timestamp}] Board dump (size=${size}):\n${rows}`);
   }
 
   buildAnswerSequence(): string | null {
