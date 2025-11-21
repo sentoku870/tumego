@@ -4,10 +4,10 @@ import {
   GameState,
   Position,
   StoneColor,
-  DEFAULT_CONFIG
-} from '../types.js';
-import { GoEngine } from '../go-engine.js';
-import { HistoryManager } from '../history-manager.js';
+  DEFAULT_CONFIG,
+} from "../types.js";
+import { GoEngine } from "../go-engine.js";
+import { HistoryManager } from "../history-manager.js";
 
 interface RebuildMetrics {
   callCount: number;
@@ -21,7 +21,7 @@ interface PerformanceMetrics {
   rebuildBoardFromMoves: RebuildMetrics;
 }
 
-type HandicapMode = 'even' | 'no-komi' | 'fixed';
+type HandicapMode = "even" | "no-komi" | "fixed";
 
 interface HandicapContext {
   readonly mode: HandicapMode;
@@ -43,9 +43,8 @@ export class GameStore {
   // === Performance metrics (from main branch) ===
   private performanceDebug = false;
   private performanceMetrics: PerformanceMetrics = {
-    rebuildBoardFromMoves: this.createRebuildMetrics()
+    rebuildBoardFromMoves: this.createRebuildMetrics(),
   };
-
 
   constructor(
     private readonly state: GameState,
@@ -74,7 +73,9 @@ export class GameStore {
 
   getPerformanceMetrics(): PerformanceMetrics {
     return {
-      rebuildBoardFromMoves: { ...this.performanceMetrics.rebuildBoardFromMoves }
+      rebuildBoardFromMoves: {
+        ...this.performanceMetrics.rebuildBoardFromMoves,
+      },
     };
   }
 
@@ -94,6 +95,9 @@ export class GameStore {
       this.state.sgfIndex = this.state.sgfMoves.length;
     }
 
+    // ★★★ 重要：番号石描画に必須 ★★★
+    this.rebuildBoardFromMoves(this.state.sgfIndex);
+
     this.invalidateCache();
     return true;
   }
@@ -109,8 +113,10 @@ export class GameStore {
     }
 
     if (this.state.sgfLoadedFromExternal || this.state.numberMode) {
-
-      const removeIndex = this.findLastMoveIndex(pos, currentStone as StoneColor);
+      const removeIndex = this.findLastMoveIndex(
+        pos,
+        currentStone as StoneColor
+      );
 
       if (removeIndex === -1) {
         const board = this.cloneBoard();
@@ -136,18 +142,25 @@ export class GameStore {
 
   initBoard(size: number): void {
     if (this.hasGameData()) {
-      this.saveToHistory(`${this.state.boardSize}路盤（${this.state.sgfMoves.length}手）`);
+      this.saveToHistory(
+        `${this.state.boardSize}路盤（${this.state.sgfMoves.length}手）`
+      );
     }
 
     this.state.boardSize = size;
-    this.state.board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
+    this.state.board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
     this.resetGameState();
     this.invalidateCache();
   }
 
   undo(): boolean {
     if (this.state.numberMode) {
-      this.state.sgfIndex = Math.max(this.state.numberStartIndex, this.state.sgfIndex - 1);
+      this.state.sgfIndex = Math.max(
+        this.state.numberStartIndex,
+        this.state.sgfIndex - 1
+      );
       this.setMoveIndex(this.state.sgfIndex);
       return true;
     }
@@ -184,8 +197,10 @@ export class GameStore {
   startNumberMode(color: StoneColor): void {
     this.state.numberMode = true;
     this.state.startColor = color;
-    this.state.numberStartIndex = this.state.sgfMoves.length;
-    this.state.sgfIndex = this.state.sgfMoves.length;
+
+    this.state.numberStartIndex = 0; // ★番号の起点は常に 0
+    this.state.sgfIndex = 0;
+
     this.state.turn = 0;
     this.state.history = [];
     this.invalidateCache();
@@ -206,8 +221,8 @@ export class GameStore {
       }
     }
 
-    this.state.problemDiagramBlack = blackPositions.map(pos => ({ ...pos }));
-    this.state.problemDiagramWhite = whitePositions.map(pos => ({ ...pos }));
+    this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+    this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
     this.state.problemDiagramSet = true;
 
     this.state.handicapPositions = [];
@@ -245,6 +260,29 @@ export class GameStore {
   }
 
   /**
+   * 解答モードへ入るときの公式初期化処理。
+   * 編集モードの状態をすべて破棄し、
+   * 問題図をベースにしたクリーンな盤面から解答を始める。
+   */
+  /** 解答モードに正式に入る初期化 */
+  /** 解答モードに正式に入る初期化 */
+  enterSolveMode(): void {
+    if (this.state.problemDiagramSet) {
+      this.applyInitialSetup();
+    }
+
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+
+    this.state.numberMode = true;
+    this.state.numberStartIndex = 0; // ★追加
+    this.state.eraseMode = false;
+
+    this.state.turn = 0;
+    this.invalidateCache();
+  }
+
+  /**
    * テンプレートメソッド。以下の順序で処理を行う:
    * 1. {@link resetBoardForHandicap} 盤面のリセット
    * 2. {@link placeHandicapStones} 置石の配置
@@ -268,16 +306,16 @@ export class GameStore {
     if (this.state.numberMode) {
       return this.state.turn % 2 === 0
         ? this.state.startColor
-        : (3 - this.state.startColor) as StoneColor;
+        : ((3 - this.state.startColor) as StoneColor);
     }
 
-    if (this.state.mode === 'alt') {
+    if (this.state.mode === "alt") {
       return this.state.turn % 2 === 0
         ? this.state.startColor
-        : (3 - this.state.startColor) as StoneColor;
+        : ((3 - this.state.startColor) as StoneColor);
     }
 
-    return this.state.mode === 'black' ? 1 : 2;
+    return this.state.mode === "black" ? 1 : 2;
   }
 
   private pushHistorySnapshot(): void {
@@ -285,15 +323,17 @@ export class GameStore {
   }
 
   private cloneBoard(board: Board = this.state.board): Board {
-    return board.map(row => row.slice());
+    return board.map((row) => row.slice());
   }
 
   private applyInitialSetup(): void {
     const size = this.state.boardSize;
-    const board = Array.from({ length: size }, () => Array<CellState>(size).fill(0));
+    const board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
 
     if (this.state.handicapPositions.length > 0) {
-      this.state.handicapPositions.forEach(pos => {
+      this.state.handicapPositions.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 1;
         }
@@ -301,12 +341,12 @@ export class GameStore {
     }
 
     if (this.state.problemDiagramSet) {
-      this.state.problemDiagramBlack.forEach(pos => {
+      this.state.problemDiagramBlack.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 1;
         }
       });
-      this.state.problemDiagramWhite.forEach(pos => {
+      this.state.problemDiagramWhite.forEach((pos) => {
         if (this.isValidPosition(pos)) {
           board[pos.row][pos.col] = 2;
         }
@@ -362,7 +402,7 @@ export class GameStore {
     } else {
       this.state.turn = limit;
     }
-
+    this.logBoardDump(`after rebuildBoardFromMoves(limit=${limit})`);
     if (profiling) {
       const metrics = this.performanceMetrics.rebuildBoardFromMoves;
       const duration = this.getTimestamp() - startTime;
@@ -377,7 +417,11 @@ export class GameStore {
   private findLastMoveIndex(pos: Position, color: StoneColor): number {
     for (let i = this.state.sgfMoves.length - 1; i >= 0; i--) {
       const move = this.state.sgfMoves[i];
-      if (move.col === pos.col && move.row === pos.row && move.color === color) {
+      if (
+        move.col === pos.col &&
+        move.row === pos.row &&
+        move.color === color
+      ) {
         return i;
       }
     }
@@ -385,9 +429,11 @@ export class GameStore {
   }
 
   private hasGameData(): boolean {
-    return this.state.sgfMoves.length > 0 ||
+    return (
+      this.state.sgfMoves.length > 0 ||
       this.state.handicapStones > 0 ||
-      this.state.board.some(row => row.some(cell => cell !== 0));
+      this.state.board.some((row) => row.some((cell) => cell !== 0))
+    );
   }
 
   private resetGameState(): void {
@@ -425,8 +471,10 @@ export class GameStore {
     }
 
     return (
-      this.boardsEqual(this.cachedBoardTimeline[this.cachedAppliedMoveIndex], this.cachedBoardState) &&
-      this.boardsEqual(this.state.board, this.cachedBoardState)
+      this.boardsEqual(
+        this.cachedBoardTimeline[this.cachedAppliedMoveIndex],
+        this.cachedBoardState
+      ) && this.boardsEqual(this.state.board, this.cachedBoardState)
     );
   }
 
@@ -479,7 +527,10 @@ export class GameStore {
       : target;
   }
 
-  private ensureBoardForIndex(target: number): { board: Board | null; newlyApplied: number } {
+  private ensureBoardForIndex(target: number): {
+    board: Board | null;
+    newlyApplied: number;
+  } {
     if (target < 0) {
       return { board: null, newlyApplied: 0 };
     }
@@ -508,7 +559,12 @@ export class GameStore {
       }
 
       const workingBoard = this.cloneBoard(board);
-      const result = this.engine.playMove(this.state, move, move.color, workingBoard);
+      const result = this.engine.playMove(
+        this.state,
+        move,
+        move.color,
+        workingBoard
+      );
       if (!result) {
         this.cachedBoardTimeline[nextIndex] = board;
         this.cachedMoveApplied[index] = false;
@@ -523,12 +579,16 @@ export class GameStore {
 
     return {
       board: this.cachedBoardTimeline[target] ?? board,
-      newlyApplied: applied
+      newlyApplied: applied,
     };
   }
 
   private findNearestCachedIndex(target: number): number {
-    for (let index = Math.min(target, this.cachedBoardTimeline.length - 1); index >= 0; index--) {
+    for (
+      let index = Math.min(target, this.cachedBoardTimeline.length - 1);
+      index >= 0;
+      index--
+    ) {
       if (this.cachedBoardTimeline[index]) {
         return index;
       }
@@ -569,12 +629,15 @@ export class GameStore {
       totalDurationMs: 0,
       lastDurationMs: 0,
       lastLimit: 0,
-      lastAppliedMoves: 0
+      lastAppliedMoves: 0,
     };
   }
 
   private getTimestamp(): number {
-    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    if (
+      typeof performance !== "undefined" &&
+      typeof performance.now === "function"
+    ) {
       return performance.now();
     }
 
@@ -582,13 +645,17 @@ export class GameStore {
   }
 
   private isValidPosition(pos: Position): boolean {
-    return pos.col >= 0 && pos.col < this.state.boardSize &&
-      pos.row >= 0 && pos.row < this.state.boardSize;
+    return (
+      pos.col >= 0 &&
+      pos.col < this.state.boardSize &&
+      pos.row >= 0 &&
+      pos.row < this.state.boardSize
+    );
   }
 
   private createHandicapContext(stones: number | string): HandicapContext {
-    if (stones === 'even') {
-      return { mode: 'even', stones: 0, positions: [] };
+    if (stones === "even") {
+      return { mode: "even", stones: 0, positions: [] };
     }
 
     const numeric = Number(stones);
@@ -597,14 +664,20 @@ export class GameStore {
     }
 
     if (numeric === 0) {
-      return { mode: 'no-komi', stones: 0, positions: [] };
+      return { mode: "no-komi", stones: 0, positions: [] };
     }
 
-    const positions = this.engine.generateHandicapPositions(this.state.boardSize, numeric);
+    const positions = this.engine.generateHandicapPositions(
+      this.state.boardSize,
+      numeric
+    );
     console.log(`置石設定: ${stones}子, 位置:`, positions);
-    console.log(`${this.state.boardSize}路盤 ${stones}子局の置石位置:`, positions);
+    console.log(
+      `${this.state.boardSize}路盤 ${stones}子局の置石位置:`,
+      positions
+    );
 
-    return { mode: 'fixed', stones: numeric, positions };
+    return { mode: "fixed", stones: numeric, positions };
   }
 
   private resetBoardForHandicap(_context: HandicapContext): void {
@@ -612,11 +685,11 @@ export class GameStore {
   }
 
   private placeHandicapStones(context: HandicapContext): void {
-    if (context.mode !== 'fixed') {
+    if (context.mode !== "fixed") {
       return;
     }
 
-    context.positions.forEach(pos => {
+    context.positions.forEach((pos) => {
       if (this.isValidPosition(pos)) {
         this.state.board[pos.row][pos.col] = 1;
       }
@@ -624,7 +697,7 @@ export class GameStore {
   }
 
   private updateHandicapMetadata(context: HandicapContext): void {
-    if (context.mode === 'even') {
+    if (context.mode === "even") {
       this.state.handicapStones = 0;
       this.state.handicapPositions = [];
       this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
@@ -632,7 +705,7 @@ export class GameStore {
       return;
     }
 
-    if (context.mode === 'no-komi') {
+    if (context.mode === "no-komi") {
       this.state.handicapStones = 0;
       this.state.handicapPositions = [];
       this.state.komi = 0;
@@ -641,9 +714,54 @@ export class GameStore {
     }
 
     this.state.handicapStones = context.stones;
-    this.state.handicapPositions = context.positions.map(pos => ({ ...pos }));
+    this.state.handicapPositions = context.positions.map((pos) => ({ ...pos }));
     this.state.komi = 0;
     this.state.startColor = 2;
     this.state.turn = 0;
+  }
+  /** Debug: board[][] dump for SGF apply tracing */
+  private logBoardDump(reason: string = "dump"): void {
+    const size = this.state.boardSize;
+    const board = this.state.board;
+
+    const ts = new Date().toLocaleTimeString();
+    console.log(`[${ts}] Board dump (${reason}), size=${size}`);
+
+    for (let row = 0; row < size; row++) {
+      console.log(`row ${row}: ${board[row].join(" ")}`);
+    }
+  }
+  /** =========================================================================
+   * 編集モード専用：囲碁ルールを使わない石配置（board へ直接書き込む）
+   * ========================================================================= */
+  public directPlace(pos: Position, color: StoneColor): boolean {
+    if (!this.isValidPosition(pos)) return false;
+
+    const board = this.cloneBoard();
+    board[pos.row][pos.col] = color;
+    this.state.board = board;
+
+    this.state.turn++; // ★追加：これで alt モードが交互に動く
+
+    this.invalidateCache();
+    return true;
+  }
+
+  /** =========================================================================
+   * 編集モード専用：囲碁ルールを使わない石消し
+   * ========================================================================= */
+  public directRemove(pos: Position): boolean {
+    if (!this.isValidPosition(pos)) return false;
+
+    if (this.state.board[pos.row][pos.col] === 0) return false;
+
+    const board = this.cloneBoard();
+    board[pos.row][pos.col] = 0;
+    this.state.board = board;
+
+    this.state.turn = Math.max(0, this.state.turn - 1); // ★任意
+
+    this.invalidateCache();
+    return true;
   }
 }

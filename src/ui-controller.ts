@@ -91,12 +91,13 @@ export class UIController {
     );
   }
 
+  
   initialize(): void {
     this.boardController.initialize();
     this.toolbarController.initialize();
     this.featureMenuController.initialize();
     this.fileMenuController.initialize();
-    this.keyboardController.initialize(this.createKeyBindings());
+  
     this.initResizeEvents();
 
     this.store.initBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE);
@@ -141,21 +142,6 @@ export class UIController {
     }
   }
 
-  private createKeyBindings(): KeyBindings {
-    return {
-      'q': () => this.toolbarController.triggerButton('.size-btn[data-size="9"]'),
-      'w': () => this.toolbarController.triggerButton('.size-btn[data-size="13"]'),
-      'e': () => this.toolbarController.triggerButton('.size-btn[data-size="19"]'),
-      'a': () => this.toolbarController.triggerButton('#btn-clear'),
-      's': () => this.toolbarController.triggerButton('#btn-undo'),
-      'd': () => this.toolbarController.triggerButton('#btn-erase'),
-      'z': () => this.toolbarController.triggerButton('#btn-black'),
-      'x': () => this.toolbarController.triggerButton('#btn-alt'),
-      'c': () => this.toolbarController.triggerButton('#btn-white'),
-      'ArrowLeft': () => this.toolbarController.triggerButton('#btn-prev-move'),
-      'ArrowRight': () => this.toolbarController.triggerButton('#btn-next-move')
-    };
-  }
 
   private initResizeEvents(): void {
     const handleResize = () => {

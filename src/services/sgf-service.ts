@@ -177,7 +177,8 @@ export class SGFService {
   }
 
   private runHistoryAdjustmentPhase(input: HistoryAdjustmentInput): HistoryAdjustmentOutput {
-    this.store.setMoveIndex(0);
+    const firstIndex = this.store.snapshot.sgfMoves.length > 0 ? 1 : 0;
+    this.store.setMoveIndex(firstIndex);
     return { state: input.state };
   }
 
