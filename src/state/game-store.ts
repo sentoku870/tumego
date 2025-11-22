@@ -283,6 +283,30 @@ export class GameStore {
   }
 
   /**
+   * 解答モードから空盤面の編集モードへ戻す。
+   * 盤面と手順をリセットし、問題図などのメタ情報は保持する。
+   */
+  exitSolveModeToEmptyBoard(): void {
+    const size = this.state.boardSize;
+
+    this.state.board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
+
+    this.state.history = [];
+    this.state.turn = 0;
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+    this.state.numberStartIndex = 0;
+
+    this.state.numberMode = false;
+    this.state.mode = "alt";
+    this.state.eraseMode = false;
+
+    this.invalidateCache();
+  }
+
+  /**
    * テンプレートメソッド。以下の順序で処理を行う:
    * 1. {@link resetBoardForHandicap} 盤面のリセット
    * 2. {@link placeHandicapStones} 置石の配置

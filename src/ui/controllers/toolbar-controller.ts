@@ -42,6 +42,7 @@ export class ToolbarController {
   updateAnswerButtonDisplay(): void {
     const state = this.store.snapshot;
     const answerBtn = document.getElementById("btn-answer");
+    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
     if (!answerBtn) {
       return;
     }
@@ -52,6 +53,10 @@ export class ToolbarController {
     } else {
       answerBtn.textContent = "🔥 黒先";
       answerBtn.classList.remove("white-mode");
+    }
+
+    if (exitSolveBtn) {
+      exitSolveBtn.style.display = state.numberMode ? "" : "none";
     }
     // ここにイベントリスナーの定義は不要
   }
@@ -140,111 +145,127 @@ export class ToolbarController {
     });
   }
 
-private initGameButtons(): void {
-  const prevBtn = document.getElementById('btn-prev-move');
-  prevBtn?.addEventListener('click', () => {
-    const state = this.store.snapshot;
-    if (state.sgfIndex > 0) {
-      this.store.setMoveIndex(state.sgfIndex - 1);
-      this.updateUI();
-    }
-  });
-
-  const nextBtn = document.getElementById('btn-next-move');
-  nextBtn?.addEventListener('click', () => {
-    const state = this.store.snapshot;
-    if (state.sgfIndex < state.sgfMoves.length) {
-      this.store.setMoveIndex(state.sgfIndex + 1);
-      this.updateUI();
-    }
-  });
-
-  const answerBtn = document.getElementById('btn-answer');
-  answerBtn?.addEventListener('click', () => {
-    this.disableEraseMode();
-    const state = this.store.snapshot;
-
-    if (!state.numberMode) {
-      // === 編集モード → 解答モード へ入るとき ===
-      if (
-        state.sgfMoves.length > 0 ||
-        state.handicapStones > 0 ||
-        state.board.some(row => row.some(cell => cell !== 0))
-      ) {
-        this.store.historyManager.save(`解答開始前（${state.sgfMoves.length}手）`, state);
-      }
-
-      // 解答用の公式初期化
-      this.store.enterSolveMode();
-
-      // 黒先で開始
-      state.answerMode = 'black';
-      state.startColor = 1;
-
-    } else {
-      // === 解答モード中：黒先 / 白先 の切り替えだけ ===
-      if (state.answerMode === 'black') {
-        state.answerMode = 'white';
-        state.startColor = 2;
-      } else {
-        state.answerMode = 'black';
-        state.startColor = 1;
-      }
-    }
-
-    this.updateAnswerButtonDisplay();
-    this.updateUI();
-  });
-
-  const historyBtn = document.getElementById('btn-history');
-  historyBtn?.addEventListener('click', () => {
-    this.store.historyManager.showHistoryDialog((index) => {
-      if (this.store.historyManager.restore(index, this.store.snapshot)) {
+  private initGameButtons(): void {
+    const prevBtn = document.getElementById("btn-prev-move");
+    prevBtn?.addEventListener("click", () => {
+      const state = this.store.snapshot;
+      if (state.sgfIndex > 0) {
+        this.store.setMoveIndex(state.sgfIndex - 1);
         this.updateUI();
-        this.renderer.showMessage('履歴を復元しました');
       }
     });
-  });
 
-  const problemBtn = document.getElementById('btn-problem');
-  problemBtn?.addEventListener('click', () => {
-    this.disableEraseMode();
-    const state = this.store.snapshot;
-
-    if (!state.numberMode) {
-      // === 編集モード中：問題図の確定だけ行う ===
-      if (
-        state.sgfMoves.length > 0 ||
-        state.handicapStones > 0 ||
-        state.board.some(row => row.some(cell => cell !== 0))
-      ) {
-        this.store.historyManager.save(`問題図確定前（${state.sgfMoves.length}手）`, state);
+    const nextBtn = document.getElementById("btn-next-move");
+    nextBtn?.addEventListener("click", () => {
+      const state = this.store.snapshot;
+      if (state.sgfIndex < state.sgfMoves.length) {
+        this.store.setMoveIndex(state.sgfIndex + 1);
+        this.updateUI();
       }
-      this.store.setProblemDiagram();
-      state.answerMode = 'black';
+    });
+
+    const answerBtn = document.getElementById("btn-answer");
+    answerBtn?.addEventListener("click", () => {
+      this.disableEraseMode();
+      const state = this.store.snapshot;
+
+      if (!state.numberMode) {
+        // === 編集モード → 解答モード へ入るとき ===
+        if (
+          state.sgfMoves.length > 0 ||
+          state.handicapStones > 0 ||
+          state.board.some((row) => row.some((cell) => cell !== 0))
+        ) {
+          this.store.historyManager.save(
+            `解答開始前（${state.sgfMoves.length}手）`,
+            state
+          );
+        }
+
+        // 解答用の公式初期化
+        this.store.enterSolveMode();
+
+        // 黒先で開始
+        state.answerMode = "black";
+        state.startColor = 1;
+      } else {
+        // === 解答モード中：黒先 / 白先 の切り替えだけ ===
+        if (state.answerMode === "black") {
+          state.answerMode = "white";
+          state.startColor = 2;
+        } else {
+          state.answerMode = "black";
+          state.startColor = 1;
+        }
+      }
+
       this.updateAnswerButtonDisplay();
       this.updateUI();
-      this.renderer.showMessage('問題図を確定しました');
-    } else {
-      // === 解答モード中：問題図に戻す ===
-      if (!this.store.hasProblemDiagram()) {
-        this.renderer.showMessage('問題図が設定されていません');
+    });
+
+    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
+    exitSolveBtn?.addEventListener("click", () => {
+      if (!this.isSolveMode()) {
         return;
       }
 
-      this.store.restoreProblemDiagram();
+      this.disableEraseMode();
+      this.store.exitSolveModeToEmptyBoard();
+      this.updateAnswerButtonDisplay();
       this.updateUI();
-      this.renderer.showMessage('問題図に戻しました');
-    }
-  });
+    });
 
-  this.elements.sliderEl?.addEventListener('input', (event) => {
-    const target = event.target as HTMLInputElement;
-    this.store.setMoveIndex(parseInt(target.value, 10));
-    this.updateUI();
-  });
-}
+    const historyBtn = document.getElementById("btn-history");
+    historyBtn?.addEventListener("click", () => {
+      this.store.historyManager.showHistoryDialog((index) => {
+        if (this.store.historyManager.restore(index, this.store.snapshot)) {
+          this.updateUI();
+          this.renderer.showMessage("履歴を復元しました");
+        }
+      });
+    });
 
+    const problemBtn = document.getElementById("btn-problem");
+    problemBtn?.addEventListener("click", () => {
+      this.disableEraseMode();
+      const state = this.store.snapshot;
+
+      if (!state.numberMode) {
+        // === 編集モード中：問題図の確定だけ行う ===
+        if (
+          state.sgfMoves.length > 0 ||
+          state.handicapStones > 0 ||
+          state.board.some((row) => row.some((cell) => cell !== 0))
+        ) {
+          this.store.historyManager.save(
+            `問題図確定前（${state.sgfMoves.length}手）`,
+            state
+          );
+        }
+        this.store.setProblemDiagram();
+        state.answerMode = "black";
+        this.updateAnswerButtonDisplay();
+        this.updateUI();
+        this.renderer.showMessage("問題図を確定しました");
+      } else {
+        // === 解答モード中：問題図に戻す ===
+        if (!this.store.hasProblemDiagram()) {
+          this.renderer.showMessage("問題図が設定されていません");
+          return;
+        }
+
+        this.store.restoreProblemDiagram();
+        this.updateUI();
+        this.renderer.showMessage("問題図に戻しました");
+      }
+    });
+
+    this.elements.sliderEl?.addEventListener("input", (event) => {
+      const target = event.target as HTMLInputElement;
+      this.store.setMoveIndex(parseInt(target.value, 10));
+      this.updateUI();
+    });
+  }
 
   private initBoardSaveButton(): void {
     const saveBtn = document.getElementById("btn-save-board");

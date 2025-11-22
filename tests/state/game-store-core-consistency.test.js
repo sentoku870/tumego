@@ -200,4 +200,37 @@ describe('Core consistency: GameStore state alignment', () => {
     expect(state.turn).toBe(3);
     expectCurrentColorFromTurn(state, store);
   });
+
+  test('Test8: 解答モードから空盤面の編集に戻す', () => {
+    store.directPlace({ col: 0, row: 0 }, 1);
+    store.directPlace({ col: 1, row: 0 }, 2);
+    store.setProblemDiagram();
+
+    store.enterSolveMode();
+    const solveMoves = [
+      { col: 2, row: 2, color: 1 },
+      { col: 3, row: 2, color: 2 }
+    ];
+    solveMoves.forEach((move) => store.tryMove(move, move.color));
+
+    expect(state.numberMode).toBe(true);
+    expect(state.sgfMoves).toHaveLength(solveMoves.length);
+    expect(state.turn).toBe(solveMoves.length);
+
+    const problemDiagramBlack = [...state.problemDiagramBlack];
+    const problemDiagramWhite = [...state.problemDiagramWhite];
+
+    store.exitSolveModeToEmptyBoard();
+
+    expect(state.numberMode).toBe(false);
+    expect(state.mode).toBe('alt');
+    expectBoardState(state, createBoard(state.boardSize));
+    expect(state.sgfMoves).toHaveLength(0);
+    expect(state.sgfIndex).toBe(0);
+    expect(state.turn).toBe(0);
+    expect(state.history).toEqual([]);
+    expect(state.problemDiagramSet).toBe(true);
+    expect(state.problemDiagramBlack).toEqual(problemDiagramBlack);
+    expect(state.problemDiagramWhite).toEqual(problemDiagramWhite);
+  });
 });
