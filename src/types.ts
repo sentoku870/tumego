@@ -207,6 +207,11 @@ export interface SliderRenderModel {
 // ============ エンジン関連 ============
 export interface MoveResult {
   readonly board: Board;
+  /**
+   * If a simple ko was created by the last move, this marks the forbidden
+   * point for the opponent's immediate reply. `null` means no ko restriction.
+   */
+  readonly koPoint?: Position | null;
 }
 
 // ============ 定数 ============

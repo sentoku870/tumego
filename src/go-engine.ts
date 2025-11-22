@@ -12,6 +12,13 @@ import {
  * Pure go board logic. All state mutations are delegated to {@link GameStore}.
  */
 export class GoEngine {
+  /**
+   * Tracks the current ko point (if any) between consecutive moves. This keeps
+   * the engine behavior aligned with the simple ko tests even when callers do
+   * not persist ko metadata on their own state objects.
+   */
+  private koPoint: Position | null = null;
+
   playMove(
     state: GameState,
     pos: Position,
@@ -20,11 +27,14 @@ export class GoEngine {
   ): MoveResult | null {
     const board = boardOverride ?? this.cloneBoard(state.board);
 
-    if (!this.tryApplyMove(board, state.boardSize, pos, color)) {
+    const applied = this.tryApplyMove(board, state.boardSize, pos, color);
+    if (!applied) {
       return null;
     }
 
-    return { board };
+    this.koPoint = applied.koPoint;
+
+    return { board, koPoint: this.koPoint };
   }
 
   generateHandicapPositions(boardSize: number, stones: number): Position[] {
@@ -41,32 +51,56 @@ export class GoEngine {
     return positions.map(pos => ({ ...pos }));
   }
 
-  private tryApplyMove(board: Board, boardSize: number, pos: Position, color: StoneColor): boolean {
+  private tryApplyMove(
+    board: Board,
+    boardSize: number,
+    pos: Position,
+    color: StoneColor
+  ): { board: Board; koPoint: Position | null } | null {
     if (!this.isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
-      return false;
+      return null;
+    }
+
+    // Simple ko: if the position matches the current ko point, the move is illegal.
+    if (this.koPoint && this.positionsEqual(this.koPoint, pos)) {
+      return null;
     }
 
     board[pos.row][pos.col] = color;
 
     const opponent = (3 - color) as StoneColor;
+    const captured: Position[] = [];
+
+    // Capture any opponent groups with zero liberties after the placement.
     for (const neighbor of this.getNeighbors(pos, boardSize)) {
       if (board[neighbor.row][neighbor.col] !== opponent) {
         continue;
       }
 
       const group = this.getGroup(board, neighbor, boardSize);
-      if (this.getGroupLiberties(board, group.stones, boardSize).length === 0) {
-        this.removeStones(board, group.stones);
+      if (group.libs === 0) {
+        captured.push(...group.stones);
       }
     }
 
-    const selfGroup = this.getGroup(board, pos, boardSize);
-    if (this.getGroupLiberties(board, selfGroup.stones, boardSize).length === 0) {
-      board[pos.row][pos.col] = 0;
-      return false;
+    if (captured.length > 0) {
+      this.removeStones(board, captured);
     }
 
-    return true;
+    // Suicide check for the newly placed stone's group after captures.
+    const selfGroup = this.getGroup(board, pos, boardSize);
+    if (selfGroup.libs === 0) {
+      // Illegal suicide; no state updates.
+      return null;
+    }
+
+    // Determine ko: only when a single stone was captured and the new group
+    // has exactly one liberty (the captured point), the opponent cannot
+    // immediately recapture.
+    const koPoint =
+      captured.length === 1 && selfGroup.libs === 1 ? captured[0] : null;
+
+    return { board, koPoint };
   }
 
   private cloneBoard(board: Board): Board {
@@ -127,6 +161,10 @@ export class GoEngine {
 
   private isValidPosition(boardSize: number, pos: Position): boolean {
     return pos.col >= 0 && pos.col < boardSize && pos.row >= 0 && pos.row < boardSize;
+  }
+
+  private positionsEqual(a: Position, b: Position): boolean {
+    return a.col === b.col && a.row === b.row;
   }
 
   private getHandicapPatterns(boardSize: number): Record<number, Position[]> | null {
