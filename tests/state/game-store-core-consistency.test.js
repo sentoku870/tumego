@@ -162,4 +162,42 @@ describe('Core consistency: GameStore state alignment', () => {
     expectBoardState(state, buildBoardFromMoves(state.boardSize, expectedMoves));
     expectCurrentColorFromTurn(state, store);
   });
+
+  test('Test6: 通常モードの undo は sgfIndex を変更しない', () => {
+    const moves = [
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 },
+      { col: 0, row: 1, color: 1 }
+    ];
+
+    moves.forEach((move) => store.tryMove(move, move.color));
+
+    const indexBefore = state.sgfIndex;
+
+    store.undo();
+
+    expect(state.sgfMoves).toHaveLength(3);
+    expect(state.sgfIndex).toBe(indexBefore);
+    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves.slice(0, 2)));
+    expectCurrentColorFromTurn(state, store);
+  });
+
+  test('Test7: undo 後に setMoveIndex を呼ぶと “redo 的” に全手が復元される', () => {
+    const moves = [
+      { col: 0, row: 0, color: 1 },
+      { col: 1, row: 0, color: 2 },
+      { col: 0, row: 1, color: 1 }
+    ];
+
+    moves.forEach((move) => store.tryMove(move, move.color));
+
+    store.undo();
+
+    store.setMoveIndex(state.sgfMoves.length);
+
+    expect(state.sgfIndex).toBe(state.sgfMoves.length);
+    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
+    expect(state.turn).toBe(3);
+    expectCurrentColorFromTurn(state, store);
+  });
 });
