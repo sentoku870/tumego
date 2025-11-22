@@ -30,6 +30,7 @@ const createState = (size = 5) => ({
 const createHistoryMock = () => ({
   save: () => {},
   restore: () => false,
+  restoreLast: () => false,
   getList: () => [],
   clear: () => {},
   showHistoryDialog: () => {}

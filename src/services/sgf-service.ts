@@ -105,10 +105,7 @@ export class SGFService {
     const { state, result } = input;
     const { moves, gameInfo, rawSGF } = result;
 
-    if (state.sgfMoves.length > 0 || state.handicapStones > 0 ||
-      state.board.some(row => row.some(cell => cell !== 0))) {
-      this.store.historyManager.save(`SGF読み込み前（${state.sgfMoves.length}手）`, state);
-    }
+    this.store.historyManager.save(`SGF読み込み前（${state.sgfMoves.length}手）`, state);
 
     if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
       const newSize = gameInfo.boardSize;

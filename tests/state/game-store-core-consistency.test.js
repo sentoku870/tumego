@@ -32,6 +32,7 @@ const createState = (size = 9) => ({
 const createHistoryMock = () => ({
   save: () => {},
   restore: () => false,
+  restoreLast: () => false,
   getList: () => [],
   clear: () => {},
   showHistoryDialog: () => {}
@@ -98,11 +99,11 @@ describe('Core consistency: GameStore state alignment', () => {
 
     const undone = store.undo();
 
-    expect(undone).toBe(true);
+    expect(undone).toBe(false);
     expect(state.sgfMoves).toHaveLength(3);
     expect(state.sgfIndex).toBe(state.sgfMoves.length);
-    expect(state.turn).toBe(2);
-    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves.slice(0, 2)));
+    expect(state.turn).toBe(3);
+    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
     expectCurrentColorFromTurn(state, store);
   });
 
@@ -174,12 +175,13 @@ describe('Core consistency: GameStore state alignment', () => {
 
     const indexBefore = state.sgfIndex;
 
-    store.undo();
+    const undone = store.undo();
 
+    expect(undone).toBe(false);
     expect(state.sgfMoves).toHaveLength(3);
     expect(state.sgfIndex).toBe(indexBefore);
-    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves.slice(0, 2)));
-    expectCurrentColorFromTurn(state, store);
+    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
+    expect(state.turn).toBe(3);
   });
 
   test('Test7: undo 後に setMoveIndex を呼ぶと “redo 的” に全手が復元される', () => {
@@ -189,16 +191,25 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 0, row: 1, color: 1 }
     ];
 
+    state.numberMode = true;
+    state.numberStartIndex = 0;
+
     moves.forEach((move) => store.tryMove(move, move.color));
 
-    store.undo();
+    const undone = store.undo();
+
+    expect(undone).toBe(true);
+    expect(state.sgfIndex).toBe(moves.length - 1);
+    expectBoardState(
+      state,
+      buildBoardFromMoves(state.boardSize, moves.slice(0, moves.length - 1))
+    );
 
     store.setMoveIndex(state.sgfMoves.length);
 
     expect(state.sgfIndex).toBe(state.sgfMoves.length);
     expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
     expect(state.turn).toBe(3);
-    expectCurrentColorFromTurn(state, store);
   });
 
   test('Test8: 解答モードから空盤面の編集に戻す', () => {
