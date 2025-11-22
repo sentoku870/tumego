@@ -140,38 +140,42 @@ export class GameStore {
     return true;
   }
 
-  initBoard(size: number): void {
-    if (this.hasGameData()) {
-      this.saveToHistory(
-        `${this.state.boardSize}路盤（${this.state.sgfMoves.length}手）`
-      );
+  initBoard(size: number, options?: { skipHistory?: boolean }): void {
+    const skipHistory = options?.skipHistory ?? false;
+
+    if (!skipHistory && this.hasGameData()) {
+      this.saveToHistory(`${this.state.boardSize}路盤→${size}路盤 変更前`);
     }
 
     this.state.boardSize = size;
-    this.resetForClearAll();
+    this.resetToEmptyEditState({ preserveProblemDiagram: false });
   }
 
   undo(): boolean {
     if (this.state.numberMode) {
-      this.state.sgfIndex = Math.max(
+      const nextIndex = Math.max(
         this.state.numberStartIndex,
         this.state.sgfIndex - 1
       );
+
+      if (nextIndex === this.state.sgfIndex) {
+        return false;
+      }
+
+      this.state.sgfIndex = nextIndex;
       this.setMoveIndex(this.state.sgfIndex);
       return true;
     }
 
-    if (this.state.turn > 0) {
-      this.state.turn = Math.max(0, this.state.turn - 1);
-      const snapshot = this.state.history[this.state.turn];
-      if (snapshot) {
-        this.state.board = this.cloneBoard(snapshot);
-      }
+    const restored =
+      typeof this.history.restoreLast === "function"
+        ? this.history.restoreLast(this.state)
+        : false;
+    if (restored) {
       this.invalidateCache();
-      return true;
     }
 
-    return false;
+    return restored;
   }
 
   setMoveIndex(index: number): void {
@@ -203,6 +207,10 @@ export class GameStore {
   }
 
   setProblemDiagram(): void {
+    if (this.hasGameData()) {
+      this.saveToHistory(`問題図確定前（${this.state.boardSize}路盤）`);
+    }
+
     const blackPositions: Position[] = [];
     const whitePositions: Position[] = [];
 
@@ -291,6 +299,10 @@ export class GameStore {
    * boardSize はそのまま維持し、問題図などのメタ情報は従来同様リセットする。
    */
   resetForClearAll(): void {
+    if (this.hasGameData()) {
+      this.saveToHistory(`全消去前（${this.state.boardSize}路盤）`);
+    }
+
     this.resetToEmptyEditState({ preserveProblemDiagram: false });
   }
 
@@ -302,7 +314,7 @@ export class GameStore {
    */
   setHandicap(stones: number | string): void {
     if (this.hasGameData()) {
-      this.saveToHistory(`置石変更前（${this.state.handicapStones}子）`);
+      this.saveToHistory(`置石設定前（${this.state.handicapStones}子）`);
     }
 
     const context = this.createHandicapContext(stones);
@@ -652,8 +664,8 @@ export class GameStore {
     return true;
   }
 
-  private saveToHistory(description: string): void {
-    this.history.save(description, this.state);
+  private saveToHistory(label: string): void {
+    this.history.save(label, this.state);
   }
 
   private createRebuildMetrics(): RebuildMetrics {
@@ -714,7 +726,7 @@ export class GameStore {
   }
 
   private resetBoardForHandicap(_context: HandicapContext): void {
-    this.initBoard(this.state.boardSize);
+    this.initBoard(this.state.boardSize, { skipHistory: true });
   }
 
   private placeHandicapStones(context: HandicapContext): void {

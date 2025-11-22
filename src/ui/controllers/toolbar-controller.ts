@@ -76,13 +76,6 @@ export class ToolbarController {
           return;
         }
 
-        if (state.sgfMoves.length > 0 || state.handicapStones > 0) {
-          this.store.historyManager.save(
-            `${state.boardSize}路→${size}路変更前`,
-            state
-          );
-        }
-
         this.store.initBoard(size);
         this.updateUI();
         this.setActiveButton(element, "size-btn");
@@ -94,17 +87,6 @@ export class ToolbarController {
     const clearBtn = document.getElementById("btn-clear");
     clearBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
-      if (
-        state.sgfMoves.length > 0 ||
-        state.handicapStones > 0 ||
-        state.board.some((row) => row.some((cell) => cell !== 0))
-      ) {
-        this.store.historyManager.save(
-          `全消去前（${state.sgfMoves.length}手）`,
-          state
-        );
-      }
-
       this.disableEraseMode();
       this.store.resetForClearAll();
       this.updateUI();
@@ -115,7 +97,10 @@ export class ToolbarController {
 
     const undoBtn = document.getElementById("btn-undo");
     undoBtn?.addEventListener("click", () => {
-      this.store.undo();
+      const restored = this.store.undo();
+      if (restored) {
+        this.renderer.updateBoardSize();
+      }
       this.updateUI();
     });
 
@@ -172,17 +157,6 @@ export class ToolbarController {
 
       if (!state.numberMode) {
         // === 編集モード → 解答モード へ入るとき ===
-        if (
-          state.sgfMoves.length > 0 ||
-          state.handicapStones > 0 ||
-          state.board.some((row) => row.some((cell) => cell !== 0))
-        ) {
-          this.store.historyManager.save(
-            `解答開始前（${state.sgfMoves.length}手）`,
-            state
-          );
-        }
-
         // 解答用の公式初期化
         this.store.enterSolveMode();
 
@@ -220,6 +194,7 @@ export class ToolbarController {
     historyBtn?.addEventListener("click", () => {
       this.store.historyManager.showHistoryDialog((index) => {
         if (this.store.historyManager.restore(index, this.store.snapshot)) {
+          this.renderer.updateBoardSize();
           this.updateUI();
           this.renderer.showMessage("履歴を復元しました");
         }
@@ -233,16 +208,6 @@ export class ToolbarController {
 
       if (!state.numberMode) {
         // === 編集モード中：問題図の確定だけ行う ===
-        if (
-          state.sgfMoves.length > 0 ||
-          state.handicapStones > 0 ||
-          state.board.some((row) => row.some((cell) => cell !== 0))
-        ) {
-          this.store.historyManager.save(
-            `問題図確定前（${state.sgfMoves.length}手）`,
-            state
-          );
-        }
         this.store.setProblemDiagram();
         state.answerMode = "black";
         this.updateAnswerButtonDisplay();

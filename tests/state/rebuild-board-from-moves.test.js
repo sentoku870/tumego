@@ -29,6 +29,7 @@ const createState = (size = DEFAULT_CONFIG.DEFAULT_BOARD_SIZE) => ({
 const createHistoryMock = () => ({
   save: () => {},
   restore: () => false,
+  restoreLast: () => false,
   getList: () => [],
   clear: () => {},
   showHistoryDialog: () => {}

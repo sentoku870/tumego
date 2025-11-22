@@ -82,15 +82,31 @@ export interface UIElements {
 }
 
 // ============ 操作履歴 ============
+export type HistorySnapshotState = Pick<
+  GameState,
+  | "boardSize"
+  | "board"
+  | "turn"
+  | "numberMode"
+  | "answerMode"
+  | "problemDiagramSet"
+  | "problemDiagramBlack"
+  | "problemDiagramWhite"
+  | "handicapStones"
+  | "handicapPositions"
+  | "startColor"
+>;
+
 export interface HistorySnapshot {
   timestamp: Date;
-  description: string;
-  state: GameState;
+  label: string;
+  state: HistorySnapshotState;
 }
 
 export interface OperationHistory {
-  save(description: string, state: GameState): void;
+  save(label: string, state: GameState): void;
   restore(index: number, currentState: GameState): boolean;
+  restoreLast(currentState: GameState): boolean;
   getList(): HistoryItem[];
   clear(): void;
   showHistoryDialog(onRestore: (index: number) => void): void;
@@ -98,7 +114,7 @@ export interface OperationHistory {
 
 export interface HistoryItem {
   index: number;
-  description: string;
+  label: string;
   timestamp: Date;
   timeString: string;
 }

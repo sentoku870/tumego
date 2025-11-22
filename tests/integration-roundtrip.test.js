@@ -69,14 +69,24 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     expect(state.handicapStones).toBe(4);
     expect(state.komi).toBe(0);
 
-    const baselineEntry = history.getList().find(item => item.description === baselineDescription);
+    const baselineEntry = history.getList().find(item => item.label === baselineDescription);
     if (!baselineEntry) {
       throw new Error('baseline snapshot was not saved');
     }
 
     const restored = history.restore(baselineEntry.index, state);
     expect(restored).toBe(true);
-    expect(state).toEqual(baselineState);
-    expect(state.komi).toBe(baselineState.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI);
+    expect(state.boardSize).toBe(baselineState.boardSize);
+    expect(state.board).toEqual(baselineState.board);
+    expect(state.turn).toBe(baselineState.turn);
+    expect(state.numberMode).toBe(baselineState.numberMode);
+    expect(state.answerMode).toBe(baselineState.answerMode);
+    expect(state.problemDiagramSet).toBe(baselineState.problemDiagramSet);
+    expect(state.problemDiagramBlack).toEqual(baselineState.problemDiagramBlack);
+    expect(state.problemDiagramWhite).toEqual(baselineState.problemDiagramWhite);
+    expect(state.handicapStones).toBe(baselineState.handicapStones);
+    expect(state.handicapPositions).toEqual(baselineState.handicapPositions);
+    expect(state.startColor).toBe(baselineState.startColor);
+    expect(state.komi).toBe(0);
   });
 });

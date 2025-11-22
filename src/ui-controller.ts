@@ -111,7 +111,6 @@ export class UIController {
     this.toolbarController.updateAnswerButtonDisplay();
 
     this.historyManager.clear();
-    this.historyManager.save('アプリケーション開始', this.state);
 
     const urlResult = this.sgfService.loadFromURL();
     if (urlResult) {
