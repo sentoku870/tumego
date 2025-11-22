@@ -148,11 +148,7 @@ export class GameStore {
     }
 
     this.state.boardSize = size;
-    this.state.board = Array.from({ length: size }, () =>
-      Array<CellState>(size).fill(0)
-    );
-    this.resetGameState();
-    this.invalidateCache();
+    this.resetForClearAll();
   }
 
   undo(): boolean {
@@ -287,23 +283,15 @@ export class GameStore {
    * 盤面と手順をリセットし、問題図などのメタ情報は保持する。
    */
   exitSolveModeToEmptyBoard(): void {
-    const size = this.state.boardSize;
+    this.resetToEmptyEditState({ preserveProblemDiagram: true });
+  }
 
-    this.state.board = Array.from({ length: size }, () =>
-      Array<CellState>(size).fill(0)
-    );
-
-    this.state.history = [];
-    this.state.turn = 0;
-    this.state.sgfMoves = [];
-    this.state.sgfIndex = 0;
-    this.state.numberStartIndex = 0;
-
-    this.state.numberMode = false;
-    this.state.mode = "alt";
-    this.state.eraseMode = false;
-
-    this.invalidateCache();
+  /**
+   * 「全消去」ボタン相当の挙動として、編集モードの初期状態に戻す。
+   * boardSize はそのまま維持し、問題図などのメタ情報は従来同様リセットする。
+   */
+  resetForClearAll(): void {
+    this.resetToEmptyEditState({ preserveProblemDiagram: false });
   }
 
   /**
@@ -340,6 +328,45 @@ export class GameStore {
     }
 
     return this.state.mode === "black" ? 1 : 2;
+  }
+
+  private resetToEmptyEditState({
+    preserveProblemDiagram,
+  }: {
+    preserveProblemDiagram: boolean;
+  }): void {
+    const size = this.state.boardSize;
+
+    this.state.board = Array.from({ length: size }, () =>
+      Array<CellState>(size).fill(0)
+    );
+
+    this.state.history = [];
+    this.state.turn = 0;
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+    this.state.numberStartIndex = 0;
+
+    this.state.numberMode = false;
+    this.state.mode = "alt";
+    this.state.eraseMode = false;
+
+    if (!preserveProblemDiagram) {
+      this.resetMetadataForNewBoard();
+    }
+
+    this.invalidateCache();
+  }
+
+  private resetMetadataForNewBoard(): void {
+    this.state.handicapStones = 0;
+    this.state.handicapPositions = [];
+    this.state.problemDiagramSet = false;
+    this.state.problemDiagramBlack = [];
+    this.state.problemDiagramWhite = [];
+    this.state.gameTree = null;
+    this.state.sgfLoadedFromExternal = false;
+    this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
   }
 
   private pushHistorySnapshot(): void {
@@ -458,24 +485,6 @@ export class GameStore {
       this.state.handicapStones > 0 ||
       this.state.board.some((row) => row.some((cell) => cell !== 0))
     );
-  }
-
-  private resetGameState(): void {
-    this.state.history = [];
-    this.state.turn = 0;
-    this.state.sgfMoves = [];
-    this.state.sgfIndex = 0;
-    this.state.numberStartIndex = 0;
-    this.state.eraseMode = false;
-    this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-    this.state.handicapStones = 0;
-    this.state.handicapPositions = [];
-    this.state.problemDiagramSet = false;
-    this.state.problemDiagramBlack = [];
-    this.state.problemDiagramWhite = [];
-    this.state.gameTree = null;
-    this.state.numberMode = false;
-    this.state.sgfLoadedFromExternal = false;
   }
 
   private invalidateCache(): void {

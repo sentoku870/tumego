@@ -233,4 +233,35 @@ describe('Core consistency: GameStore state alignment', () => {
     expect(state.problemDiagramBlack).toEqual(problemDiagramBlack);
     expect(state.problemDiagramWhite).toEqual(problemDiagramWhite);
   });
+
+  test('Test9: 解答モード中に全消去で編集初期状態へ戻す', () => {
+    store.directPlace({ col: 0, row: 0 }, 1);
+    store.directPlace({ col: 1, row: 0 }, 2);
+    store.setProblemDiagram();
+
+    store.enterSolveMode();
+    const solveMoves = [
+      { col: 2, row: 2, color: 1 },
+      { col: 3, row: 2, color: 2 },
+      { col: 4, row: 4, color: 1 }
+    ];
+    solveMoves.forEach((move) => store.tryMove(move, move.color));
+
+    expect(state.numberMode).toBe(true);
+    expect(state.sgfMoves).toHaveLength(solveMoves.length);
+    expect(state.turn).toBe(solveMoves.length);
+
+    store.resetForClearAll();
+
+    expectBoardState(state, createBoard(state.boardSize));
+    expect(state.sgfMoves).toHaveLength(0);
+    expect(state.sgfIndex).toBe(0);
+    expect(state.turn).toBe(0);
+    expect(state.numberMode).toBe(false);
+    expect(state.mode).toBe('alt');
+    expect(state.history).toEqual([]);
+    expect(state.problemDiagramSet).toBe(false);
+    expect(state.numberStartIndex).toBe(0);
+    expectCurrentColorFromTurn(state, store);
+  });
 });
