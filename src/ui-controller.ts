@@ -133,6 +133,7 @@ export class UIController {
     this.renderer.render();
     this.renderer.updateInfo();
     this.renderer.updateSlider();
+    this.toolbarController.updateEditModeButtonDisplay();
   }
 
   private syncSgfTextarea(text: string): void {

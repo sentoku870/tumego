@@ -201,7 +201,12 @@ export class BoardInteractionController {
 
     // === 編集モード（numberMode = false） ==========================
     const color = this.uiState.drag.dragColor ?? this.store.currentColor;
-    if (this.store.directPlace(pos, color)) {
+    const placed =
+      state.ruleMode === "go"
+        ? this.store.tryMove(pos, color, false)
+        : this.store.directPlace(pos, color);
+
+    if (placed) {
       this.onBoardUpdated();
     }
   }
@@ -219,7 +224,12 @@ export class BoardInteractionController {
     }
 
     // === 編集モード：盤面直接消し ==========================
-    if (this.store.directRemove(pos)) {
+    const removed =
+      state.ruleMode === "go"
+        ? this.store.removeStone(pos)
+        : this.store.directRemove(pos);
+
+    if (removed) {
       this.onBoardUpdated();
       return true;
     }

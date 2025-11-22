@@ -22,6 +22,7 @@ export class ToolbarController {
 
     this.initSizeButtons();
     this.initBasicButtons();
+    this.initEditModeButton();
     this.initGameButtons();
     this.initBoardSaveButton();
   }
@@ -54,6 +55,23 @@ export class ToolbarController {
       answerBtn.classList.remove("white-mode");
     }
     // ここにイベントリスナーの定義は不要
+  }
+
+  updateEditModeButtonDisplay(): void {
+    const state = this.store.snapshot;
+    const editModeBtn = document.getElementById("btn-edit-mode");
+    if (!editModeBtn) {
+      return;
+    }
+
+    editModeBtn.textContent =
+      state.ruleMode === "direct" ? "編集方式：自由配置" : "編集方式：囲碁ルール";
+
+    if (state.ruleMode === "go") {
+      editModeBtn.classList.add("active");
+    } else {
+      editModeBtn.classList.remove("active");
+    }
   }
 
   triggerButton(selector: string): void {
@@ -137,6 +155,23 @@ export class ToolbarController {
       const state = this.store.snapshot;
       state.startColor = state.startColor === 1 ? 2 : 1;
       this.setMode("alt", altBtn!);
+    });
+  }
+
+  private initEditModeButton(): void {
+    const editModeBtn = document.getElementById("btn-edit-mode");
+    if (!editModeBtn) {
+      return;
+    }
+
+    this.updateEditModeButtonDisplay();
+
+    editModeBtn.addEventListener("click", () => {
+      const state = this.store.snapshot;
+      state.ruleMode = state.ruleMode === "direct" ? "go" : "direct";
+
+      this.updateEditModeButtonDisplay();
+      this.updateUI();
     });
   }
 

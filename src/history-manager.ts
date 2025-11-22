@@ -29,6 +29,12 @@ export class HistoryManager implements OperationHistory {
       }
     },
     {
+      key: 'ruleMode',
+      apply: (current, saved) => {
+        current.ruleMode = saved.ruleMode;
+      }
+    },
+    {
       key: 'sgfMoves',
       apply: (current, saved) => {
         current.sgfMoves = saved.sgfMoves.map(move => ({ ...move }));

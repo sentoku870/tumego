@@ -52,6 +52,7 @@ export interface GameState {
   boardSize: number;
   board: CellState[][];
   mode: PlayMode;
+  ruleMode: 'direct' | 'go';
   eraseMode: boolean;
   history: CellState[][][];
   turn: number;

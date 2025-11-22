@@ -6,9 +6,10 @@ import { UIController } from './ui-controller.js';
 function createInitialState(): GameState {
   return {
     boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
-    board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () => 
+    board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () =>
            Array(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE).fill(0)),
     mode: 'alt',
+    ruleMode: 'direct',
     eraseMode: false,
     history: [],
     turn: 0,
