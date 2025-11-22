@@ -106,8 +106,9 @@ export class ToolbarController {
       }
 
       this.disableEraseMode();
-      this.store.initBoard(state.boardSize);
+      this.store.resetForClearAll();
       this.updateUI();
+      this.updateAnswerButtonDisplay();
       // ★ SGF入力エリアを空にする（追加行）
       (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
