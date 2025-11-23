@@ -24,7 +24,14 @@ const createState = (overrides = {}) => {
     problemDiagramSet: overrides.problemDiagramSet ?? false,
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
-    gameTree: overrides.gameTree ?? null
+    gameTree: overrides.gameTree ?? null,
+    gameInfo: overrides.gameInfo ?? {
+      komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
+      handicap: overrides.handicap ?? null,
+      playerBlack: overrides.playerBlack ?? null,
+      playerWhite: overrides.playerWhite ?? null,
+      result: overrides.result ?? null
+    }
   };
 };
 
@@ -42,6 +49,28 @@ describe('SGFParser', () => {
     expect(result.gameInfo.boardSize).toBe(9);
     expect(result.gameInfo.komi).toBe(6.5);
     expect(result.gameInfo.startColor).toBe(1);
+  });
+
+  test('parses header metadata without altering moves', () => {
+    const sgf = '(;GM[1]SZ[19]KM[6.5]PB[Black]PW[White]HA[4]RE[B+R];B[dd];W[pq])';
+    const result = parser.parse(sgf);
+
+    expect(result.gameInfo.playerBlack).toBe('Black');
+    expect(result.gameInfo.playerWhite).toBe('White');
+    expect(result.gameInfo.komi).toBe(6.5);
+    expect(result.gameInfo.handicap).toBe(4);
+    expect(result.gameInfo.result).toBe('B+R');
+  });
+
+  test('handles missing or invalid header values gracefully', () => {
+    const sgf = '(;GM[1]SZ[19]PB[]PW[]HA[invalid]RE[];B[aa])';
+    const result = parser.parse(sgf);
+
+    expect(result.gameInfo.playerBlack).toBeNull();
+    expect(result.gameInfo.playerWhite).toBeNull();
+    expect(result.gameInfo.handicap).toBeNull();
+    expect(result.gameInfo.result).toBeNull();
+    expect(result.gameInfo.komi).toBe(DEFAULT_CONFIG.DEFAULT_KOMI);
   });
 
   test('detects handicap setup and starting color from SGF', () => {

@@ -25,7 +25,14 @@ function createInitialState(): GameState {
     problemDiagramBlack: [],
     problemDiagramWhite: [],
     gameTree: null,
-    sgfLoadedFromExternal: false
+    sgfLoadedFromExternal: false,
+    gameInfo: {
+      komi: DEFAULT_CONFIG.DEFAULT_KOMI,
+      handicap: null,
+      playerBlack: null,
+      playerWhite: null,
+      result: null
+    }
   };
 }
 

@@ -41,7 +41,14 @@ const createState = (size = 9) => {
     problemDiagramBlack: [{ col: 3, row: 3 }],
     problemDiagramWhite: [{ col: 4, row: 4 }],
     gameTree: null,
-    sgfLoadedFromExternal: true
+    sgfLoadedFromExternal: true,
+    gameInfo: {
+      komi: 5.5,
+      handicap: 2,
+      playerBlack: null,
+      playerWhite: null,
+      result: null
+    }
   };
 };
 
@@ -88,5 +95,26 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     expect(state.handicapPositions).toEqual(baselineState.handicapPositions);
     expect(state.startColor).toBe(baselineState.startColor);
     expect(state.komi).toBe(0);
+  });
+
+  test('keeps SGF header metadata through round trip', () => {
+    const parser = new SGFParser();
+    const history = new HistoryManager();
+    const engine = new GoEngine();
+    const state = createState();
+    const store = new GameStore(state, engine, history);
+    const sgfService = new SGFService(parser, store);
+
+    const sgfText = '(;GM[1]SZ[19]KM[6.5]PB[Black]PW[White]HA[4]RE[B+R];B[dd];W[pq])';
+    const parsed = parser.parse(sgfText);
+
+    sgfService.apply(parsed);
+    const exported = sgfService.export();
+
+    expect(exported.includes('PB[Black]')).toBe(true);
+    expect(exported.includes('PW[White]')).toBe(true);
+    expect(exported.includes('KM[6.5]')).toBe(true);
+    expect(exported.includes('HA[4]')).toBe(true);
+    expect(exported.includes('RE[B+R]')).toBe(true);
   });
 });

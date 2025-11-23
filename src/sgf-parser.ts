@@ -1,5 +1,12 @@
 // ============ SGF処理エンジン ============
-import { GameState, Move, Position, SGFParseResult, DEFAULT_CONFIG } from './types.js';
+import {
+  Move,
+  Position,
+  GameState,
+  SGFGameInfo,
+  SGFParseResult,
+  DEFAULT_CONFIG
+} from './types.js';
 
 export class SGFParser {
   // ============ SGF解析 ============
@@ -8,14 +15,18 @@ export class SGFParser {
     console.log('SGF解析開始:', rawText);
 
     const moves: Move[] = [];
-    const gameInfo: Partial<GameState> = {
+    const gameInfo: SGFGameInfo = {
       komi: DEFAULT_CONFIG.DEFAULT_KOMI,
+      handicap: null,
       handicapStones: 0,
       handicapPositions: [],
       startColor: 1,
       problemDiagramSet: false,
       problemDiagramBlack: [],
-      problemDiagramWhite: []
+      problemDiagramWhite: [],
+      playerBlack: null,
+      playerWhite: null,
+      result: null
     };
 
     // 盤サイズの解析
@@ -26,17 +37,37 @@ export class SGFParser {
     }
 
     // コミの解析
-    const komiMatch = rawText.match(/KM\[([0-9.]+)\]/i);
+    const komiMatch = rawText.match(/KM\[([^\]]+)\]/i);
     if (komiMatch) {
-      gameInfo.komi = parseFloat(komiMatch[1]);
+      const parsedKomi = parseFloat(komiMatch[1]);
+      gameInfo.komi = Number.isNaN(parsedKomi) ? null : parsedKomi;
       console.log('コミ:', gameInfo.komi);
     }
 
     // ハンディキャップ（置石数）の解析
-    const handicapMatch = rawText.match(/HA\[(\d+)\]/i);
+    const handicapMatch = rawText.match(/HA\[([^\]]+)\]/i);
     if (handicapMatch) {
-      gameInfo.handicapStones = parseInt(handicapMatch[1], 10);
+      const parsedHandicap = parseInt(handicapMatch[1], 10);
+      gameInfo.handicap = Number.isNaN(parsedHandicap) ? null : parsedHandicap;
+      gameInfo.handicapStones = Number.isNaN(parsedHandicap)
+        ? 0
+        : parsedHandicap;
       console.log('置石数:', gameInfo.handicapStones);
+    }
+
+    const playerBlackMatch = rawText.match(/PB\[([^\]]*)\]/i);
+    if (playerBlackMatch) {
+      gameInfo.playerBlack = playerBlackMatch[1] || null;
+    }
+
+    const playerWhiteMatch = rawText.match(/PW\[([^\]]*)\]/i);
+    if (playerWhiteMatch) {
+      gameInfo.playerWhite = playerWhiteMatch[1] || null;
+    }
+
+    const resultMatch = rawText.match(/RE\[([^\]]*)\]/i);
+    if (resultMatch) {
+      gameInfo.result = resultMatch[1] || null;
     }
 
     const initialBlack: Position[] = [];
@@ -116,27 +147,52 @@ export class SGFParser {
 
   // ============ SGF出力 ============
   export(state: GameState): string {
-    let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]KM[${state.komi}]`;
+    const komi = state.gameInfo?.komi ?? state.komi;
+    const handicapMeta = state.gameInfo?.handicap;
+    let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]`;
+
+    if (komi !== null && komi !== undefined) {
+      sgf += `KM[${komi}]`;
+    }
 
     // 置石がある場合はハンディキャップとして記録
     const treatAsHandicap = state.handicapStones > 0 && !state.problemDiagramSet;
-    if (treatAsHandicap) {
-      sgf += `HA[${state.handicapStones}]`;
+    const handicapValue =
+      handicapMeta !== null && handicapMeta !== undefined
+        ? handicapMeta
+        : treatAsHandicap
+          ? state.handicapStones
+          : null;
+
+    if (handicapValue !== null && handicapValue !== undefined) {
+      sgf += `HA[${handicapValue}]`;
     }
 
     const initialBlack = state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions;
     if (initialBlack.length > 0) {
       const blackCoords = initialBlack
-        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+        .map((pos: Position) => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
         .join('');
       sgf += `AB${blackCoords}`;
     }
 
     if (state.problemDiagramSet && state.problemDiagramWhite.length > 0) {
       const whiteCoords = state.problemDiagramWhite
-        .map(pos => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
+        .map((pos: Position) => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
         .join('');
       sgf += `AW${whiteCoords}`;
+    }
+
+    if (state.gameInfo?.playerBlack) {
+      sgf += `PB[${state.gameInfo.playerBlack}]`;
+    }
+
+    if (state.gameInfo?.playerWhite) {
+      sgf += `PW[${state.gameInfo.playerWhite}]`;
+    }
+
+    if (state.gameInfo?.result) {
+      sgf += `RE[${state.gameInfo.result}]`;
     }
 
     // 着手を記録
