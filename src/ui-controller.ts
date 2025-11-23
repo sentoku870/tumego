@@ -87,7 +87,7 @@ export class UIController {
       this.qrManager,
       () => this.updateUI(),
       (sgfText) => this.syncSgfTextarea(sgfText),
-      () => this.toolbarController.updateAnswerButtonDisplay()
+      () => this.toolbarController.updateToolbarUI()
     );
   }
 
@@ -108,7 +108,7 @@ export class UIController {
     }, 100);
 
     this.updateUI();
-    this.toolbarController.updateAnswerButtonDisplay();
+    this.toolbarController.updateToolbarUI();
 
     this.historyManager.clear();
 
@@ -118,7 +118,7 @@ export class UIController {
       this.renderer.updateBoardSize();
       this.updateUI();
       this.syncSgfTextarea(applyResult.sgfText);
-      this.toolbarController.updateAnswerButtonDisplay();
+      this.toolbarController.updateToolbarUI();
       this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
     }
 
@@ -132,6 +132,7 @@ export class UIController {
     this.renderer.render();
     this.renderer.updateInfo();
     this.renderer.updateSlider();
+    this.toolbarController.updateToolbarUI();
   }
 
   private syncSgfTextarea(text: string): void {

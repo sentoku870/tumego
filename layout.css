@@ -75,26 +75,26 @@ body.horizontal .moves {
 }
 
 /* ===== 要素の並び順 ===== */
-#controls { order: 1; }
+#toolbar { order: 1; }
 .info { order: 2; }
 #branch-info { order: 3; }
 #move-slider { order: 4; }
 #board-wrapper { order: 5; }
 .moves { order: 6; }
-#sgf-controls { order: 7; }
-#sgf-text { order: 8; }
-.msg { order: 9; }
+#sgf-text { order: 7; }
+.msg { order: 8; }
 
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
 
 /* ===== 縦レイアウト時の幅同期 ===== */
+body:not(.horizontal) #toolbar,
 body:not(.horizontal) #controls,
+body:not(.horizontal) #sgf-controls,
 body:not(.horizontal) .info,
 body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
-body:not(.horizontal) #sgf-controls,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .msg {
   width: var(--board-width);
@@ -106,12 +106,19 @@ body:not(.horizontal) .msg {
 }
 
 /* ===== ボタングリッド ===== */
+#toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+}
+
 #controls {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
-  max-width: 480px;
   grid-auto-rows: minmax(48px, auto);
 }
 
@@ -128,12 +135,30 @@ body:not(.horizontal) .msg {
 }
 
 #sgf-controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-width: 480px;
+}
+
+.toolbar-row {
+  display: grid;
+  gap: 8px;
+  width: 100%;
   grid-auto-rows: minmax(48px, auto);
+}
+
+.toolbar-row.row-1,
+.toolbar-row.row-2 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.toolbar-row.row-3 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.hidden-size-buttons {
+  display: none;
 }
 
 #sgf-input {
@@ -166,6 +191,14 @@ body:not(.horizontal) .msg {
 .ctrl-btn:hover {
   background: var(--accent);
   color: #fff;
+}
+
+.ctrl-btn:disabled {
+  background: #f4f4f4;
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .ctrl-btn.active {
@@ -265,9 +298,7 @@ body.horizontal #sgf-text {
   width: 100%;
 }
 
-body.horizontal #controls,
-body.horizontal #sgf-controls {
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+body.horizontal #toolbar {
   max-width: 100%;
 }
 

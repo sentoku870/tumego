@@ -23,6 +23,9 @@ export class ToolbarController {
     this.initSizeButtons();
     this.initBasicButtons();
     this.initGameButtons();
+    this.initBoardSizeToggle();
+    this.initStartColorButton();
+    this.initAnswerStepsShortcut();
     this.initBoardSaveButton();
   }
 
@@ -42,23 +45,16 @@ export class ToolbarController {
   updateAnswerButtonDisplay(): void {
     const state = this.store.snapshot;
     const answerBtn = document.getElementById("btn-answer");
-    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
+    const startColorBtn = document.getElementById("btn-start-color");
     if (!answerBtn) {
       return;
     }
 
-    if (state.answerMode === "white") {
-      answerBtn.textContent = "⚪ 白先";
-      answerBtn.classList.add("white-mode");
-    } else {
-      answerBtn.textContent = "🔥 黒先";
-      answerBtn.classList.remove("white-mode");
-    }
+    answerBtn.textContent = state.numberMode ? "編集に戻る" : "解答開始";
 
-    if (exitSolveBtn) {
-      exitSolveBtn.style.display = state.numberMode ? "" : "none";
+    if (startColorBtn) {
+      startColorBtn.textContent = state.startColor === 2 ? "白先" : "黒先";
     }
-    // ここにイベントリスナーの定義は不要
   }
 
   triggerButton(selector: string): void {
@@ -79,6 +75,7 @@ export class ToolbarController {
         this.store.initBoard(size);
         this.updateUI();
         this.setActiveButton(element, "size-btn");
+        this.updateBoardSizeButtonLabel();
       });
     });
   }
@@ -90,7 +87,7 @@ export class ToolbarController {
       this.disableEraseMode();
       this.store.resetForClearAll();
       this.updateUI();
-      this.updateAnswerButtonDisplay();
+      this.updateToolbarUI();
       // ★ SGF入力エリアを空にする（追加行）
       (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
@@ -156,37 +153,16 @@ export class ToolbarController {
       const state = this.store.snapshot;
 
       if (!state.numberMode) {
-        // === 編集モード → 解答モード へ入るとき ===
-        // 解答用の公式初期化
         this.store.enterSolveMode();
-
-        // 黒先で開始
         state.answerMode = "black";
         state.startColor = 1;
       } else {
-        // === 解答モード中：黒先 / 白先 の切り替えだけ ===
-        if (state.answerMode === "black") {
-          state.answerMode = "white";
-          state.startColor = 2;
-        } else {
-          state.answerMode = "black";
-          state.startColor = 1;
-        }
+        this.store.exitSolveModeToEmptyBoard();
+        state.answerMode = "black";
+        state.startColor = 1;
       }
 
-      this.updateAnswerButtonDisplay();
-      this.updateUI();
-    });
-
-    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
-    exitSolveBtn?.addEventListener("click", () => {
-      if (!this.isSolveMode()) {
-        return;
-      }
-
-      this.disableEraseMode();
-      this.store.exitSolveModeToEmptyBoard();
-      this.updateAnswerButtonDisplay();
+      this.updateToolbarUI();
       this.updateUI();
     });
 
@@ -210,7 +186,7 @@ export class ToolbarController {
         // === 編集モード中：問題図の確定だけ行う ===
         this.store.setProblemDiagram();
         state.answerMode = "black";
-        this.updateAnswerButtonDisplay();
+        this.updateToolbarUI();
         this.updateUI();
         this.renderer.showMessage("問題図を確定しました");
       } else {
@@ -233,6 +209,44 @@ export class ToolbarController {
     });
   }
 
+  private initBoardSizeToggle(): void {
+    const boardSizeBtn = document.getElementById("btn-board-size");
+    boardSizeBtn?.addEventListener("click", () => {
+      const nextSizeBtn = this.getNextBoardSizeButton();
+      nextSizeBtn?.click();
+      this.updateBoardSizeButtonLabel();
+    });
+
+    this.updateBoardSizeButtonLabel();
+  }
+
+  private initStartColorButton(): void {
+    const startColorBtn = document.getElementById("btn-start-color");
+    startColorBtn?.addEventListener("click", () => {
+      if (!this.isSolveMode()) {
+        return;
+      }
+
+      const state = this.store.snapshot;
+      state.startColor = state.startColor === 1 ? 2 : 1;
+      state.answerMode = state.startColor === 1 ? "black" : "white";
+
+      this.updateToolbarUI();
+      this.updateUI();
+    });
+  }
+
+  private initAnswerStepsShortcut(): void {
+    const shortcutBtn = document.getElementById("btn-answer-steps-shortcut");
+    const originalBtn = document.getElementById("btn-answer-steps");
+    shortcutBtn?.addEventListener("click", () => {
+      if (!this.isSolveMode()) {
+        return;
+      }
+      originalBtn?.click();
+    });
+  }
+
   private initBoardSaveButton(): void {
     const saveBtn = document.getElementById("btn-save-board");
     saveBtn?.addEventListener("click", () => {
@@ -244,19 +258,19 @@ export class ToolbarController {
     });
   }
 
-private setMode(mode: PlayMode, buttonElement: Element): void {
-  this.disableEraseMode();
-  const state = this.store.snapshot;
+  private setMode(mode: PlayMode, buttonElement: Element): void {
+    this.disableEraseMode();
+    const state = this.store.snapshot;
 
-  // === 編集モード／解答モードに関係なく「色変更」だけ行う ===
-  state.mode = mode;
+    // === 編集モード／解答モードに関係なく「色変更」だけ行う ===
+    state.mode = mode;
 
-  // === ボタンの active 切り替え ===
-  this.setActiveButton(buttonElement, "play-btn");
+    // === ボタンの active 切り替え ===
+    this.setActiveButton(buttonElement, "play-btn");
 
-  // === UI 更新 ===
-  this.updateUI();
-}
+    // === UI 更新 ===
+    this.updateUI();
+  }
 
   private setActiveButton(element: Element, groupClass: string): void {
     document
@@ -264,6 +278,89 @@ private setMode(mode: PlayMode, buttonElement: Element): void {
       .forEach((btn) => btn.classList.remove("active"));
     element.classList.add("active");
   }
+
+  updateToolbarUI(): void {
+    this.updateAnswerButtonDisplay();
+    this.updateBoardSizeButtonLabel();
+    this.updateModeDependentControls();
+  }
+
+  private updateBoardSizeButtonLabel(): void {
+    const boardSizeBtn = document.getElementById("btn-board-size");
+    if (!boardSizeBtn) {
+      return;
+    }
+
+    const activeBtn = this.getActiveSizeButton();
+    const size = activeBtn?.dataset.size || this.store.snapshot.boardSize.toString();
+    boardSizeBtn.textContent = `${size}路`;
+  }
+
+  private getActiveSizeButton(): HTMLElement | null {
+    const active = document.querySelector(".size-btn.active");
+    if (active) {
+      return active as HTMLElement;
+    }
+
+    return document.querySelector(
+      `.size-btn[data-size="${this.store.snapshot.boardSize}"]`
+    ) as HTMLElement | null;
+  }
+
+  private getNextBoardSizeButton(): HTMLElement | null {
+    const sizes = ["9", "13", "19"];
+    const active = this.getActiveSizeButton();
+    const currentSize = active?.dataset.size || sizes[0];
+    const currentIndex = sizes.indexOf(currentSize);
+    const nextIndex = (currentIndex + 1) % sizes.length;
+
+    return document.querySelector(
+      `.size-btn[data-size="${sizes[nextIndex]}"]`
+    ) as HTMLElement | null;
+  }
+
+  private updateModeDependentControls(): void {
+    const isSolveMode = this.isSolveMode();
+
+    this.setDisabledState(["btn-black", "btn-white", "btn-alt"], isSolveMode);
+    this.setDisabledState(
+      [
+        "btn-start-color",
+        "btn-prev-move",
+        "btn-next-move",
+        "btn-answer-steps-shortcut",
+      ],
+      !isSolveMode
+    );
+
+    this.setDisabledState(
+      [
+        "btn-clear",
+        "btn-undo",
+        "btn-erase",
+        "btn-board-size",
+        "btn-file",
+        "btn-history",
+        "btn-feature",
+        "btn-save-board",
+      ],
+      false
+    );
+
+    if (this.elements.sliderEl) {
+      this.elements.sliderEl.disabled = !isSolveMode;
+    }
+  }
+
+  private setDisabledState(ids: string[], disabled: boolean): void {
+    ids.forEach((id) => {
+      const button = document.getElementById(id) as HTMLButtonElement | null;
+      if (button) {
+        button.disabled = disabled;
+      }
+    });
+  }
+
   private isEditMode(): boolean {
     return !this.store.snapshot.numberMode;
   }
