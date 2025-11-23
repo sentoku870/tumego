@@ -11,7 +11,7 @@ const createState = (overrides = {}) => {
   const size = overrides.boardSize ?? DEFAULT_CONFIG.DEFAULT_BOARD_SIZE;
   const board = overrides.board ?? createBoard(size);
 
-  return {
+  const state = {
     boardSize: size,
     board,
     mode: overrides.mode ?? 'alt',
@@ -31,8 +31,24 @@ const createState = (overrides = {}) => {
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
     gameTree: overrides.gameTree ?? null,
-    sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? true
+    sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? true,
+    gameInfo: overrides.gameInfo ?? {
+      boardSize: size,
+      komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
+      handicap: overrides.handicap ?? null,
+      handicapStones: overrides.handicapStones ?? 0,
+      handicapPositions: overrides.handicapPositions ?? [],
+      startColor: overrides.startColor ?? 1,
+      problemDiagramSet: overrides.problemDiagramSet ?? false,
+      problemDiagramBlack: overrides.problemDiagramBlack ?? [],
+      problemDiagramWhite: overrides.problemDiagramWhite ?? [],
+      playerBlack: overrides.playerBlack ?? null,
+      playerWhite: overrides.playerWhite ?? null,
+      result: overrides.result ?? null
+    }
   };
+
+  return state;
 };
 
 const cloneState = (state) => JSON.parse(JSON.stringify(state));

@@ -69,6 +69,7 @@ export interface GameState {
   problemDiagramWhite: Position[];
   gameTree: GameTree | null;
   sgfLoadedFromExternal: boolean;
+  gameInfo: SGFGameInfo;
 }
 
 // ============ UI要素 ============
@@ -135,8 +136,23 @@ export interface GroupInfo {
 // ============ SGF関連 ============
 export interface SGFParseResult {
   moves: Move[];
-  gameInfo: Partial<GameState>;
+  gameInfo: SGFGameInfo;
   rawSGF?: string;
+}
+
+export interface SGFGameInfo {
+  boardSize?: number;
+  komi?: number | null;
+  handicapStones?: number;
+  handicapPositions?: Position[];
+  startColor?: StoneColor;
+  problemDiagramSet?: boolean;
+  problemDiagramBlack?: Position[];
+  problemDiagramWhite?: Position[];
+  playerBlack?: string | null;
+  playerWhite?: string | null;
+  handicap?: number | null;
+  result?: string | null;
 }
 
 // ============ イベント関連 ============

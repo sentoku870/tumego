@@ -4,6 +4,7 @@ import {
   DEFAULT_CONFIG,
   GameState,
   Move,
+  SGFGameInfo,
   SGFParseResult,
   StoneColor
 } from '../types.js';
@@ -22,7 +23,7 @@ interface InitializationPhaseInput {
 interface InitializationPhaseOutput {
   state: GameState;
   moves: Move[];
-  gameInfo: Partial<GameState>;
+  gameInfo: SGFGameInfo;
   rawSGF?: string;
 }
 
@@ -134,6 +135,13 @@ export class SGFService {
     state.startColor = 1;
     state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     state.eraseMode = false;
+    state.gameInfo = {
+      komi: state.komi,
+      handicap: null,
+      playerBlack: null,
+      playerWhite: null,
+      result: null
+    };
 
     return {
       state,
@@ -146,7 +154,9 @@ export class SGFService {
   private runApplicationPhase(input: ApplicationPhaseInput): ApplicationPhaseOutput {
     const { state, moves, gameInfo } = input;
 
-    if (gameInfo.komi !== undefined) state.komi = gameInfo.komi;
+    if (gameInfo.komi !== undefined && gameInfo.komi !== null) {
+      state.komi = gameInfo.komi;
+    }
     if (gameInfo.startColor !== undefined) state.startColor = gameInfo.startColor as StoneColor;
     if (gameInfo.handicapStones !== undefined) state.handicapStones = gameInfo.handicapStones;
     if (gameInfo.handicapPositions) {
@@ -163,6 +173,22 @@ export class SGFService {
     } else if (state.problemDiagramBlack.length > 0 || state.problemDiagramWhite.length > 0) {
       state.problemDiagramSet = true;
     }
+
+    state.gameInfo = {
+      ...state.gameInfo,
+      komi: gameInfo.komi ?? state.komi,
+      handicap: gameInfo.handicap ?? null,
+      playerBlack: gameInfo.playerBlack ?? null,
+      playerWhite: gameInfo.playerWhite ?? null,
+      result: gameInfo.result ?? null,
+      boardSize: gameInfo.boardSize ?? state.boardSize,
+      handicapStones: gameInfo.handicapStones ?? state.handicapStones,
+      handicapPositions: gameInfo.handicapPositions ?? state.handicapPositions,
+      startColor: state.startColor,
+      problemDiagramSet: state.problemDiagramSet,
+      problemDiagramBlack: state.problemDiagramBlack,
+      problemDiagramWhite: state.problemDiagramWhite
+    };
 
     state.sgfMoves = moves.map(move => ({ ...move }));
     state.sgfIndex = 0;
