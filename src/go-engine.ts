@@ -34,7 +34,7 @@ export class GoEngine {
 
     this.koPoint = applied.koPoint;
 
-    return { board, koPoint: this.koPoint };
+    return { board, koPoint: this.koPoint, captured: applied.captured };
   }
 
   generateHandicapPositions(boardSize: number, stones: number): Position[] {
@@ -56,7 +56,7 @@ export class GoEngine {
     boardSize: number,
     pos: Position,
     color: StoneColor
-  ): { board: Board; koPoint: Position | null } | null {
+  ): { board: Board; koPoint: Position | null; captured: Position[] } | null {
     if (!this.isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
       return null;
     }
@@ -100,7 +100,7 @@ export class GoEngine {
     const koPoint =
       captured.length === 1 && selfGroup.libs === 1 ? captured[0] : null;
 
-    return { board, koPoint };
+    return { board, koPoint, captured };
   }
 
   private cloneBoard(board: Board): Board {

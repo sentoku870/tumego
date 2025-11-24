@@ -1,6 +1,7 @@
 import {
   Board,
   CellState,
+  CapturedCounts,
   GameState,
   Position,
   StoneColor,
@@ -39,6 +40,7 @@ export class GameStore {
   private cachedAppliedMoveIndex: number | null = null;
   private cachedBoardTimeline: Board[] = [];
   private cachedMoveApplied: boolean[] = [];
+  private capturedCountsTimeline: CapturedCounts[] = [];
 
   // === Performance metrics (from main branch) ===
   private performanceDebug = false;
@@ -50,7 +52,11 @@ export class GameStore {
     private readonly state: GameState,
     private readonly engine: GoEngine,
     private readonly history: HistoryManager
-  ) {}
+  ) {
+    if (!this.state.capturedCounts) {
+      this.state.capturedCounts = { black: 0, white: 0 };
+    }
+  }
 
   get snapshot(): GameState {
     return this.state;
@@ -283,6 +289,7 @@ export class GameStore {
     this.state.eraseMode = false;
 
     this.state.turn = 0;
+    this.resetCapturedCounts();
     this.invalidateCache();
   }
 
@@ -358,6 +365,7 @@ export class GameStore {
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.numberStartIndex = 0;
+    this.resetCapturedCounts();
 
     this.state.numberMode = false;
     this.state.mode = "alt";
@@ -379,6 +387,7 @@ export class GameStore {
     this.state.gameTree = null;
     this.state.sgfLoadedFromExternal = false;
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+    this.resetCapturedCounts();
   }
 
   private pushHistorySnapshot(): void {
@@ -387,6 +396,33 @@ export class GameStore {
 
   private cloneBoard(board: Board = this.state.board): Board {
     return board.map((row) => row.slice());
+  }
+
+  private cloneCapturedCounts(counts: CapturedCounts = { black: 0, white: 0 }): CapturedCounts {
+    return { black: counts.black, white: counts.white };
+  }
+
+  private resetCapturedCounts(): void {
+    this.state.capturedCounts = { black: 0, white: 0 };
+    this.capturedCountsTimeline = [this.cloneCapturedCounts(this.state.capturedCounts)];
+  }
+
+  private accumulateCapturedCounts(
+    previous: CapturedCounts,
+    moveColor: StoneColor,
+    captured: Position[]
+  ): CapturedCounts {
+    if (!captured.length) {
+      return previous;
+    }
+
+    const next = this.cloneCapturedCounts(previous);
+    if (moveColor === 1) {
+      next.white += captured.length;
+    } else {
+      next.black += captured.length;
+    }
+    return next;
   }
 
   private applyInitialSetup(): void {
@@ -433,11 +469,13 @@ export class GameStore {
     this.state.history = [];
     this.state.turn = 0;
     this.applyInitialSetup();
+    this.resetCapturedCounts();
 
     const baseBoard = this.cloneBoard();
     this.cachedBoardTimeline = [];
     this.cachedBoardTimeline[0] = baseBoard;
     this.cachedMoveApplied = [];
+    this.capturedCountsTimeline = [this.cloneCapturedCounts(this.state.capturedCounts)];
 
     const { board, newlyApplied } = this.ensureBoardForIndex(limit);
     const finalBoard = board ?? baseBoard;
@@ -459,6 +497,11 @@ export class GameStore {
     }
 
     this.state.board = this.cloneBoard(finalBoard);
+    const counts =
+      this.capturedCountsTimeline[limit] ??
+      this.capturedCountsTimeline[this.capturedCountsTimeline.length - 1] ??
+      { black: 0, white: 0 };
+    this.state.capturedCounts = this.cloneCapturedCounts(counts);
 
     if (this.state.numberMode) {
       this.state.turn = Math.max(0, limit - this.state.numberStartIndex);
@@ -504,6 +547,7 @@ export class GameStore {
     this.cachedAppliedMoveIndex = null;
     this.cachedBoardTimeline = [];
     this.cachedMoveApplied = [];
+    this.capturedCountsTimeline = [];
   }
 
   private canUseCache(): boolean {
@@ -566,6 +610,11 @@ export class GameStore {
         this.state.history.push(this.cloneBoard(snapshot));
       }
     }
+    const counts =
+      this.capturedCountsTimeline[target] ??
+      this.capturedCountsTimeline[this.capturedCountsTimeline.length - 1] ??
+      { black: 0, white: 0 };
+    this.state.capturedCounts = this.cloneCapturedCounts(counts);
     this.state.sgfIndex = target;
     this.state.turn = this.state.numberMode
       ? Math.max(0, target - this.state.numberStartIndex)
@@ -586,19 +635,30 @@ export class GameStore {
     }
 
     let board = this.cachedBoardTimeline[nearest]!;
+    let counts = this.cloneCapturedCounts(
+      this.capturedCountsTimeline[nearest] ?? { black: 0, white: 0 }
+    );
     let applied = 0;
 
     for (let index = nearest; index < target; index++) {
       const nextIndex = index + 1;
       const cached = this.cachedBoardTimeline[nextIndex];
+      const cachedCounts = this.capturedCountsTimeline[nextIndex];
+      if (cached && cachedCounts) {
+        board = cached;
+        counts = this.cloneCapturedCounts(cachedCounts);
+        continue;
+      }
       if (cached) {
         board = cached;
+        this.capturedCountsTimeline[nextIndex] = counts;
         continue;
       }
 
       const move = this.state.sgfMoves[index];
       if (!move) {
         this.cachedBoardTimeline[nextIndex] = board;
+        this.capturedCountsTimeline[nextIndex] = counts;
         this.cachedMoveApplied[index] = false;
         continue;
       }
@@ -612,12 +672,15 @@ export class GameStore {
       );
       if (!result) {
         this.cachedBoardTimeline[nextIndex] = board;
+        this.capturedCountsTimeline[nextIndex] = counts;
         this.cachedMoveApplied[index] = false;
         continue;
       }
 
       board = result.board;
+      counts = this.accumulateCapturedCounts(counts, move.color, result.captured);
       this.cachedBoardTimeline[nextIndex] = board;
+      this.capturedCountsTimeline[nextIndex] = counts;
       this.cachedMoveApplied[index] = true;
       applied++;
     }
@@ -788,6 +851,19 @@ export class GameStore {
 
     this.state.turn++; // ★追加：これで alt モードが交互に動く
 
+    this.invalidateCache();
+    return true;
+  }
+
+  public placeWithRulesInEdit(pos: Position, color: StoneColor): boolean {
+    const result = this.engine.playMove(this.state, pos, color);
+    if (!result) {
+      return false;
+    }
+
+    this.pushHistorySnapshot();
+    this.state.board = result.board;
+    this.state.turn++;
     this.invalidateCache();
     return true;
   }

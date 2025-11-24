@@ -1,17 +1,20 @@
 import { GameStore } from "../../state/game-store.js";
 import { Renderer } from "../../renderer.js";
 import { BoardCaptureService } from "../../services/board-capture-service.js";
-import { UIElements, PlayMode } from "../../types.js";
+import { UIElements, PlayMode, Preferences } from "../../types.js";
 import { UIUpdater } from "./feature-menu-controller.js";
 
 export class ToolbarController {
+  private clearBtn: HTMLButtonElement | null = null;
+
   constructor(
     private readonly store: GameStore,
     private readonly renderer: Renderer,
     private readonly boardCapture: BoardCaptureService,
     private readonly elements: UIElements,
-    private readonly updateUI: UIUpdater
-  ) 
+    private readonly updateUI: UIUpdater,
+    private readonly getPreferences: () => Preferences
+  )
   {}
 
   initialize(): void {
@@ -24,6 +27,7 @@ export class ToolbarController {
     this.initBasicButtons();
     this.initGameButtons();
     this.initBoardSaveButton();
+    this.updateFullResetVisibility();
   }
 
   disableEraseMode(): void {
@@ -85,6 +89,7 @@ export class ToolbarController {
 
   private initBasicButtons(): void {
     const clearBtn = document.getElementById("btn-clear");
+    this.clearBtn = clearBtn as HTMLButtonElement | null;
     clearBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       this.disableEraseMode();
@@ -158,16 +163,17 @@ export class ToolbarController {
       if (!state.numberMode) {
         // === 編集モード → 解答モード へ入るとき ===
         // 解答用の公式初期化
-        this.store.enterSolveMode();
+      this.store.enterSolveMode();
 
-        // 黒先で開始
-        state.answerMode = "black";
-        state.startColor = 1;
-      } else {
-        // === 解答モード中：黒先 / 白先 の切り替えだけ ===
-        if (state.answerMode === "black") {
-          state.answerMode = "white";
-          state.startColor = 2;
+      // 黒先で開始
+      state.answerMode = "black";
+      state.startColor = 1;
+      this.updateFullResetVisibility();
+    } else {
+      // === 解答モード中：黒先 / 白先 の切り替えだけ ===
+      if (state.answerMode === "black") {
+        state.answerMode = "white";
+        state.startColor = 2;
         } else {
           state.answerMode = "black";
           state.startColor = 1;
@@ -188,6 +194,7 @@ export class ToolbarController {
       this.store.exitSolveModeToEmptyBoard();
       this.updateAnswerButtonDisplay();
       this.updateUI();
+      this.updateFullResetVisibility();
     });
 
     const historyBtn = document.getElementById("btn-history");
@@ -244,19 +251,19 @@ export class ToolbarController {
     });
   }
 
-private setMode(mode: PlayMode, buttonElement: Element): void {
-  this.disableEraseMode();
-  const state = this.store.snapshot;
+  private setMode(mode: PlayMode, buttonElement: Element): void {
+    this.disableEraseMode();
+    const state = this.store.snapshot;
 
-  // === 編集モード／解答モードに関係なく「色変更」だけ行う ===
-  state.mode = mode;
+    // === 編集モード／解答モードに関係なく「色変更」だけ行う ===
+    state.mode = mode;
 
-  // === ボタンの active 切り替え ===
-  this.setActiveButton(buttonElement, "play-btn");
+    // === ボタンの active 切り替え ===
+    this.setActiveButton(buttonElement, "play-btn");
 
-  // === UI 更新 ===
-  this.updateUI();
-}
+    // === UI 更新 ===
+    this.updateUI();
+  }
 
   private setActiveButton(element: Element, groupClass: string): void {
     document
@@ -264,11 +271,27 @@ private setMode(mode: PlayMode, buttonElement: Element): void {
       .forEach((btn) => btn.classList.remove("active"));
     element.classList.add("active");
   }
+
   private isEditMode(): boolean {
     return !this.store.snapshot.numberMode;
   }
 
   private isSolveMode(): boolean {
     return this.store.snapshot.numberMode;
+  }
+
+  updateFullResetVisibility(): void {
+    if (!this.clearBtn) {
+      this.clearBtn = document.getElementById("btn-clear") as HTMLButtonElement | null;
+    }
+    if (!this.clearBtn) {
+      return;
+    }
+
+    const prefs = this.getPreferences();
+    const shouldShow =
+      !this.store.snapshot.numberMode || prefs.solve.enableFullReset === "on";
+    this.clearBtn.style.display = shouldShow ? "" : "none";
+    this.clearBtn.disabled = !shouldShow && this.store.snapshot.numberMode;
   }
 }

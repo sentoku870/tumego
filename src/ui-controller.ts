@@ -1,10 +1,5 @@
 // ============ UI制御エンジン ============
-import {
-  GameState,
-  UIElements,
-  KeyBindings,
-  DEFAULT_CONFIG
-} from './types.js';
+import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { GoEngine } from './go-engine.js';
 import { Renderer } from './renderer.js';
 import { SGFParser } from './sgf-parser.js';
@@ -12,14 +7,15 @@ import { QRManager } from './qr-manager.js';
 import { HistoryManager } from './history-manager.js';
 import { GameStore } from './state/game-store.js';
 import { BoardCaptureService } from './services/board-capture-service.js';
+import { PreferencesStore } from './services/preferences-store.js';
 import { SGFService } from './services/sgf-service.js';
 import { UIInteractionState } from './ui/state/ui-interaction-state.js';
 import { DropdownManager } from './ui/controllers/dropdown-manager.js';
 import { BoardInteractionController } from './ui/controllers/board-interaction-controller.js';
-import { KeyboardController } from './ui/controllers/keyboard-controller.js';
 import { ToolbarController } from './ui/controllers/toolbar-controller.js';
 import { FeatureMenuController } from './ui/controllers/feature-menu-controller.js';
 import { FileMenuController } from './ui/controllers/file-menu-controller.js';
+import { SettingsController } from './ui/controllers/settings-controller.js';
 
 export class UIController {
   private engine: GoEngine;
@@ -33,10 +29,11 @@ export class UIController {
   private uiState: UIInteractionState;
   private dropdownManager: DropdownManager;
   private boardController: BoardInteractionController;
-  private keyboardController: KeyboardController;
   private toolbarController: ToolbarController;
   private featureMenuController: FeatureMenuController;
   private fileMenuController: FileMenuController;
+  private settingsController: SettingsController;
+  private preferences: PreferencesStore;
 
   constructor(
     private readonly state: GameState,
@@ -47,6 +44,7 @@ export class UIController {
     this.qrManager = new QRManager();
     this.historyManager = new HistoryManager();
     this.store = new GameStore(state, this.engine, this.historyManager);
+    this.preferences = new PreferencesStore();
     this.renderer = new Renderer(this.store, elements);
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
@@ -58,7 +56,8 @@ export class UIController {
       this.renderer,
       this.boardCapture,
       this.elements,
-      () => this.updateUI()
+      () => this.updateUI(),
+      () => this.preferences.state
     );
 
     this.boardController = new BoardInteractionController(
@@ -66,10 +65,9 @@ export class UIController {
       this.elements,
       this.uiState,
       () => this.updateUI(),
-      () => this.toolbarController.disableEraseMode()
+      () => this.toolbarController.disableEraseMode(),
+      () => this.preferences.state
     );
-
-    this.keyboardController = new KeyboardController(this.uiState);
 
     this.featureMenuController = new FeatureMenuController(
       this.dropdownManager,
@@ -89,6 +87,8 @@ export class UIController {
       (sgfText) => this.syncSgfTextarea(sgfText),
       () => this.toolbarController.updateAnswerButtonDisplay()
     );
+
+    this.settingsController = new SettingsController(this.preferences);
   }
 
   
@@ -97,7 +97,11 @@ export class UIController {
     this.toolbarController.initialize();
     this.featureMenuController.initialize();
     this.fileMenuController.initialize();
-  
+    this.settingsController.initialize();
+
+    this.applyPreferences();
+    this.preferences.onChange(() => this.applyPreferences());
+
     this.initResizeEvents();
 
     this.store.initBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE);
@@ -132,6 +136,9 @@ export class UIController {
     this.renderer.render();
     this.renderer.updateInfo();
     this.renderer.updateSlider();
+    this.renderer.updateCapturedStones(
+      this.preferences.state.solve.showCapturedStones === "on"
+    );
   }
 
   private syncSgfTextarea(text: string): void {
@@ -151,5 +158,13 @@ export class UIController {
 
     window.addEventListener('orientationchange', handleResize);
     window.addEventListener('resize', handleResize);
+  }
+
+  private applyPreferences(): void {
+    const prefs = this.preferences.state;
+    this.toolbarController.updateFullResetVisibility();
+    this.renderer.updateCapturedStones(
+      prefs.solve.showCapturedStones === "on"
+    );
   }
 }
