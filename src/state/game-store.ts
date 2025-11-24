@@ -277,6 +277,10 @@ export class GameStore {
   /** 解答モードに正式に入る初期化 */
   /** 解答モードに正式に入る初期化 */
   enterSolveMode(): void {
+    if (this.hasGameData()) {
+      this.saveToHistory("解答開始前");
+    }
+
     if (this.state.problemDiagramSet) {
       this.applyInitialSetup();
     }
