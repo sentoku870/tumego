@@ -296,6 +296,19 @@ export class Renderer {
     this.elements.sliderEl.value = sliderModel.value.toString();
   }
 
+  updateCapturedStones(show: boolean): void {
+    const container = this.elements.capturedEl;
+    if (!container) return;
+
+    container.hidden = !show;
+    if (!show) {
+      return;
+    }
+
+    const counts = this.store.snapshot.capturedCounts;
+    container.textContent = `抜いた石: 黒 ${counts.black} / 白 ${counts.white}`;
+  }
+
   showMessage(text: string): void {
     if (this.elements.msgEl) {
       this.elements.msgEl.textContent = text;

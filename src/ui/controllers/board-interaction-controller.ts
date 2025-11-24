@@ -1,4 +1,4 @@
-import { UIElements, Position, DEFAULT_CONFIG } from "../../types.js";
+import { UIElements, Position, DEFAULT_CONFIG, Preferences } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
 import {
@@ -50,7 +50,8 @@ export class BoardInteractionController {
     private readonly elements: UIElements,
     private readonly uiState: UIInteractionState,
     private readonly onBoardUpdated: BoardUpdateCallback,
-    private readonly disableEraseMode: EraseModeDisabler
+    private readonly disableEraseMode: EraseModeDisabler,
+    private readonly getPreferences: () => Preferences
   ) {}
 
   initialize(): void {
@@ -200,8 +201,13 @@ export class BoardInteractionController {
     }
 
     // === 編集モード（numberMode = false） ==========================
+    const rulesMode = this.getPreferences().edit.rulesMode;
     const color = this.uiState.drag.dragColor ?? this.store.currentColor;
-    if (this.store.directPlace(pos, color)) {
+    const placed =
+      rulesMode === "standard"
+        ? this.store.placeWithRulesInEdit(pos, color)
+        : this.store.directPlace(pos, color);
+    if (placed) {
       this.onBoardUpdated();
     }
   }

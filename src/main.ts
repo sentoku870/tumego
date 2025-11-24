@@ -32,7 +32,8 @@ function createInitialState(): GameState {
       playerBlack: null,
       playerWhite: null,
       result: null
-    }
+    },
+    capturedCounts: { black: 0, white: 0 }
   };
 }
 
@@ -44,6 +45,7 @@ function getUIElements(): UIElements {
   const sliderEl = document.getElementById('move-slider') as HTMLInputElement;
   const movesEl = document.getElementById('moves') as HTMLElement;
   const msgEl = document.getElementById('msg') as HTMLElement;
+  const capturedEl = document.getElementById('captured-stones') as HTMLElement | null;
 
   // 必須要素の存在確認
   if (!svg || !boardWrapper) {
@@ -56,7 +58,8 @@ function getUIElements(): UIElements {
     infoEl,
     sliderEl,
     movesEl,
-    msgEl
+    msgEl,
+    capturedEl: capturedEl ?? undefined
   };
 }
 

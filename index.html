@@ -39,6 +39,7 @@
       <div class="info" id="info"></div>
       <input id="move-slider" type="range" min="0" value="0" />
       <div class="moves" id="moves"></div>
+      <div class="captured-stones" id="captured-stones" hidden></div>
       
       <!-- ===== SGF・ゲーム操作ボタン ===== -->
       <div id="sgf-controls">
@@ -88,7 +89,37 @@
       
       <!-- SGFテキストエリア -->
       <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
-      
+
+      <button id="settings-toggle" class="settings-toggle-button" aria-expanded="false">設定</button>
+      <div id="settings-panel" class="settings-panel" hidden>
+        <div class="settings-group">
+          <h3>編集モード</h3>
+          <label class="settings-row">
+            <span>編集モードの石のルール</span>
+            <select id="setting-edit-rules-mode">
+              <option value="standard">ルールに従う</option>
+              <option value="free">自由配置</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="settings-group">
+          <h3>解答モード</h3>
+          <label class="settings-row checkbox-row">
+            <input type="checkbox" id="setting-show-captured" />
+            <span>抜いた石を表示する</span>
+          </label>
+          <label class="settings-row checkbox-row">
+            <input type="checkbox" id="setting-enable-reset" />
+            <span>解答モードで『全て消す』ボタンを有効にする</span>
+          </label>
+        </div>
+
+        <div class="settings-actions">
+          <button id="setting-reset-button" class="ctrl-btn reset-settings-btn">設定をリセット</button>
+        </div>
+      </div>
+
       <!-- メッセージ表示 -->
       <div class="msg" id="msg"></div>
 

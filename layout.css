@@ -81,9 +81,12 @@ body.horizontal .moves {
 #move-slider { order: 4; }
 #board-wrapper { order: 5; }
 .moves { order: 6; }
-#sgf-controls { order: 7; }
-#sgf-text { order: 8; }
-.msg { order: 9; }
+#captured-stones { order: 7; }
+#sgf-controls { order: 8; }
+#sgf-text { order: 9; }
+.settings-toggle-button { order: 10; }
+#settings-panel { order: 11; }
+.msg { order: 12; }
 
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
@@ -94,8 +97,11 @@ body:not(.horizontal) .info,
 body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
+body:not(.horizontal) #captured-stones,
 body:not(.horizontal) #sgf-controls,
 body:not(.horizontal) #sgf-text,
+body:not(.horizontal) .settings-toggle-button,
+body:not(.horizontal) #settings-panel,
 body:not(.horizontal) .msg {
   width: var(--board-width);
   max-width: var(--board-width);
@@ -407,12 +413,19 @@ body:not(.horizontal) .msg {
 #controls,
 #sgf-controls,
 .moves,
-.msg {
+.captured-stones,
+.msg,
+#settings-panel {
   background: #fff;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-soft);
   padding: 8px;
   border: 1px solid var(--border-subtle);
+}
+
+.captured-stones {
+  font-size: 14px;
+  color: var(--text-main);
 }
 
 /* SGFテキストエリアの見た目を整える */
@@ -523,6 +536,68 @@ body:not(.horizontal) .msg {
 .msg {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.settings-toggle-button {
+  width: 100%;
+  max-width: 480px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: #ffffff;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-toggle-button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+#settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.settings-group h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.settings-row select {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+}
+
+.checkbox-row {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reset-settings-btn {
+  width: 100%;
 }
 
 /* ドロップダウンの読みやすさを少し改善 */

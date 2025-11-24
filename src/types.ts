@@ -9,6 +9,8 @@ export type StoneColor = 1 | 2; // 1: 黒, 2: 白
 export type CellState = 0 | StoneColor; // 0: 空, 1: 黒, 2: 白
 export type PlayMode = 'black' | 'white' | 'alt';
 export type AnswerMode = 'black' | 'white';
+export type RulesMode = 'standard' | 'free';
+export type ToggleSetting = 'on' | 'off';
 
 export interface Move {
   col: number;
@@ -70,6 +72,7 @@ export interface GameState {
   gameTree: GameTree | null;
   sgfLoadedFromExternal: boolean;
   gameInfo: SGFGameInfo;
+  capturedCounts: CapturedCounts;
 }
 
 // ============ UI要素 ============
@@ -80,6 +83,7 @@ export interface UIElements {
   sliderEl: HTMLInputElement;
   movesEl: HTMLElement;
   msgEl: HTMLElement;
+  capturedEl?: HTMLElement;
 }
 
 // ============ 操作履歴 ============
@@ -156,10 +160,6 @@ export interface SGFGameInfo {
 }
 
 // ============ イベント関連 ============
-export interface KeyBindings {
-  [key: string]: () => void;
-}
-
 // ============ ユーティリティ型 ============
 export type Board = CellState[][];
 
@@ -223,11 +223,26 @@ export interface SliderRenderModel {
 // ============ エンジン関連 ============
 export interface MoveResult {
   readonly board: Board;
+  readonly captured: Position[];
   /**
    * If a simple ko was created by the last move, this marks the forbidden
    * point for the opponent's immediate reply. `null` means no ko restriction.
    */
   readonly koPoint?: Position | null;
+}
+
+// ============ 設定 ============
+export interface Preferences {
+  edit: { rulesMode: RulesMode };
+  solve: {
+    showCapturedStones: ToggleSetting;
+    enableFullReset: ToggleSetting;
+  };
+}
+
+export interface CapturedCounts {
+  black: number;
+  white: number;
 }
 
 // ============ 定数 ============
