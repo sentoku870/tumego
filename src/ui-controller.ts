@@ -139,6 +139,7 @@ export class UIController {
     this.renderer.updateCapturedStones(
       this.preferences.state.solve.showCapturedStones === "on"
     );
+    this.featureMenuController.updateMenuState();
   }
 
   private syncSgfTextarea(text: string): void {

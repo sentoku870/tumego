@@ -8,6 +8,7 @@ export type UIUpdater = () => void;
 
 export class FeatureMenuController {
   private isHorizontal = document.body.classList.contains('horizontal');
+  private copyAnswerButton: HTMLButtonElement | null = null;
 
   constructor(
     private readonly dropdownManager: DropdownManager,
@@ -24,7 +25,7 @@ export class FeatureMenuController {
     const featureLayoutBtn = document.getElementById('btn-feature-layout');
     const featureRotateBtn = document.getElementById('btn-feature-rotate');
     const featureHandicapBtn = document.getElementById('btn-feature-handicap');
-    const answerStepsBtn = document.getElementById('btn-answer-steps');
+    this.copyAnswerButton = document.getElementById('feature-copy-answer-sequence') as HTMLButtonElement | null;
 
     if (featureLayoutBtn) {
       featureLayoutBtn.textContent = this.isHorizontal ? '縦レイアウト' : '横レイアウト';
@@ -66,25 +67,53 @@ export class FeatureMenuController {
       this.showHandicapDialog();
     });
 
-    answerStepsBtn?.addEventListener('click', async () => {
-      const sequence = this.sgfService.buildAnswerSequence();
+    this.copyAnswerButton?.addEventListener('click', async () => {
+      const state = this.store.snapshot;
+
+      if (!state.numberMode) {
+        this.renderer.showMessage('解答モード中のみ使用できます');
+        return;
+      }
+
+      const sequence = this.sgfService.buildAnswerSequence(state);
+
       if (!sequence) {
         this.renderer.showMessage('解答手順がありません');
         return;
       }
 
       const spoilerText = `||${sequence}||`;
-      try {
-        await this.sgfService.copyToClipboard(spoilerText);
-        this.renderer.showMessage('解答手順をコピーしました');
-      } catch (error) {
-        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
-        if (sgfTextarea) {
-          sgfTextarea.value = spoilerText;
+
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(spoilerText);
+          this.renderer.showMessage('解答手順をクリップボードにコピーしました');
+          return;
+        } catch (error) {
+          // Fallback handled below
         }
-        this.renderer.showMessage('クリップボードにコピーできませんでしたがテキストエリアに表示しました');
       }
+
+      const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+      if (sgfTextarea) {
+        sgfTextarea.value = spoilerText;
+      }
+      this.renderer.showMessage('解答手順をクリップボードにコピーできなかったため、SGFテキスト欄に出力しました');
     });
+  }
+
+  updateMenuState(): void {
+    const state = this.store.snapshot;
+    const hasAnswerMoves =
+      state.numberMode === true && (state.sgfIndex ?? 0) > (state.numberStartIndex ?? 0);
+
+    this.setButtonEnabled(this.copyAnswerButton, hasAnswerMoves);
+  }
+
+  private setButtonEnabled(button: HTMLButtonElement | null, enabled: boolean): void {
+    if (!button) return;
+    button.disabled = !enabled;
+    button.classList.toggle('disabled', !enabled);
   }
 
   private toggleLayout(button: HTMLElement, dropdown: HTMLElement | null): void {
