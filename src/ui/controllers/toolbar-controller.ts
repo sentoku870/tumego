@@ -89,6 +89,17 @@ export class ToolbarController {
       const state = this.store.snapshot;
       this.disableEraseMode();
       this.store.resetForClearAll();
+      this.store.historyManager.clear();
+      const sizeBtn = document.querySelector(
+        '.size-btn[data-size="' + state.boardSize + '"]'
+      );
+      if (sizeBtn) {
+        this.setActiveButton(sizeBtn, "size-btn");
+      }
+      const altBtnEl = document.getElementById("btn-alt");
+      if (altBtnEl) {
+        this.setActiveButton(altBtnEl, "play-btn");
+      }
       this.updateUI();
       this.updateAnswerButtonDisplay();
       // ★ SGF入力エリアを空にする（追加行）
@@ -294,6 +305,12 @@ export class ToolbarController {
     element.classList.add("active");
   }
 
+  private syncActiveButtons(selector: string, isActive: (el: Element) => boolean): void {
+    document.querySelectorAll(selector).forEach((btn) => {
+      btn.classList.toggle("active", isActive(btn));
+    });
+  }
+
   private isEditMode(): boolean {
     return !this.store.snapshot.numberMode;
   }
@@ -390,6 +407,27 @@ export class ToolbarController {
     if (answerStepsBtn) {
       answerStepsBtn.disabled = state.sgfMoves.length === 0;
     }
+
+    this.syncActiveButtons(
+      ".size-btn",
+      (btn) => parseInt((btn as HTMLElement).dataset.size || "0", 10) === state.boardSize
+    );
+
+    this.syncActiveButtons(".play-btn", (btn) => {
+      if (isSolve) {
+        return false;
+      }
+      switch ((btn as HTMLElement).id) {
+        case "btn-black":
+          return state.mode === "black";
+        case "btn-white":
+          return state.mode === "white";
+        case "btn-alt":
+          return state.mode === "alt";
+        default:
+          return false;
+      }
+    });
   }
 
   private shouldDisableFullReset(): boolean {

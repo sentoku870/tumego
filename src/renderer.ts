@@ -464,8 +464,7 @@ export class Renderer {
       text.setAttribute('font-size', size.toString());
 
       // 視認性の肝：太い縁取り（石画像みたいに見える）
-      const strokeColor = number.fill === '#000' ? '#fff' : '#000';
-      text.setAttribute('stroke', strokeColor);
+      text.setAttribute('stroke', '#000');
       text.setAttribute('stroke-width', (size * 0.22).toString());
       text.setAttribute('paint-order', 'stroke');
       text.setAttribute('dominant-baseline', 'central');
