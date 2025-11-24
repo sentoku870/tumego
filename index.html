@@ -26,14 +26,52 @@
     <div id="ui">
       <!-- ===== 基本操作ボタン ===== -->
       <div id="controls">
-        <!-- 1 行目: 編集系 -->
-        <button class="ctrl-btn" id="btn-clear">全消去</button>
-        <button class="ctrl-btn" id="btn-undo">戻る</button>
-        <button class="ctrl-btn" id="btn-erase">消去</button>
-        <!-- 2 行目: プレイモード -->
-        <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
-        <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
-        <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
+        <div class="toolbar-row toolbar-row-top">
+          <button class="ctrl-btn" id="btn-clear">全消去</button>
+          <button class="ctrl-btn" id="btn-undo">Undo</button>
+          <button class="ctrl-btn" id="btn-erase">消去</button>
+          <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
+          <button class="ctrl-btn" id="btn-mode-toggle">解答開始</button>
+          <button class="ctrl-btn" id="btn-first-player">黒先・白先</button>
+        </div>
+
+        <div class="toolbar-row toolbar-row-bottom">
+          <button class="ctrl-btn" id="btn-problem">🧩 問題図</button>
+          <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
+          <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
+          <button class="ctrl-btn" id="btn-prev-move">1手戻る</button>
+          <button class="ctrl-btn" id="btn-next-move">1手進む</button>
+
+          <button class="ctrl-btn size-btn" data-size="9">9路</button>
+          <button class="ctrl-btn size-btn" data-size="13">13路</button>
+          <button class="ctrl-btn size-btn" data-size="19">19路</button>
+
+          <div class="menu-container file-menu">
+            <button class="ctrl-btn" id="btn-file">📁 ファイル</button>
+            <div class="menu-dropdown file-dropdown" id="file-dropdown">
+              <button id="btn-file-select">📂 SGF選択</button>
+              <button id="btn-file-load">📋 SGF読込</button>
+              <button id="btn-file-copy">📄 SGFコピー</button>
+              <button id="btn-file-save">💾 SGF保存</button>
+              <button id="btn-file-qr">📱 QR共有</button>
+              <button id="btn-file-discord">💬 Discord共有</button>
+            </div>
+          </div>
+
+          <button class="ctrl-btn history-btn" id="btn-history">📜 履歴</button>
+
+          <div class="menu-container feature-menu">
+            <button class="ctrl-btn" id="btn-feature">🛠️ 機能</button>
+            <div class="menu-dropdown feature-dropdown" id="feature-dropdown">
+              <button id="btn-feature-layout">横レイアウト</button>
+              <button id="btn-feature-rotate">🔄 回転</button>
+              <button id="btn-feature-handicap">置石</button>
+            </div>
+          </div>
+
+          <button class="ctrl-btn" id="btn-answer-steps">解答手順</button>
+          <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
+        </div>
       </div>
 
       <div class="info" id="info"></div>
@@ -42,48 +80,6 @@
       <div class="captured-stones" id="captured-stones" hidden></div>
       
       <!-- ===== SGF・ゲーム操作ボタン ===== -->
-      <div id="sgf-controls">
-        <!-- ナビゲーション -->
-        <button class="ctrl-btn" id="btn-prev-move">1手戻る</button>
-        <button class="ctrl-btn" id="btn-next-move">1手進む</button>
-        
-        <!-- 盤サイズ -->
-        <button class="ctrl-btn size-btn" data-size="9">9路</button>
-        <button class="ctrl-btn size-btn" data-size="13">13路</button>
-        <button class="ctrl-btn size-btn" data-size="19">19路</button>
-
-        <!-- 解答・ファイル -->
-        <button class="ctrl-btn answer-btn" id="btn-answer">🔥 黒先</button>
-        <button class="ctrl-btn" id="btn-exit-solve-edit" style="display:none;">編集に戻る</button>
-
-        <div class="menu-container file-menu">
-          <button class="ctrl-btn" id="btn-file">📁 ファイル</button>
-          <div class="menu-dropdown file-dropdown" id="file-dropdown">
-            <button id="btn-file-select">📂 SGF選択</button>
-            <button id="btn-file-load">📋 SGF読込</button>
-            <button id="btn-file-copy">📄 SGFコピー</button>
-            <button id="btn-file-save">💾 SGF保存</button>
-            <button id="btn-file-qr">📱 QR共有</button>
-            <button id="btn-file-discord">💬 Discord共有</button>
-          </div>
-        </div>
-
-        <button class="ctrl-btn history-btn" id="btn-history">📜 履歴</button>
-        <button class="ctrl-btn" id="btn-problem">🧩 問題図</button>
-
-        <div class="menu-container feature-menu">
-          <button class="ctrl-btn" id="btn-feature">🛠️ 機能</button>
-          <div class="menu-dropdown feature-dropdown" id="feature-dropdown">
-            <button id="btn-feature-layout">横レイアウト</button>
-            <button id="btn-feature-rotate">🔄 回転</button>
-            <button id="btn-feature-handicap">置石</button>
-          </div>
-        </div>
-
-        <button class="ctrl-btn" id="btn-answer-steps">解答手順</button>
-        <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
-      </div>
-      
       <!-- 隠しファイル入力 -->
       <input type="file" id="sgf-input" accept=".sgf" hidden />
       

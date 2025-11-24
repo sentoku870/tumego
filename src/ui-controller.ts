@@ -139,6 +139,7 @@ export class UIController {
     this.renderer.updateCapturedStones(
       this.preferences.state.solve.showCapturedStones === "on"
     );
+    this.toolbarController.refreshControls();
   }
 
   private syncSgfTextarea(text: string): void {
@@ -162,7 +163,7 @@ export class UIController {
 
   private applyPreferences(): void {
     const prefs = this.preferences.state;
-    this.toolbarController.updateFullResetVisibility();
+    this.toolbarController.refreshControls();
     this.renderer.updateCapturedStones(
       prefs.solve.showCapturedStones === "on"
     );
