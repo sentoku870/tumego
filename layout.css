@@ -564,6 +564,11 @@ body:not(.horizontal) .msg {
   max-width: 480px;
 }
 
+#settings-panel[hidden] {
+  display: none !important;
+}
+
+
 .settings-group h3 {
   margin: 0 0 8px;
   font-size: 15px;
