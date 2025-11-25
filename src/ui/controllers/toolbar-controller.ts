@@ -70,7 +70,8 @@ export class ToolbarController {
     }
 
     if (exitSolveBtn) {
-      exitSolveBtn.style.display = state.numberMode ? "" : "none";
+      exitSolveBtn.textContent = state.numberMode ? "編集に戻る" : "解答開始";
+      exitSolveBtn.style.display = "";
     }
     // ここにイベントリスナーの定義は不要
   }
@@ -170,23 +171,17 @@ export class ToolbarController {
       const state = this.store.snapshot;
 
       if (!state.numberMode) {
-        // === 編集モード → 解答モード へ入るとき ===
-        // 解答用の公式初期化
-      this.store.enterSolveMode();
+        // 解答モード以外では何もしない（ボタン自体は無効化されている想定）
+        return;
+      }
 
-      // 黒先で開始
-      state.answerMode = "black";
-      state.startColor = 1;
-      this.updateFullResetVisibility();
-    } else {
       // === 解答モード中：黒先 / 白先 の切り替えだけ ===
       if (state.answerMode === "black") {
         state.answerMode = "white";
         state.startColor = 2;
-        } else {
-          state.answerMode = "black";
-          state.startColor = 1;
-        }
+      } else {
+        state.answerMode = "black";
+        state.startColor = 1;
       }
 
       this.updateAnswerButtonDisplay();
@@ -195,15 +190,23 @@ export class ToolbarController {
 
     this.exitSolveBtn = document.getElementById("btn-exit-solve-edit") as HTMLButtonElement | null;
     this.exitSolveBtn?.addEventListener("click", () => {
-      if (!this.isSolveMode()) {
-        return;
+      const state = this.store.snapshot;
+      this.disableEraseMode();
+
+      if (!state.numberMode) {
+        // === 編集モード → 解答モード ===
+        this.store.enterSolveMode();
+        state.answerMode = "black";
+        state.startColor = 1;
+        this.updateFullResetVisibility();
+      } else {
+        // === 解答モード → 編集モード ===
+        this.store.exitSolveModeToEmptyBoard();
+        this.updateFullResetVisibility();
       }
 
-      this.disableEraseMode();
-      this.store.exitSolveModeToEmptyBoard();
       this.updateAnswerButtonDisplay();
       this.updateUI();
-      this.updateFullResetVisibility();
     });
 
     const historyBtn = document.getElementById("btn-history");
@@ -307,9 +310,7 @@ export class ToolbarController {
     this.setDisabled(this.blackBtn, isSolve);
     this.setDisabled(this.whiteBtn, isSolve);
 
-    if (this.answerBtn) {
-      this.answerBtn.disabled = false;
-    }
+    this.setDisabled(this.answerBtn, !isSolve);
     if (this.exitSolveBtn) {
       this.exitSolveBtn.disabled = false;
     }
