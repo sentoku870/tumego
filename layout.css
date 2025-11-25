@@ -83,13 +83,18 @@ body.horizontal .moves {
 .moves { order: 6; }
 #captured-stones { order: 7; }
 #sgf-controls { order: 8; }
-#sgf-text { order: 9; }
-.settings-toggle-button { order: 10; }
-#settings-panel { order: 11; }
-.msg { order: 12; }
+#msg { order: 9; }
+#sgf-text { order: 10; }
+.settings-toggle-button { order: 11; }
+#settings-panel { order: 12; }
 
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
+
+.moves,
+.captured-stones {
+  display: none;
+}
 
 /* ===== 縦レイアウト時の幅同期 ===== */
 body:not(.horizontal) #controls,
