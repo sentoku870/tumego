@@ -118,11 +118,17 @@ body:not(.horizontal) .msg {
 
 /* ===== ボタングリッド ===== */
 #controls {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
   max-width: 480px;
+}
+
+.toolbar-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
 
@@ -139,11 +145,17 @@ body:not(.horizontal) .msg {
 }
 
 #sgf-controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
   max-width: 480px;
+}
+
+.sgf-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
 
@@ -278,8 +290,12 @@ body.horizontal #sgf-text {
 
 body.horizontal #controls,
 body.horizontal #sgf-controls {
-  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
   max-width: 100%;
+}
+
+body.horizontal #controls .toolbar-row,
+body.horizontal #sgf-controls .sgf-row {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
 }
 
 /* ===== レスポンシブ対応 ===== */
@@ -291,8 +307,8 @@ body.horizontal #sgf-controls {
 
 /* タッチデバイス向けのスタイル調整 */
 @media (hover: none) and (pointer: coarse) {
-  #controls,
-  #sgf-controls {
+  .toolbar-row,
+  .sgf-row {
     /* 少し高さを大きくしてタップしやすくする */
     grid-auto-rows: minmax(52px, auto);
   }
