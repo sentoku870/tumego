@@ -200,7 +200,7 @@ export class ToolbarController {
     const historyBtn = document.getElementById("btn-history");
     historyBtn?.addEventListener("click", () => {
       this.store.historyManager.showHistoryDialog((index) => {
-        if (this.store.historyManager.restore(index, this.store.snapshot)) {
+        if (this.store.restoreHistorySnapshot(index)) {
           this.renderer.updateBoardSize();
           this.updateUI();
           this.renderer.showMessage("履歴を復元しました");

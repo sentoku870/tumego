@@ -94,7 +94,7 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     expect(state.handicapStones).toBe(baselineState.handicapStones);
     expect(state.handicapPositions).toEqual(baselineState.handicapPositions);
     expect(state.startColor).toBe(baselineState.startColor);
-    expect(state.komi).toBe(0);
+    expect(state.komi).toBe(baselineState.komi);
   });
 
   test('keeps SGF header metadata through round trip', () => {
