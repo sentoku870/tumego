@@ -4,12 +4,12 @@ import {
   DEFAULT_CONFIG,
   GameState,
   Move,
+  Position,
   SGFGameInfo,
   SGFParseResult,
   StoneColor
 } from '../types.js';
 import { SGFParser } from '../sgf-parser.js';
-import { getCircleNumber } from '../renderer.js';
 
 export interface ApplyResult {
   sgfText: string;
@@ -205,35 +205,48 @@ export class SGFService {
     return { state: input.state };
   }
 
-  buildAnswerSequence(): string | null {
-    const state = this.state;
-    if (!state.numberMode || state.sgfMoves.length === 0) {
-      return null;
+  buildAnswerSequence(state: GameState = this.state): string {
+    if (!state.numberMode) {
+      return '';
     }
 
-    const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, state.boardSize).split('');
     const startIndex = state.numberStartIndex || 0;
-    const endIndex = state.sgfIndex;
+    const endIndex = Math.min(state.sgfIndex, state.sgfMoves.length);
 
     if (endIndex <= startIndex) {
-      return null;
+      return '';
     }
 
     const sequence: string[] = [];
+
     for (let i = startIndex; i < endIndex; i++) {
       const move = state.sgfMoves[i];
-      if (!move) continue;
+      const coordinate = this.formatCoordinate(state, move);
+      if (!coordinate) continue;
 
-      const col = letters[move.col];
-      const row = state.boardSize - move.row;
       const mark = move.color === 1 ? '■' : '□';
-      const num = getCircleNumber(i - startIndex + 1);
-
-      if (col) {
-        sequence.push(`${mark}${num} ${col}${row}`);
-      }
+      const num = this.getAnswerNumber(i - startIndex + 1);
+      sequence.push(`${mark}${num} ${coordinate}`);
     }
 
-    return sequence.length ? sequence.join(' ') : null;
+    return sequence.join(' ');
+  }
+
+  private formatCoordinate(state: GameState, position: Position): string | null {
+    const letters = 'ABCDEFGHJKLMNOPQRSTUV'.slice(0, state.boardSize).split('');
+    const col = letters[position.col];
+    if (!col) return null;
+
+    const row = state.boardSize - position.row;
+    return `${col}${row}`;
+  }
+
+  private getAnswerNumber(order: number): string {
+    const circledNumbers = [
+      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'
+    ];
+
+    return circledNumbers[order - 1] ?? order.toString();
   }
 }
