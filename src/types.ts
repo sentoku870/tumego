@@ -11,6 +11,7 @@ export type PlayMode = 'black' | 'white' | 'alt';
 export type AnswerMode = 'black' | 'white';
 export type RulesMode = 'standard' | 'free';
 export type ToggleSetting = 'on' | 'off';
+export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
 
 export interface Move {
   col: number;
@@ -246,6 +247,7 @@ export interface Preferences {
     showCapturedStones: ToggleSetting;
     enableFullReset: ToggleSetting;
   };
+  ui: { deviceProfile: DeviceProfile };
 }
 
 export interface CapturedCounts {

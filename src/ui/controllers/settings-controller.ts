@@ -1,10 +1,11 @@
-import { Preferences, RulesMode, ToggleSetting } from "../../types.js";
+import { DeviceProfile, Preferences, RulesMode, ToggleSetting } from "../../types.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
 
 export class SettingsController {
   private panel: HTMLElement | null = null;
   private toggleButton: HTMLButtonElement | null = null;
   private rulesSelect: HTMLSelectElement | null = null;
+  private deviceProfileSelect: HTMLSelectElement | null = null;
   private showCapturedCheckbox: HTMLInputElement | null = null;
   private fullResetCheckbox: HTMLInputElement | null = null;
   private resetButton: HTMLButtonElement | null = null;
@@ -15,6 +16,7 @@ export class SettingsController {
     this.panel = document.getElementById("settings-panel");
     this.toggleButton = document.getElementById("settings-toggle") as HTMLButtonElement | null;
     this.rulesSelect = document.getElementById("setting-edit-rules-mode") as HTMLSelectElement | null;
+    this.deviceProfileSelect = document.getElementById("settings-device-profile") as HTMLSelectElement | null;
     this.showCapturedCheckbox = document.getElementById("setting-show-captured") as HTMLInputElement | null;
     this.fullResetCheckbox = document.getElementById("setting-enable-reset") as HTMLInputElement | null;
     this.resetButton = document.getElementById("setting-reset-button") as HTMLButtonElement | null;
@@ -46,6 +48,11 @@ export class SettingsController {
       this.preferences.setEnableFullReset(value as ToggleSetting);
     });
 
+    this.deviceProfileSelect?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLSelectElement).value as DeviceProfile;
+      this.preferences.setDeviceProfile(value);
+    });
+
     this.resetButton?.addEventListener("click", () => {
       this.preferences.reset();
       this.syncUI(this.preferences.state);
@@ -61,6 +68,9 @@ export class SettingsController {
     }
     if (this.fullResetCheckbox) {
       this.fullResetCheckbox.checked = prefs.solve.enableFullReset === "on";
+    }
+    if (this.deviceProfileSelect) {
+      this.deviceProfileSelect.value = prefs.ui.deviceProfile;
     }
   }
 }
