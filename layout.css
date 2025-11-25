@@ -650,3 +650,8 @@ body:not(.horizontal) .msg {
 }
 
 /* ===== UI デザイン追加ここまで ===== */
+/* ボタンが disabled のときは見た目をグレーアウトする */
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

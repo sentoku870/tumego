@@ -24,8 +24,7 @@ export class ToolbarController {
     private readonly elements: UIElements,
     private readonly updateUI: UIUpdater,
     private readonly getPreferences: () => Preferences
-  )
-  {}
+  ) {}
 
   initialize(): void {
     const state = this.store.snapshot;
@@ -52,28 +51,44 @@ export class ToolbarController {
     this.renderer.showMessage("");
   }
 
-  // --- toolbar-controller.ts の updateAnswerButtonDisplay() ---
+  // 黒先ボタン / 解答開始ボタンの表示更新
   updateAnswerButtonDisplay(): void {
+    this.ensureButtonRefs();
     const state = this.store.snapshot;
-    const answerBtn = document.getElementById("btn-answer");
-    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
-    if (!answerBtn) {
-      return;
+
+    if (this.answerBtn) {
+      // ラベルと見た目
+      if (state.answerMode === "white") {
+        this.answerBtn.textContent = "⚪ 白先";
+        this.answerBtn.classList.add("white-mode");
+      } else {
+        this.answerBtn.textContent = "🔥 黒先";
+        this.answerBtn.classList.remove("white-mode");
+      }
+
+      // ツールチップ
+      if (state.numberMode) {
+        this.answerBtn.title =
+          state.answerMode === "white"
+            ? "この問題を白番から解答します"
+            : "この問題を黒番から解答します";
+      } else {
+        // 編集モード中は「解答モード専用」であることだけ伝える
+        this.answerBtn.title = "解答モード中のみ使用できます";
+      }
     }
 
-    if (state.answerMode === "white") {
-      answerBtn.textContent = "⚪ 白先";
-      answerBtn.classList.add("white-mode");
-    } else {
-      answerBtn.textContent = "🔥 黒先";
-      answerBtn.classList.remove("white-mode");
+    if (this.exitSolveBtn) {
+      if (state.numberMode) {
+        this.exitSolveBtn.textContent = "編集に戻る";
+        this.exitSolveBtn.title = "解答を終了して編集モードに戻ります";
+      } else {
+        this.exitSolveBtn.textContent = "解答開始";
+        this.exitSolveBtn.title = "問題図から解答モードを開始します";
+      }
+      // 常に表示しておく（CSS 側のレイアウトに任せる）
+      this.exitSolveBtn.style.display = "";
     }
-
-    if (exitSolveBtn) {
-      exitSolveBtn.textContent = state.numberMode ? "編集に戻る" : "解答開始";
-      exitSolveBtn.style.display = "";
-    }
-    // ここにイベントリスナーの定義は不要
   }
 
   triggerButton(selector: string): void {
@@ -98,19 +113,24 @@ export class ToolbarController {
     });
   }
 
-  private initBasicButtons(): void {
+   private initBasicButtons(): void {
     this.clearBtn = document.getElementById("btn-clear") as HTMLButtonElement | null;
+    if (this.clearBtn) {
+      this.clearBtn.title = "盤面の石と履歴をすべて消して新しい盤面にします（Undoはできません）";
+    }
     this.clearBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       this.disableEraseMode();
       this.store.resetForClearAll();
       this.updateUI();
       this.updateAnswerButtonDisplay();
-      // ★ SGF入力エリアを空にする（追加行）
       (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
     this.undoBtn = document.getElementById("btn-undo") as HTMLButtonElement | null;
+    if (this.undoBtn) {
+      this.undoBtn.title = "編集・解答の履歴から1つ前の状態に戻ります（履歴ダイアログと同じ履歴を使用）";
+    }
     this.undoBtn?.addEventListener("click", () => {
       const restored = this.store.undo();
       if (restored) {
@@ -120,6 +140,9 @@ export class ToolbarController {
     });
 
     this.eraseBtn = document.getElementById("btn-erase") as HTMLButtonElement | null;
+    if (this.eraseBtn) {
+      this.eraseBtn.title = "任意の石だけを消すモードをオン／オフします（盤面の他の状態は変わりません）";
+    }
     this.eraseBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       state.eraseMode = !state.eraseMode;
@@ -139,6 +162,9 @@ export class ToolbarController {
     this.whiteBtn?.addEventListener("click", () => this.setMode("white", this.whiteBtn!));
 
     this.altBtn = document.getElementById("btn-alt") as HTMLButtonElement | null;
+    if (this.altBtn) {
+      this.altBtn.title = "黒白交互に石を連続配置するモードです（先手色は黒先ボタンと連動）";
+    }
     this.altBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       state.startColor = state.startColor === 1 ? 2 : 1;
@@ -146,8 +172,12 @@ export class ToolbarController {
     });
   }
 
-  private initGameButtons(): void {
+
+    private initGameButtons(): void {
     this.prevMoveBtn = document.getElementById("btn-prev-move") as HTMLButtonElement | null;
+    if (this.prevMoveBtn) {
+      this.prevMoveBtn.title = "読み上げ用の手順を1手戻ります（Undoとは別の1手戻る）";
+    }
     this.prevMoveBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       if (state.sgfIndex > 0) {
@@ -157,6 +187,9 @@ export class ToolbarController {
     });
 
     this.nextMoveBtn = document.getElementById("btn-next-move") as HTMLButtonElement | null;
+    if (this.nextMoveBtn) {
+      this.nextMoveBtn.title = "読み上げ用の手順を1手進めます";
+    }
     this.nextMoveBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       if (state.sgfIndex < state.sgfMoves.length) {
@@ -171,11 +204,9 @@ export class ToolbarController {
       const state = this.store.snapshot;
 
       if (!state.numberMode) {
-        // 解答モード以外では何もしない（ボタン自体は無効化されている想定）
         return;
       }
 
-      // === 解答モード中：黒先 / 白先 の切り替えだけ ===
       if (state.answerMode === "black") {
         state.answerMode = "white";
         state.startColor = 2;
@@ -194,13 +225,11 @@ export class ToolbarController {
       this.disableEraseMode();
 
       if (!state.numberMode) {
-        // === 編集モード → 解答モード ===
         this.store.enterSolveMode();
         state.answerMode = "black";
         state.startColor = 1;
         this.updateFullResetVisibility();
       } else {
-        // === 解答モード → 編集モード ===
         this.store.exitSolveModeToEmptyBoard();
         this.updateFullResetVisibility();
       }
@@ -209,7 +238,10 @@ export class ToolbarController {
       this.updateUI();
     });
 
-    const historyBtn = document.getElementById("btn-history");
+    const historyBtn = document.getElementById("btn-history") as HTMLButtonElement | null;
+    if (historyBtn) {
+      historyBtn.title = "編集・解答の履歴一覧を開き、任意の状態にジャンプします";
+    }
     historyBtn?.addEventListener("click", () => {
       this.store.historyManager.showHistoryDialog((index) => {
         if (this.store.restoreHistorySnapshot(index)) {
@@ -226,14 +258,12 @@ export class ToolbarController {
       const state = this.store.snapshot;
 
       if (!state.numberMode) {
-        // === 編集モード中：問題図の確定だけ行う ===
         this.store.setProblemDiagram();
         state.answerMode = "black";
         this.updateAnswerButtonDisplay();
         this.updateUI();
         this.renderer.showMessage("問題図を確定しました");
       } else {
-        // === 解答モード中：問題図に戻す ===
         if (!this.store.hasProblemDiagram()) {
           this.renderer.showMessage("問題図が設定されていません");
           return;
@@ -252,6 +282,7 @@ export class ToolbarController {
     });
   }
 
+
   private initBoardSaveButton(): void {
     const saveBtn = document.getElementById("btn-save-board");
     saveBtn?.addEventListener("click", () => {
@@ -267,13 +298,13 @@ export class ToolbarController {
     this.disableEraseMode();
     const state = this.store.snapshot;
 
-    // === 編集モード／解答モードに関係なく「色変更」だけ行う ===
+    // 編集モード／解答モードに関係なく「色変更」だけ行う
     state.mode = mode;
 
-    // === ボタンの active 切り替え ===
+    // ボタンの active 切り替え
     this.setActiveButton(buttonElement, "play-btn");
 
-    // === UI 更新 ===
+    // UI 更新
     this.updateUI();
   }
 
@@ -321,6 +352,8 @@ export class ToolbarController {
     this.setDisabled(this.nextMoveBtn, !hasNextMove);
 
     this.updateProblemButtonState();
+    // 黒先ボタン / 解答開始ボタンのラベル・ツールチップを最新状態に
+    this.updateAnswerButtonDisplay();
   }
 
   private setDisabled(button: HTMLButtonElement | null, disabled: boolean): void {
@@ -370,9 +403,28 @@ export class ToolbarController {
     }
 
     const prefs = this.getPreferences();
-    const shouldShow =
-      !this.store.snapshot.numberMode || prefs.solve.enableFullReset === "on";
-    this.clearBtn.style.display = shouldShow ? "" : "none";
-    this.clearBtn.disabled = !shouldShow && this.store.snapshot.numberMode;
+    const isSolve = this.store.snapshot.numberMode;
+    const enableFullResetInSolve = prefs.solve.enableFullReset === "on";
+
+    // 他のボタンと同様に、常に表示したまま状態だけ切り替える
+    this.clearBtn.style.display = "";
+
+    if (!isSolve) {
+      // 編集モード中は常に有効
+      this.clearBtn.disabled = false;
+      this.clearBtn.title =
+        "盤面の石と履歴をすべて消して新しい盤面にします（Undoはできません）";
+    } else if (enableFullResetInSolve) {
+      // 解答モード中で、設定で許可されている場合
+      this.clearBtn.disabled = false;
+      this.clearBtn.title =
+        "解答中の盤面と履歴をすべて消して最初からやり直します（Undoはできません）";
+    } else {
+      // 解答モード中だが、設定で無効化されている場合（グレーアウト）
+      this.clearBtn.disabled = true;
+      this.clearBtn.title =
+        "解答モード中の全消去はデフォルトで無効です（設定→「解答モードで全て消すボタンを有効にする」で変更できます）";
+    }
   }
+
 }

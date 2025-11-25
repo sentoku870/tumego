@@ -150,6 +150,7 @@ export class UIController {
     }
   }
 
+  
 
   private initResizeEvents(): void {
     const handleResize = () => {
