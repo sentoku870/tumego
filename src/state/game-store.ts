@@ -158,27 +158,21 @@ export class GameStore {
   }
 
   undo(): boolean {
-    if (this.state.numberMode) {
-      const nextIndex = Math.max(
-        this.state.numberStartIndex,
-        this.state.sgfIndex - 1
-      );
-
-      if (nextIndex === this.state.sgfIndex) {
-        return false;
-      }
-
-      this.state.sgfIndex = nextIndex;
-      this.setMoveIndex(this.state.sgfIndex);
-      return true;
-    }
-
     const restored =
       typeof this.history.restoreLast === "function"
         ? this.history.restoreLast(this.state)
         : false;
     if (restored) {
-      this.invalidateCache();
+      this.afterHistoryRestore();
+    }
+
+    return restored;
+  }
+
+  restoreHistorySnapshot(index: number): boolean {
+    const restored = this.history.restore(index, this.state);
+    if (restored) {
+      this.afterHistoryRestore();
     }
 
     return restored;
@@ -213,10 +207,6 @@ export class GameStore {
   }
 
   setProblemDiagram(): void {
-    if (this.hasGameData()) {
-      this.saveToHistory(`問題図確定前（${this.state.boardSize}路盤）`);
-    }
-
     const blackPositions: Position[] = [];
     const whitePositions: Position[] = [];
 
@@ -248,6 +238,8 @@ export class GameStore {
 
     this.applyInitialSetup();
     this.invalidateCache();
+
+    this.saveToHistory("問題図確定");
   }
 
   restoreProblemDiagram(): void {
@@ -277,9 +269,7 @@ export class GameStore {
   /** 解答モードに正式に入る初期化 */
   /** 解答モードに正式に入る初期化 */
   enterSolveMode(): void {
-    if (this.hasGameData()) {
-      this.saveToHistory("解答開始前");
-    }
+    this.saveToHistory(`解答開始前（${this.state.sgfMoves.length}手）`);
 
     if (this.state.problemDiagramSet) {
       this.applyInitialSetup();
@@ -543,6 +533,26 @@ export class GameStore {
       this.state.sgfMoves.length > 0 ||
       this.state.handicapStones > 0 ||
       this.state.board.some((row) => row.some((cell) => cell !== 0))
+    );
+  }
+
+  private afterHistoryRestore(): void {
+    this.state.sgfIndex = Math.max(
+      0,
+      Math.min(this.state.sgfIndex, this.state.sgfMoves.length)
+    );
+    this.state.numberStartIndex = Math.max(
+      0,
+      Math.min(this.state.numberStartIndex, this.state.sgfMoves.length)
+    );
+    this.state.history = [];
+
+    this.invalidateCache();
+    this.cachedAppliedMoveIndex = this.state.sgfIndex;
+    this.cachedBoardState = this.cloneBoard();
+    this.cachedBoardTimeline[this.state.sgfIndex] = this.cachedBoardState;
+    this.capturedCountsTimeline[this.state.sgfIndex] = this.cloneCapturedCounts(
+      this.state.capturedCounts
     );
   }
 

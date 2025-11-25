@@ -91,6 +91,8 @@ export type HistorySnapshotState = Pick<
   GameState,
   | "boardSize"
   | "board"
+  | "mode"
+  | "eraseMode"
   | "turn"
   | "numberMode"
   | "answerMode"
@@ -100,6 +102,12 @@ export type HistorySnapshotState = Pick<
   | "handicapStones"
   | "handicapPositions"
   | "startColor"
+  | "sgfMoves"
+  | "sgfIndex"
+  | "numberStartIndex"
+  | "komi"
+  | "sgfLoadedFromExternal"
+  | "capturedCounts"
 >;
 
 export interface HistorySnapshot {

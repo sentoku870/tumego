@@ -198,18 +198,9 @@ describe('Core consistency: GameStore state alignment', () => {
 
     const undone = store.undo();
 
-    expect(undone).toBe(true);
-    expect(state.sgfIndex).toBe(moves.length - 1);
-    expectBoardState(
-      state,
-      buildBoardFromMoves(state.boardSize, moves.slice(0, moves.length - 1))
-    );
-
-    store.setMoveIndex(state.sgfMoves.length);
-
-    expect(state.sgfIndex).toBe(state.sgfMoves.length);
+    expect(undone).toBe(false);
+    expect(state.sgfIndex).toBe(moves.length);
     expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
-    expect(state.turn).toBe(3);
   });
 
   test('Test8: 解答モードから空盤面の編集に戻す', () => {
