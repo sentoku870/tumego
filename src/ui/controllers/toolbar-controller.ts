@@ -6,6 +6,16 @@ import { UIUpdater } from "./feature-menu-controller.js";
 
 export class ToolbarController {
   private clearBtn: HTMLButtonElement | null = null;
+  private problemBtn: HTMLButtonElement | null = null;
+  private answerBtn: HTMLButtonElement | null = null;
+  private prevMoveBtn: HTMLButtonElement | null = null;
+  private nextMoveBtn: HTMLButtonElement | null = null;
+  private blackBtn: HTMLButtonElement | null = null;
+  private whiteBtn: HTMLButtonElement | null = null;
+  private eraseBtn: HTMLButtonElement | null = null;
+  private altBtn: HTMLButtonElement | null = null;
+  private undoBtn: HTMLButtonElement | null = null;
+  private exitSolveBtn: HTMLButtonElement | null = null;
 
   constructor(
     private readonly store: GameStore,
@@ -88,9 +98,8 @@ export class ToolbarController {
   }
 
   private initBasicButtons(): void {
-    const clearBtn = document.getElementById("btn-clear");
-    this.clearBtn = clearBtn as HTMLButtonElement | null;
-    clearBtn?.addEventListener("click", () => {
+    this.clearBtn = document.getElementById("btn-clear") as HTMLButtonElement | null;
+    this.clearBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       this.disableEraseMode();
       this.store.resetForClearAll();
@@ -100,8 +109,8 @@ export class ToolbarController {
       (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
-    const undoBtn = document.getElementById("btn-undo");
-    undoBtn?.addEventListener("click", () => {
+    this.undoBtn = document.getElementById("btn-undo") as HTMLButtonElement | null;
+    this.undoBtn?.addEventListener("click", () => {
       const restored = this.store.undo();
       if (restored) {
         this.renderer.updateBoardSize();
@@ -109,36 +118,36 @@ export class ToolbarController {
       this.updateUI();
     });
 
-    const eraseBtn = document.getElementById("btn-erase");
-    eraseBtn?.addEventListener("click", () => {
+    this.eraseBtn = document.getElementById("btn-erase") as HTMLButtonElement | null;
+    this.eraseBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       state.eraseMode = !state.eraseMode;
       if (state.eraseMode) {
-        eraseBtn.classList.add("active");
+        this.eraseBtn?.classList.add("active");
         this.renderer.showMessage("消去モード");
       } else {
-        eraseBtn.classList.remove("active");
+        this.eraseBtn?.classList.remove("active");
         this.renderer.showMessage("");
       }
     });
 
-    const blackBtn = document.getElementById("btn-black");
-    blackBtn?.addEventListener("click", () => this.setMode("black", blackBtn!));
+    this.blackBtn = document.getElementById("btn-black") as HTMLButtonElement | null;
+    this.blackBtn?.addEventListener("click", () => this.setMode("black", this.blackBtn!));
 
-    const whiteBtn = document.getElementById("btn-white");
-    whiteBtn?.addEventListener("click", () => this.setMode("white", whiteBtn!));
+    this.whiteBtn = document.getElementById("btn-white") as HTMLButtonElement | null;
+    this.whiteBtn?.addEventListener("click", () => this.setMode("white", this.whiteBtn!));
 
-    const altBtn = document.getElementById("btn-alt");
-    altBtn?.addEventListener("click", () => {
+    this.altBtn = document.getElementById("btn-alt") as HTMLButtonElement | null;
+    this.altBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       state.startColor = state.startColor === 1 ? 2 : 1;
-      this.setMode("alt", altBtn!);
+      this.setMode("alt", this.altBtn!);
     });
   }
 
   private initGameButtons(): void {
-    const prevBtn = document.getElementById("btn-prev-move");
-    prevBtn?.addEventListener("click", () => {
+    this.prevMoveBtn = document.getElementById("btn-prev-move") as HTMLButtonElement | null;
+    this.prevMoveBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       if (state.sgfIndex > 0) {
         this.store.setMoveIndex(state.sgfIndex - 1);
@@ -146,8 +155,8 @@ export class ToolbarController {
       }
     });
 
-    const nextBtn = document.getElementById("btn-next-move");
-    nextBtn?.addEventListener("click", () => {
+    this.nextMoveBtn = document.getElementById("btn-next-move") as HTMLButtonElement | null;
+    this.nextMoveBtn?.addEventListener("click", () => {
       const state = this.store.snapshot;
       if (state.sgfIndex < state.sgfMoves.length) {
         this.store.setMoveIndex(state.sgfIndex + 1);
@@ -155,8 +164,8 @@ export class ToolbarController {
       }
     });
 
-    const answerBtn = document.getElementById("btn-answer");
-    answerBtn?.addEventListener("click", () => {
+    this.answerBtn = document.getElementById("btn-answer") as HTMLButtonElement | null;
+    this.answerBtn?.addEventListener("click", () => {
       this.disableEraseMode();
       const state = this.store.snapshot;
 
@@ -184,8 +193,8 @@ export class ToolbarController {
       this.updateUI();
     });
 
-    const exitSolveBtn = document.getElementById("btn-exit-solve-edit");
-    exitSolveBtn?.addEventListener("click", () => {
+    this.exitSolveBtn = document.getElementById("btn-exit-solve-edit") as HTMLButtonElement | null;
+    this.exitSolveBtn?.addEventListener("click", () => {
       if (!this.isSolveMode()) {
         return;
       }
@@ -208,8 +217,8 @@ export class ToolbarController {
       });
     });
 
-    const problemBtn = document.getElementById("btn-problem");
-    problemBtn?.addEventListener("click", () => {
+    this.problemBtn = document.getElementById("btn-problem") as HTMLButtonElement | null;
+    this.problemBtn?.addEventListener("click", () => {
       this.disableEraseMode();
       const state = this.store.snapshot;
 
@@ -278,6 +287,77 @@ export class ToolbarController {
 
   private isSolveMode(): boolean {
     return this.store.snapshot.numberMode;
+  }
+
+  updateToolbarState(): void {
+    this.ensureButtonRefs();
+    this.updateFullResetVisibility();
+
+    const state = this.store.snapshot;
+    const isSolve = this.isSolveMode();
+    const hasHistorySnapshots = this.store.historyManager.getList().length > 0;
+
+    this.setDisabled(this.undoBtn, !hasHistorySnapshots);
+
+    if (isSolve) {
+      this.disableEraseMode();
+    }
+    this.setDisabled(this.eraseBtn, isSolve);
+    this.setDisabled(this.altBtn, isSolve);
+    this.setDisabled(this.blackBtn, isSolve);
+    this.setDisabled(this.whiteBtn, isSolve);
+
+    if (this.answerBtn) {
+      this.answerBtn.disabled = false;
+    }
+    if (this.exitSolveBtn) {
+      this.exitSolveBtn.disabled = false;
+    }
+
+    const hasPrevMove = state.sgfIndex > 0;
+    const hasNextMove = state.sgfIndex < state.sgfMoves.length;
+    this.setDisabled(this.prevMoveBtn, !hasPrevMove);
+    this.setDisabled(this.nextMoveBtn, !hasNextMove);
+
+    this.updateProblemButtonState();
+  }
+
+  private setDisabled(button: HTMLButtonElement | null, disabled: boolean): void {
+    if (!button) {
+      return;
+    }
+    button.disabled = disabled;
+  }
+
+  private ensureButtonRefs(): void {
+    this.clearBtn = this.clearBtn ?? (document.getElementById("btn-clear") as HTMLButtonElement | null);
+    this.problemBtn = this.problemBtn ?? (document.getElementById("btn-problem") as HTMLButtonElement | null);
+    this.answerBtn = this.answerBtn ?? (document.getElementById("btn-answer") as HTMLButtonElement | null);
+    this.prevMoveBtn = this.prevMoveBtn ?? (document.getElementById("btn-prev-move") as HTMLButtonElement | null);
+    this.nextMoveBtn = this.nextMoveBtn ?? (document.getElementById("btn-next-move") as HTMLButtonElement | null);
+    this.blackBtn = this.blackBtn ?? (document.getElementById("btn-black") as HTMLButtonElement | null);
+    this.whiteBtn = this.whiteBtn ?? (document.getElementById("btn-white") as HTMLButtonElement | null);
+    this.eraseBtn = this.eraseBtn ?? (document.getElementById("btn-erase") as HTMLButtonElement | null);
+    this.altBtn = this.altBtn ?? (document.getElementById("btn-alt") as HTMLButtonElement | null);
+    this.undoBtn = this.undoBtn ?? (document.getElementById("btn-undo") as HTMLButtonElement | null);
+    this.exitSolveBtn =
+      this.exitSolveBtn ?? (document.getElementById("btn-exit-solve-edit") as HTMLButtonElement | null);
+  }
+
+  private updateProblemButtonState(): void {
+    if (!this.problemBtn) {
+      this.problemBtn = document.getElementById("btn-problem") as HTMLButtonElement | null;
+    }
+    if (!this.problemBtn) {
+      return;
+    }
+
+    const isSolve = this.isSolveMode();
+    this.problemBtn.textContent = isSolve ? "🧩 初期図" : "🧩 問題図";
+    this.problemBtn.title = isSolve
+      ? "解答をすべて消して問題図の初期状態に戻します"
+      : "現在の盤面を問題図として保存します";
+    this.problemBtn.disabled = false;
   }
 
   updateFullResetVisibility(): void {

@@ -28,13 +28,13 @@
       <div id="controls">
         <div class="toolbar-row">
           <button class="ctrl-btn" id="btn-clear">全消去</button>
-          <button class="ctrl-btn" id="btn-undo">Undo</button>
+          <button class="ctrl-btn" id="btn-undo" title="直前の状態に戻します（履歴スナップショット単位）">Undo</button>
           <button class="ctrl-btn" id="btn-erase">消去</button>
         </div>
         <div class="toolbar-row">
           <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
           <button class="ctrl-btn" id="btn-exit-solve-edit" style="display:none;">編集に戻る</button>
-          <button class="ctrl-btn answer-btn" id="btn-answer">🔥 黒先</button>
+          <button class="ctrl-btn answer-btn" id="btn-answer" title="解答モードの先手色を切り替えます">🔥 黒先</button>
         </div>
       </div>
 
@@ -46,11 +46,11 @@
       <!-- ===== SGF・ゲーム操作ボタン ===== -->
       <div id="sgf-controls">
         <div class="sgf-row">
-          <button class="ctrl-btn" id="btn-problem">🧩 問題図</button>
-          <button class="ctrl-btn play-btn" id="btn-black">黒配置</button>
-          <button class="ctrl-btn play-btn" id="btn-white">白配置</button>
-          <button class="ctrl-btn" id="btn-prev-move">1手戻る</button>
-          <button class="ctrl-btn" id="btn-next-move">1手進む</button>
+          <button class="ctrl-btn" id="btn-problem" title="現在の盤面を問題図として保存します">🧩 問題図</button>
+          <button class="ctrl-btn play-btn" id="btn-black" title="編集モードで黒石を配置します">黒配置</button>
+          <button class="ctrl-btn play-btn" id="btn-white" title="編集モードで白石を配置します">白配置</button>
+          <button class="ctrl-btn" id="btn-prev-move" title="棋譜・解答手順を1手だけさかのぼります">1手戻る</button>
+          <button class="ctrl-btn" id="btn-next-move" title="棋譜・解答手順を1手だけ進めます">1手進む</button>
         </div>
 
         <div class="sgf-row">
@@ -72,7 +72,7 @@
             </div>
           </div>
 
-          <button class="ctrl-btn history-btn" id="btn-history">📜 履歴</button>
+          <button class="ctrl-btn history-btn" id="btn-history" title="履歴一覧から任意の状態にジャンプします">📜 履歴</button>
 
           <div class="menu-container feature-menu">
             <button class="ctrl-btn" id="btn-feature">🛠️ 機能</button>
