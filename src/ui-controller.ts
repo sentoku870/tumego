@@ -140,6 +140,7 @@ export class UIController {
       this.preferences.state.solve.showCapturedStones === "on"
     );
     this.featureMenuController.updateMenuState();
+    this.toolbarController.updateToolbarState();
   }
 
   private syncSgfTextarea(text: string): void {
