@@ -45,7 +45,7 @@ export class UIController {
     this.historyManager = new HistoryManager();
     this.store = new GameStore(state, this.engine, this.historyManager);
     this.preferences = new PreferencesStore();
-    this.renderer = new Renderer(this.store, elements);
+    this.renderer = new Renderer(this.store, elements, () => this.preferences.state);
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
     this.uiState = new UIInteractionState();
@@ -100,7 +100,10 @@ export class UIController {
     this.settingsController.initialize();
 
     this.applyPreferences();
-    this.preferences.onChange(() => this.applyPreferences());
+    this.preferences.onChange(() => {
+      this.applyPreferences();
+      this.updateUI();
+    });
 
     this.initResizeEvents();
 

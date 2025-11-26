@@ -12,6 +12,7 @@ export type AnswerMode = 'black' | 'white';
 export type RulesMode = 'standard' | 'free';
 export type ToggleSetting = 'on' | 'off';
 export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
+export type BooleanPreference = boolean;
 
 export interface Move {
   col: number;
@@ -210,6 +211,12 @@ export interface MoveNumberRenderInfo {
   readonly text: string;
 }
 
+export interface LastMoveHighlightRenderInfo {
+  readonly cx: number;
+  readonly cy: number;
+  readonly radius: number;
+}
+
 export interface BoardRenderModel {
   readonly geometry: BoardRenderGeometry;
   readonly stars: Position[];
@@ -217,6 +224,7 @@ export interface BoardRenderModel {
   readonly stones: StoneRenderInfo[];
   readonly moveNumbers: MoveNumberRenderInfo[];
   readonly showMoveNumbers: boolean;
+  readonly lastMoveHighlight?: LastMoveHighlightRenderInfo;
 }
 
 export interface InfoRenderModel {
@@ -246,6 +254,8 @@ export interface Preferences {
   solve: {
     showCapturedStones: ToggleSetting;
     enableFullReset: ToggleSetting;
+    highlightLastMove: BooleanPreference;
+    showSolutionMoveNumbers: BooleanPreference;
   };
   ui: { deviceProfile: DeviceProfile };
 }
