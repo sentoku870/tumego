@@ -4,10 +4,14 @@ import { PreferencesStore } from "../../services/preferences-store.js";
 export class SettingsController {
   private panel: HTMLElement | null = null;
   private toggleButton: HTMLButtonElement | null = null;
+  private tabButtons: HTMLButtonElement[] = [];
+  private tabContents: Record<string, HTMLElement | null> = {};
   private rulesSelect: HTMLSelectElement | null = null;
   private deviceProfileSelect: HTMLSelectElement | null = null;
   private showCapturedCheckbox: HTMLInputElement | null = null;
   private fullResetCheckbox: HTMLInputElement | null = null;
+  private highlightLastMoveCheckbox: HTMLInputElement | null = null;
+  private showSolutionMoveNumbersCheckbox: HTMLInputElement | null = null;
   private resetButton: HTMLButtonElement | null = null;
 
   constructor(private readonly preferences: PreferencesStore) {}
@@ -15,13 +19,23 @@ export class SettingsController {
   initialize(): void {
     this.panel = document.getElementById("settings-panel");
     this.toggleButton = document.getElementById("settings-toggle") as HTMLButtonElement | null;
+    this.tabButtons = Array.from(
+      document.querySelectorAll<HTMLButtonElement>("#settings-panel .settings-tab")
+    );
+    this.tabContents = {
+      basic: document.getElementById("settings-tab-basic"),
+      advanced: document.getElementById("settings-tab-advanced"),
+    };
     this.rulesSelect = document.getElementById("setting-edit-rules-mode") as HTMLSelectElement | null;
     this.deviceProfileSelect = document.getElementById("settings-device-profile") as HTMLSelectElement | null;
     this.showCapturedCheckbox = document.getElementById("setting-show-captured") as HTMLInputElement | null;
     this.fullResetCheckbox = document.getElementById("setting-enable-reset") as HTMLInputElement | null;
+    this.highlightLastMoveCheckbox = document.getElementById("setting-highlight-last-move") as HTMLInputElement | null;
+    this.showSolutionMoveNumbersCheckbox = document.getElementById("setting-show-solution-move-numbers") as HTMLInputElement | null;
     this.resetButton = document.getElementById("setting-reset-button") as HTMLButtonElement | null;
 
     this.bindEvents();
+    this.selectTab("basic");
     this.syncUI(this.preferences.state);
     this.preferences.onChange((prefs) => this.syncUI(prefs));
   }
@@ -31,6 +45,15 @@ export class SettingsController {
       if (!this.panel) return;
       this.panel.hidden = !this.panel.hidden;
       this.toggleButton?.setAttribute("aria-expanded", this.panel.hidden ? "false" : "true");
+    });
+
+    this.tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        if (tab) {
+          this.selectTab(tab);
+        }
+      });
     });
 
     this.rulesSelect?.addEventListener("change", (event) => {
@@ -46,6 +69,16 @@ export class SettingsController {
     this.fullResetCheckbox?.addEventListener("change", (event) => {
       const value = (event.target as HTMLInputElement).checked ? "on" : "off";
       this.preferences.setEnableFullReset(value as ToggleSetting);
+    });
+
+    this.highlightLastMoveCheckbox?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLInputElement).checked;
+      this.preferences.setHighlightLastMove(value);
+    });
+
+    this.showSolutionMoveNumbersCheckbox?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLInputElement).checked;
+      this.preferences.setShowSolutionMoveNumbers(value);
     });
 
     this.deviceProfileSelect?.addEventListener("change", (event) => {
@@ -69,8 +102,29 @@ export class SettingsController {
     if (this.fullResetCheckbox) {
       this.fullResetCheckbox.checked = prefs.solve.enableFullReset === "on";
     }
+    if (this.highlightLastMoveCheckbox) {
+      this.highlightLastMoveCheckbox.checked = prefs.solve.highlightLastMove;
+    }
+    if (this.showSolutionMoveNumbersCheckbox) {
+      this.showSolutionMoveNumbersCheckbox.checked = prefs.solve.showSolutionMoveNumbers;
+    }
     if (this.deviceProfileSelect) {
       this.deviceProfileSelect.value = prefs.ui.deviceProfile;
     }
+  }
+
+  private selectTab(tab: string): void {
+    this.tabButtons.forEach((btn) => {
+      const isActive = btn.dataset.tab === tab;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    Object.entries(this.tabContents).forEach(([key, element]) => {
+      if (!element) return;
+      const isActive = key === tab;
+      element.hidden = !isActive;
+      element.classList.toggle("active", isActive);
+    });
   }
 }

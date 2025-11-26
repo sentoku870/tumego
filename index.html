@@ -99,44 +99,66 @@
 
       <button id="settings-toggle" class="settings-toggle-button" aria-expanded="false">設定</button>
       <div id="settings-panel" class="settings-panel" hidden>
-        <div class="settings-group">
-          <h3>編集モード</h3>
-          <label class="settings-row">
-            <span>編集モードの石のルール</span>
-            <select id="setting-edit-rules-mode">
-              <option value="standard">ルールに従う</option>
-              <option value="free">自由配置</option>
-            </select>
-          </label>
+        <div class="settings-tabs" role="tablist">
+          <button class="settings-tab active" data-tab="basic" role="tab" aria-selected="true">Basic</button>
+          <button class="settings-tab" data-tab="advanced" role="tab" aria-selected="false">Advanced</button>
         </div>
 
-        <div class="settings-group">
-          <h3>表示設定</h3>
-          <label class="settings-row">
-            <span>デバイスプロファイル</span>
-            <select id="settings-device-profile">
-              <option value="auto">自動</option>
-              <option value="desktop">デスクトップ</option>
-              <option value="tablet">タブレット</option>
-              <option value="phone">スマートフォン</option>
-            </select>
-          </label>
+        <div id="settings-tab-basic" class="settings-content" role="tabpanel">
+          <div class="settings-group">
+            <h3>編集モード</h3>
+            <label class="settings-row">
+              <span>編集モードの石のルール</span>
+              <select id="setting-edit-rules-mode">
+                <option value="standard">ルールに従う</option>
+                <option value="free">自由配置</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>解答モード</h3>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-show-captured" />
+              <span>抜いた石を表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-enable-reset" />
+              <span>解答モードで『全て消す』ボタンを有効にする</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-highlight-last-move" />
+              <span>直前の手を強調表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-show-solution-move-numbers" />
+              <span>解答手順に手数を表示する</span>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>表示設定</h3>
+            <label class="settings-row">
+              <span>デバイスプロファイル</span>
+              <select id="settings-device-profile">
+                <option value="auto">自動</option>
+                <option value="desktop">デスクトップ</option>
+                <option value="tablet">タブレット</option>
+                <option value="phone">スマートフォン</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-actions">
+            <button id="setting-reset-button" class="ctrl-btn reset-settings-btn">設定をリセット</button>
+          </div>
         </div>
 
-        <div class="settings-group">
-          <h3>解答モード</h3>
-          <label class="settings-row checkbox-row">
-            <input type="checkbox" id="setting-show-captured" />
-            <span>抜いた石を表示する</span>
-          </label>
-          <label class="settings-row checkbox-row">
-            <input type="checkbox" id="setting-enable-reset" />
-            <span>解答モードで『全て消す』ボタンを有効にする</span>
-          </label>
-        </div>
-
-        <div class="settings-actions">
-          <button id="setting-reset-button" class="ctrl-btn reset-settings-btn">設定をリセット</button>
+        <div id="settings-tab-advanced" class="settings-content" role="tabpanel" hidden>
+          <div class="settings-group">
+            <h3>高度な設定</h3>
+            <p class="settings-placeholder">No advanced options yet.</p>
+          </div>
         </div>
       </div>
 

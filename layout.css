@@ -585,6 +585,42 @@ body:not(.horizontal) .msg {
   max-width: 480px;
 }
 
+#settings-panel .settings-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#settings-panel .settings-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  background: #f7f9fc;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+#settings-panel .settings-tab.active {
+  background: #fff;
+  color: var(--text-main);
+  border-color: var(--accent);
+  border-bottom: 1px solid #fff;
+}
+
+#settings-panel .settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#settings-panel .settings-content[hidden] {
+  display: none;
+}
+
 #settings-panel[hidden] {
   display: none !important;
 }
@@ -620,6 +656,11 @@ body:not(.horizontal) .msg {
 .settings-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.settings-placeholder {
+  margin: 0;
+  color: var(--text-muted);
 }
 
 .reset-settings-btn {
