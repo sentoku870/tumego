@@ -127,7 +127,7 @@ body:not(.horizontal) .msg {
 
 .toolbar-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
@@ -154,7 +154,7 @@ body:not(.horizontal) .msg {
 
 .sgf-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
@@ -689,6 +689,136 @@ body:not(.horizontal) .msg {
     font-size: 15px;
   }
 }
+
+/* ===== Device specific layout overrides ===== */
+body.device-desktop #layout {
+  max-width: 1100px;
+}
+
+body.device-desktop #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 140px));
+}
+
+body.device-desktop #settings-panel {
+  max-width: 640px;
+}
+
+/* Tablet layout overrides */
+body.device-tablet #layout {
+  width: 100%;
+  padding-inline: 8px;
+  gap: 14px;
+}
+
+body.device-tablet:not(.horizontal) #controls,
+body.device-tablet:not(.horizontal) .info,
+body.device-tablet:not(.horizontal) #branch-info,
+body.device-tablet:not(.horizontal) #move-slider,
+body.device-tablet:not(.horizontal) .moves,
+body.device-tablet:not(.horizontal) #captured-stones,
+body.device-tablet:not(.horizontal) #sgf-controls,
+body.device-tablet:not(.horizontal) #sgf-text,
+body.device-tablet:not(.horizontal) .settings-toggle-button,
+body.device-tablet:not(.horizontal) #settings-panel,
+body.device-tablet:not(.horizontal) .msg {
+  width: 100%;
+  max-width: 840px;
+}
+
+body.device-tablet #board-wrapper {
+  max-width: min(92vmin, calc(100vw - 64px));
+}
+
+body.device-tablet .toolbar-row,
+body.device-tablet .sgf-row {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+body.device-tablet .settings-panel {
+  max-width: 720px;
+}
+
+/* Phone layout overrides */
+body.device-phone {
+  overflow-x: hidden;
+}
+
+body.device-phone #layout {
+  width: 100%;
+  align-items: stretch;
+  gap: 10px;
+  padding-inline: 4px;
+}
+
+body.device-phone:not(.horizontal) #controls,
+body.device-phone:not(.horizontal) .info,
+body.device-phone:not(.horizontal) #branch-info,
+body.device-phone:not(.horizontal) #move-slider,
+body.device-phone:not(.horizontal) .moves,
+body.device-phone:not(.horizontal) #captured-stones,
+body.device-phone:not(.horizontal) #sgf-controls,
+body.device-phone:not(.horizontal) #sgf-text,
+body.device-phone:not(.horizontal) .settings-toggle-button,
+body.device-phone:not(.horizontal) #settings-panel,
+body.device-phone:not(.horizontal) .msg {
+  width: 100%;
+  max-width: 100%;
+}
+
+body.device-phone #controls,
+body.device-phone #sgf-controls,
+body.device-phone #settings-panel {
+  max-width: 100%;
+}
+
+body.device-phone #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 20px));
+  margin-inline: auto;
+}
+
+body.device-phone .toolbar-row,
+body.device-phone .sgf-row {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+body.device-phone .ctrl-btn {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+body.device-phone #settings-panel {
+  gap: 10px;
+  padding: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+body.device-phone #settings-panel .settings-tabs {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body.device-phone #settings-panel .settings-tab {
+  min-width: 140px;
+  padding: 8px 10px;
+}
+
+body.device-phone .settings-row {
+  align-items: flex-start;
+  gap: 6px;
+}
+
+body.device-phone .settings-row select {
+  width: 100%;
+}
+
+body.device-phone .checkbox-row {
+  align-items: center;
+}
+
+/* ===== Device specific layout overrides end ===== */
 
 /* ===== UI デザイン追加ここまで ===== */
 /* ボタンが disabled のときは見た目をグレーアウトする */

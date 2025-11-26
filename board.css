@@ -189,7 +189,7 @@ svg.rotated .move-num {
 }
 
 /* 分岐情報はカード風のボックスに */
-.branch-info {
+.branch-info {  
   margin-block: 4px;
   background: rgba(255, 235, 59, 0.95);
   border: 1px solid #f57f17;
@@ -239,3 +239,37 @@ svg.rotated .move-num {
 }
 
 /* ===== 碁盤まわりの見た目調整ここまで ===== */
+
+/* ===== Device specific board sizing ===== */
+body.device-desktop #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 140px));
+}
+
+body.device-tablet #board-wrapper {
+  max-width: min(92vmin, calc(100vw - 64px));
+}
+
+body.device-phone #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 20px));
+  margin-inline: auto;
+}
+
+body.device-tablet .info,
+body.device-tablet .branch-info,
+body.device-tablet .branch-info-text,
+body.device-phone .info,
+body.device-phone .branch-info,
+body.device-phone .branch-info-text {
+  max-width: calc(100vw - 24px);
+  margin-inline: auto;
+}
+
+body.device-tablet text.coord {
+  font-size: 12px;
+}
+
+body.device-phone text.coord {
+  font-size: 10px;
+}
+
+/* ===== Device specific board sizing end ===== */
