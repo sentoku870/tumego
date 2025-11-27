@@ -127,7 +127,7 @@ body:not(.horizontal) .msg {
 
 .toolbar-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
@@ -154,7 +154,7 @@ body:not(.horizontal) .msg {
 
 .sgf-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
   grid-auto-rows: minmax(48px, auto);
 }
@@ -460,6 +460,8 @@ body:not(.horizontal) .msg {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-soft);
   resize: vertical;
+  /* 横レイアウトでも十分な入力エリアを確保する */
+  min-height: 120px;
 }
 
 /* ボタンスタイルの微調整 */
@@ -585,6 +587,42 @@ body:not(.horizontal) .msg {
   max-width: 480px;
 }
 
+#settings-panel .settings-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#settings-panel .settings-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  background: #f7f9fc;
+  color: var(--text-muted);
+  font-weight: 600;
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+#settings-panel .settings-tab.active {
+  background: #fff;
+  color: var(--text-main);
+  border-color: var(--accent);
+  border-bottom: 1px solid #fff;
+}
+
+#settings-panel .settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#settings-panel .settings-content[hidden] {
+  display: none;
+}
+
 #settings-panel[hidden] {
   display: none !important;
 }
@@ -622,6 +660,11 @@ body:not(.horizontal) .msg {
   justify-content: flex-end;
 }
 
+.settings-placeholder {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 .reset-settings-btn {
   width: 100%;
 }
@@ -648,6 +691,140 @@ body:not(.horizontal) .msg {
     font-size: 15px;
   }
 }
+
+/* ===== Device specific layout overrides ===== */
+body.device-desktop #layout {
+  max-width: 1100px;
+}
+
+body.device-desktop #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 140px));
+}
+
+body.device-desktop #settings-panel {
+  max-width: 640px;
+}
+
+/* Tablet layout overrides */
+body.device-tablet #layout {
+  width: 100%;
+  padding-inline: 8px;
+  gap: 14px;
+}
+
+body.device-tablet:not(.horizontal) #controls,
+body.device-tablet:not(.horizontal) .info,
+body.device-tablet:not(.horizontal) #branch-info,
+body.device-tablet:not(.horizontal) #move-slider,
+body.device-tablet:not(.horizontal) .moves,
+body.device-tablet:not(.horizontal) #captured-stones,
+body.device-tablet:not(.horizontal) #sgf-controls,
+body.device-tablet:not(.horizontal) #sgf-text,
+body.device-tablet:not(.horizontal) .settings-toggle-button,
+body.device-tablet:not(.horizontal) #settings-panel,
+body.device-tablet:not(.horizontal) .msg {
+  width: 100%;
+  max-width: 840px;
+}
+
+body.device-tablet #board-wrapper {
+  max-width: min(92vmin, calc(100vw - 64px));
+}
+
+body.device-tablet .toolbar-row,
+body.device-tablet .sgf-row {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+body.device-tablet .settings-panel {
+  max-width: 720px;
+}
+
+/* Phone layout overrides */
+body.device-phone {
+  overflow-x: hidden;
+}
+
+body.device-phone #layout {
+  width: 100%;
+  align-items: stretch;
+  gap: 10px;
+  padding-inline: 4px;
+}
+
+/* Phone 横向きではレイアウト全体の高さを画面高に固定し、
+   右カラム(#ui)だけをスクロールさせる */
+body.device-phone.horizontal #layout {
+  height: 100vh;
+}
+
+/* 右カラムは画面高までに抑え、内部を縦スクロール */
+body.device-phone.horizontal #ui {
+  max-height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.device-phone #controls,
+body.device-phone #sgf-controls,
+body.device-phone #settings-panel {
+  max-width: 100%;
+}
+
+body.device-phone #board-wrapper {
+  max-width: min(95vmin, calc(100vw - 20px));
+  margin-inline: auto;
+}
+
+body.device-phone .toolbar-row,
+body.device-phone .sgf-row {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+body.device-phone .ctrl-btn {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+body.device-phone #settings-panel {
+  gap: 10px;
+  padding: 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+body.device-phone #settings-panel .settings-tabs {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body.device-phone #settings-panel .settings-tab {
+  min-width: 140px;
+  padding: 8px 10px;
+}
+
+body.device-phone .settings-row {
+  align-items: flex-start;
+  gap: 6px;
+}
+
+body.device-phone .settings-row select {
+  width: 100%;
+}
+
+body.device-phone .checkbox-row {
+  align-items: center;
+}
+
+/* Phone 横向きでは設定パネルも高さ制限を外し、ページ全体のスクロールに任せる */
+body.device-phone.horizontal #settings-panel {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* ===== Device specific layout overrides end ===== */
 
 /* ===== UI デザイン追加ここまで ===== */
 /* ボタンが disabled のときは見た目をグレーアウトする */

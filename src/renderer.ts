@@ -3,6 +3,7 @@ import {
   BoardRenderModel,
   CoordinateLabel,
   InfoRenderModel,
+  LastMoveHighlightRenderInfo,
   MoveNumberRenderInfo,
   Position,
   Board,
@@ -10,7 +11,8 @@ import {
   SliderRenderModel,
   StoneRenderInfo,
   UIElements,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  Preferences
 } from './types.js';
 import { GameStore } from './state/game-store.js';
 
@@ -51,19 +53,24 @@ class RendererGeometry {
 }
 
 class RendererViewModelBuilder {
-  constructor(private readonly store: GameStore) {}
+  constructor(private readonly store: GameStore, private readonly getPreferences: () => Preferences) {}
 
   buildBoardModel(): BoardRenderModel {
     const state = this.store.snapshot;
     const geometry = new RendererGeometry(state.boardSize);
+    const prefs = this.getPreferences();
+    const showMoveNumbers = state.numberMode && prefs.solve.showSolutionMoveNumbers;
 
     return {
       geometry,
       stars: this.getStarPositions(state.boardSize),
       coordinates: this.buildCoordinateLabels(geometry),
       stones: this.buildStoneModels(state.board, geometry),
-      moveNumbers: state.numberMode ? this.buildMoveNumberModels(state, geometry) : [],
-      showMoveNumbers: state.numberMode
+      moveNumbers: showMoveNumbers ? this.buildMoveNumberModels(state, geometry) : [],
+      showMoveNumbers,
+      lastMoveHighlight: prefs.solve.highlightLastMove
+        ? this.buildLastMoveHighlight(state, geometry)
+        : undefined,
     };
   }
 
@@ -148,6 +155,24 @@ class RendererViewModelBuilder {
     }
 
     return numbers;
+  }
+
+  private buildLastMoveHighlight(state: GameState, geometry: RendererGeometry): LastMoveHighlightRenderInfo | undefined {
+    if (state.sgfIndex <= 0 || state.sgfIndex > state.sgfMoves.length) {
+      return undefined;
+    }
+
+    const lastMove = state.sgfMoves[state.sgfIndex - 1];
+    if (!lastMove) {
+      return undefined;
+    }
+
+    const { cx, cy } = geometry.toPixel({ col: lastMove.col, row: lastMove.row });
+    return {
+      cx,
+      cy,
+      radius: DEFAULT_CONFIG.STONE_RADIUS + 5,
+    };
   }
 
   private buildCoordinateLabels(geometry: RendererGeometry): CoordinateLabel[] {
@@ -239,13 +264,20 @@ export class Renderer {
 
   constructor(
     private readonly store: GameStore,
-    private readonly elements: UIElements
+    private readonly elements: UIElements,
+    private readonly getPreferences: () => Preferences
   ) {
-    this.viewModelBuilder = new RendererViewModelBuilder(store);
+    this.viewModelBuilder = new RendererViewModelBuilder(store, getPreferences);
   }
 
   render(): void {
-        // === 数字用影フィルタ ===
+    const model = this.viewModelBuilder.buildBoardModel();
+    const size = model.geometry.viewBoxSize;
+
+    this.elements.svg.innerHTML = '';
+    this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+
+    // === 数字用影フィルタ ===
     const defs = this.createSVGElement('defs', {});
     const shadow = this.createSVGElement('filter', { id: 'num-shadow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
 
@@ -261,16 +293,15 @@ export class Renderer {
     defs.appendChild(shadow);
     this.elements.svg.appendChild(defs);
     // =========================
-    const model = this.viewModelBuilder.buildBoardModel();
-    const size = model.geometry.viewBoxSize;
-
-    this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-    this.elements.svg.innerHTML = '';
 
     this.drawBoardLines(model.geometry);
     this.drawStars(model.geometry, model.stars);
     this.drawCoordinates(model.coordinates);
     this.drawStones(model.stones);
+
+    if (model.lastMoveHighlight) {
+      this.drawLastMoveHighlight(model.lastMoveHighlight);
+    }
 
     if (model.showMoveNumbers) {
       this.drawMoveNumbers(model.moveNumbers);
@@ -476,6 +507,17 @@ export class Renderer {
       text.textContent = number.text;
       this.elements.svg.appendChild(text);
     });
+  }
+
+  private drawLastMoveHighlight(highlight: LastMoveHighlightRenderInfo): void {
+    this.elements.svg.appendChild(
+      this.createSVGElement('circle', {
+        cx: highlight.cx.toString(),
+        cy: highlight.cy.toString(),
+        r: highlight.radius.toString(),
+        class: 'last-move-highlight'
+      })
+    );
   }
 
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {

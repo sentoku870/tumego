@@ -1,4 +1,4 @@
-import { Preferences, RulesMode, ToggleSetting } from "../types.js";
+import { BooleanPreference, DeviceProfile, Preferences, RulesMode, ToggleSetting } from "../types.js";
 
 const STORAGE_KEY = "tumego.preferences";
 
@@ -7,7 +7,10 @@ const DEFAULT_PREFERENCES: Preferences = {
   solve: {
     showCapturedStones: "on",
     enableFullReset: "on",
+    highlightLastMove: true,
+    showSolutionMoveNumbers: false,
   },
+  ui: { deviceProfile: "auto" },
 };
 
 function clonePreferences(prefs: Preferences): Preferences {
@@ -22,6 +25,14 @@ function isToggleSetting(value: unknown): value is ToggleSetting {
   return value === "on" || value === "off";
 }
 
+function isDeviceProfile(value: unknown): value is DeviceProfile {
+  return value === "auto" || value === "desktop" || value === "phone" || value === "tablet";
+}
+
+function isBooleanPreference(value: unknown): value is BooleanPreference {
+  return typeof value === "boolean";
+}
+
 function normalizePreferences(raw: unknown): Preferences {
   if (!raw || typeof raw !== "object") {
     return clonePreferences(DEFAULT_PREFERENCES);
@@ -31,6 +42,7 @@ function normalizePreferences(raw: unknown): Preferences {
     const parsed = raw as Record<string, unknown>;
     const edit = parsed.edit as Record<string, unknown> | undefined;
     const solve = parsed.solve as Record<string, unknown> | undefined;
+    const ui = parsed.ui as Record<string, unknown> | undefined;
 
     const rulesMode = isRulesMode(edit?.rulesMode) ? edit!.rulesMode : DEFAULT_PREFERENCES.edit.rulesMode;
     const showCapturedStones = isToggleSetting(solve?.showCapturedStones)
@@ -39,10 +51,20 @@ function normalizePreferences(raw: unknown): Preferences {
     const enableFullReset = isToggleSetting(solve?.enableFullReset)
       ? solve!.enableFullReset
       : DEFAULT_PREFERENCES.solve.enableFullReset;
+    const highlightLastMove = isBooleanPreference(solve?.highlightLastMove)
+      ? solve!.highlightLastMove
+      : DEFAULT_PREFERENCES.solve.highlightLastMove;
+    const showSolutionMoveNumbers = isBooleanPreference(solve?.showSolutionMoveNumbers)
+      ? solve!.showSolutionMoveNumbers
+      : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
+    const deviceProfile = isDeviceProfile(ui?.deviceProfile)
+      ? ui!.deviceProfile
+      : DEFAULT_PREFERENCES.ui.deviceProfile;
 
     return {
       edit: { rulesMode },
-      solve: { showCapturedStones, enableFullReset },
+      solve: { showCapturedStones, enableFullReset, highlightLastMove, showSolutionMoveNumbers },
+      ui: { deviceProfile },
     };
   } catch (error) {
     console.warn("Failed to normalize preferences", error);
@@ -84,6 +106,21 @@ export class PreferencesStore {
     this.updatePrefs({ solve: { enableFullReset: value } });
   }
 
+  setHighlightLastMove(value: BooleanPreference): void {
+    if (!isBooleanPreference(value)) return;
+    this.updatePrefs({ solve: { highlightLastMove: value } });
+  }
+
+  setShowSolutionMoveNumbers(value: BooleanPreference): void {
+    if (!isBooleanPreference(value)) return;
+    this.updatePrefs({ solve: { showSolutionMoveNumbers: value } });
+  }
+
+  setDeviceProfile(value: DeviceProfile): void {
+    if (!isDeviceProfile(value)) return;
+    this.updatePrefs({ ui: { deviceProfile: value } });
+  }
+
   reset(): void {
     this.prefs = clonePreferences(DEFAULT_PREFERENCES);
     if (this.storage) {
@@ -99,10 +136,12 @@ export class PreferencesStore {
   private updatePrefs(partial: {
     edit?: Partial<Preferences["edit"]>;
     solve?: Partial<Preferences["solve"]>;
+    ui?: Partial<Preferences["ui"]>;
   }): void {
     this.prefs = {
       edit: { ...this.prefs.edit, ...(partial.edit ?? {}) },
       solve: { ...this.prefs.solve, ...(partial.solve ?? {}) },
+      ui: { ...this.prefs.ui, ...(partial.ui ?? {}) },
     };
     this.persist();
     this.emit();

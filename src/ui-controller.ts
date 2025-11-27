@@ -1,5 +1,5 @@
 // ============ UI制御エンジン ============
-import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
+import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
 import { GoEngine } from './go-engine.js';
 import { Renderer } from './renderer.js';
 import { SGFParser } from './sgf-parser.js';
@@ -45,7 +45,7 @@ export class UIController {
     this.historyManager = new HistoryManager();
     this.store = new GameStore(state, this.engine, this.historyManager);
     this.preferences = new PreferencesStore();
-    this.renderer = new Renderer(this.store, elements);
+    this.renderer = new Renderer(this.store, elements, () => this.preferences.state);
     this.boardCapture = new BoardCaptureService(elements.svg, this.renderer);
     this.sgfService = new SGFService(this.sgfParser, this.store);
     this.uiState = new UIInteractionState();
@@ -100,7 +100,10 @@ export class UIController {
     this.settingsController.initialize();
 
     this.applyPreferences();
-    this.preferences.onChange(() => this.applyPreferences());
+    this.preferences.onChange(() => {
+      this.applyPreferences();
+      this.updateUI();
+    });
 
     this.initResizeEvents();
 
@@ -157,6 +160,9 @@ export class UIController {
       this.renderer.updateBoardSize();
       setTimeout(() => this.renderer.render(), 200);
       this.dropdownManager.repositionActive();
+      if (this.preferences.state.ui.deviceProfile === 'auto') {
+        this.applyDeviceProfileClass('auto');
+      }
     };
 
     window.addEventListener('orientationchange', handleResize);
@@ -169,5 +175,24 @@ export class UIController {
     this.renderer.updateCapturedStones(
       prefs.solve.showCapturedStones === "on"
     );
+    this.applyDeviceProfileClass(prefs.ui.deviceProfile);
+  }
+
+  private getEffectiveDeviceProfile(preference: DeviceProfile): DeviceProfile {
+    if (preference !== 'auto') {
+      return preference;
+    }
+
+    const width = window.innerWidth;
+    if (width < 640) return 'phone';
+    if (width < 1024) return 'tablet';
+    return 'desktop';
+  }
+
+  private applyDeviceProfileClass(preference: DeviceProfile): void {
+    const effectiveProfile = this.getEffectiveDeviceProfile(preference);
+    const body = document.body;
+    body.classList.remove('device-desktop', 'device-phone', 'device-tablet');
+    body.classList.add(`device-${effectiveProfile}`);
   }
 }
