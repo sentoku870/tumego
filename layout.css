@@ -460,6 +460,8 @@ body:not(.horizontal) .msg {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-soft);
   resize: vertical;
+  /* 横レイアウトでも十分な入力エリアを確保する */
+  min-height: 120px;
 }
 
 /* ボタンスタイルの微調整 */
@@ -751,19 +753,17 @@ body.device-phone #layout {
   padding-inline: 4px;
 }
 
-body.device-phone:not(.horizontal) #controls,
-body.device-phone:not(.horizontal) .info,
-body.device-phone:not(.horizontal) #branch-info,
-body.device-phone:not(.horizontal) #move-slider,
-body.device-phone:not(.horizontal) .moves,
-body.device-phone:not(.horizontal) #captured-stones,
-body.device-phone:not(.horizontal) #sgf-controls,
-body.device-phone:not(.horizontal) #sgf-text,
-body.device-phone:not(.horizontal) .settings-toggle-button,
-body.device-phone:not(.horizontal) #settings-panel,
-body.device-phone:not(.horizontal) .msg {
-  width: 100%;
-  max-width: 100%;
+/* Phone 横向きではレイアウト全体の高さを画面高に固定し、
+   右カラム(#ui)だけをスクロールさせる */
+body.device-phone.horizontal #layout {
+  height: 100vh;
+}
+
+/* 右カラムは画面高までに抑え、内部を縦スクロール */
+body.device-phone.horizontal #ui {
+  max-height: 100vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body.device-phone #controls,
@@ -816,6 +816,12 @@ body.device-phone .settings-row select {
 
 body.device-phone .checkbox-row {
   align-items: center;
+}
+
+/* Phone 横向きでは設定パネルも高さ制限を外し、ページ全体のスクロールに任せる */
+body.device-phone.horizontal #settings-panel {
+  max-height: none;
+  overflow-y: visible;
 }
 
 /* ===== Device specific layout overrides end ===== */
