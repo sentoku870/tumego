@@ -59,28 +59,34 @@ class RendererViewModelBuilder {
   buildBoardModel(options?: { suppressLastMoveHighlight?: boolean }): BoardRenderModel {
     const state = this.store.snapshot;
     const geometry = new RendererGeometry(state.boardSize);
-    const prefs = this.getPreferences();
-    const showMoveNumbers =
-      state.numberMode && prefs.solve.showSolutionMoveNumbers;
+const prefs = this.getPreferences();
 
-    // ハイライト有効かどうかをここで一元管理
-    const enableLastMoveHighlight =
-      prefs.solve.highlightLastMove && !options?.suppressLastMoveHighlight;
+const showMoveNumbers =
+  state.numberMode && prefs.solve.showSolutionMoveNumbers;
 
-    return {
-      geometry,
-      stars: this.getStarPositions(state.boardSize),
-      coordinates: this.buildCoordinateLabels(geometry),
-      stones: this.buildStoneModels(state.board, geometry),
-      moveNumbers: showMoveNumbers
-        ? this.buildMoveNumberModels(state, geometry)
-        : [],
-      showMoveNumbers,
-      lastMoveHighlight: enableLastMoveHighlight
-        ? this.buildLastMoveHighlight(state, geometry)
-        : undefined,
-    };
+// ここで boolean に変換する（'on' / 'off' などは実際の定義に合わせてください）
+const showCapturedStones =
+  prefs.solve.showCapturedStones === 'on';  // ★ここがポイント
+
+// ハイライト有効かどうかをここで一元管理
+const enableLastMoveHighlight =
+  prefs.solve.highlightLastMove && !options?.suppressLastMoveHighlight;
+
+return {
+  geometry,
+  stars: this.getStarPositions(state.boardSize),
+  coordinates: this.buildCoordinateLabels(geometry),
+  stones: this.buildStoneModels(state.board, geometry),
+  moveNumbers: showMoveNumbers
+    ? this.buildMoveNumberModels(state, geometry, showCapturedStones) // ← boolean
+    : [],
+  showMoveNumbers,
+  lastMoveHighlight: enableLastMoveHighlight
+    ? this.buildLastMoveHighlight(state, geometry)
+    : undefined,
+};
   }
+
 
 
   buildInfoModel(): InfoRenderModel {
@@ -145,30 +151,44 @@ class RendererViewModelBuilder {
     return stones;
   }
 
-private buildMoveNumberModels(state: GameState, geometry: RendererGeometry): MoveNumberRenderInfo[] {
-  const start = state.numberStartIndex || 0;
-  const numbers: MoveNumberRenderInfo[] = [];
+  // showCapturedStones:
+  //   true  -> 抜き石の位置にも番号を描画
+  //   false -> 盤上に残っている石の上にだけ番号を描画
+  private buildMoveNumberModels(
+    state: GameState,
+    geometry: RendererGeometry,
+    showCapturedStones: boolean
+  ): MoveNumberRenderInfo[] {
+    const start = state.numberStartIndex || 0;
+    const numbers: MoveNumberRenderInfo[] = [];
 
-  for (let i = start; i < state.sgfIndex; i++) {
-    const move = state.sgfMoves[i];
-    if (!move) continue;
+    for (let i = start; i < state.sgfIndex; i++) {
+      const move = state.sgfMoves[i];
+      if (!move) continue;
 
-    // 正しい描画色は sgfMoves の color
-    const fill = move.color === 1 ? '#fff' : '#000';
+      // 「抜いた石を表示する」が OFF のときは、
+      // すでに盤上に存在しない手（抜き石位置）はスキップする
+      if (!showCapturedStones && state.board[move.row][move.col] === 0) {
+        continue;
+      }
 
-    const { cx, cy } = geometry.toPixel({ col: move.col, row: move.row });
+      // 正しい描画色は sgfMoves の color
+      const fill = move.color === 1 ? '#fff' : '#000';
 
-    numbers.push({
-      cx,
-      cy,
-      fontSize: geometry.moveNumberFontSize,
-      fill,
-      text: (i - start + 1).toString()
-    });
+      const { cx, cy } = geometry.toPixel({ col: move.col, row: move.row });
+
+      numbers.push({
+        cx,
+        cy,
+        fontSize: geometry.moveNumberFontSize,
+        fill,
+        text: (i - start + 1).toString()
+      });
+    }
+
+    return numbers;
   }
 
-  return numbers;
-}
 
 
 
