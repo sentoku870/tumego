@@ -7,38 +7,48 @@ export class BoardCaptureService {
   ) {}
 
   async captureBoard(): Promise<void> {
-    const canvasElement = this.getBoardCaptureCanvas();
-    const pngBlob = await this.convertSvgToPng(this.svgElement, canvasElement);
+    // ① 盤面保存用：直前の手ハイライトを消した状態で描画
+    this.renderer.render({ suppressLastMoveHighlight: true });
 
-    const clipboardWritable = typeof navigator.clipboard?.write === 'function';
-    const clipboardItemCtor = (window as Window & {
-      ClipboardItem?: new (items: Record<string, Blob | Promise<Blob>>) => ClipboardItem;
-    }).ClipboardItem;
+    try {
+      // ② この状態の SVG を PNG に変換
+      const canvasElement = this.getBoardCaptureCanvas();
+      const pngBlob = await this.convertSvgToPng(this.svgElement, canvasElement);
 
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-      (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+      const clipboardWritable = typeof navigator.clipboard?.write === 'function';
+      const clipboardItemCtor = (window as Window & {
+        ClipboardItem?: new (items: Record<string, Blob | Promise<Blob>>) => ClipboardItem;
+      }).ClipboardItem;
 
-    if (clipboardWritable && clipboardItemCtor) {
-      try {
-        const item = new clipboardItemCtor({ 'image/png': pngBlob });
-        await navigator.clipboard!.write([item]);
-        this.renderer.showMessage('コピーしました');
-        return;
-      } catch (error) {
-        console.error('クリップボードへの書き込みに失敗しました', error);
-        if (!isIOS) {
-          alert('クリップボードにコピーできなかったため画像を表示します');
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+
+      if (clipboardWritable && clipboardItemCtor) {
+        try {
+          const item = new clipboardItemCtor({ 'image/png': pngBlob });
+          await navigator.clipboard!.write([item]);
+          this.renderer.showMessage('コピーしました');
+          return;
+        } catch (error) {
+          console.error('クリップボードへの書き込みに失敗しました', error);
+          if (!isIOS) {
+            alert('クリップボードにコピーできなかったため画像を表示します');
+          }
         }
       }
-    }
 
-    const dataUrl = await this.blobToDataUrl(pngBlob);
-    if (!dataUrl) {
-      throw new Error('PNGの生成に失敗しました');
-    }
+      const dataUrl = await this.blobToDataUrl(pngBlob);
+      if (!dataUrl) {
+        throw new Error('PNGの生成に失敗しました');
+      }
 
-    this.showBoardPreviewModal(dataUrl);
+      this.showBoardPreviewModal(dataUrl);
+    } finally {
+      // ③ 画面表示用には、元のハイライト状態で描画し直す
+      this.renderer.render();
+    }
   }
+
 
   private async blobToDataUrl(blob: Blob): Promise<string | null> {
     return new Promise((resolve) => {

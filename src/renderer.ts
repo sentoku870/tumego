@@ -55,24 +55,33 @@ class RendererGeometry {
 class RendererViewModelBuilder {
   constructor(private readonly store: GameStore, private readonly getPreferences: () => Preferences) {}
 
-  buildBoardModel(): BoardRenderModel {
+  // suppressLastMoveHighlight: true のときは「直前の手ハイライト」を出さない
+  buildBoardModel(options?: { suppressLastMoveHighlight?: boolean }): BoardRenderModel {
     const state = this.store.snapshot;
     const geometry = new RendererGeometry(state.boardSize);
     const prefs = this.getPreferences();
-    const showMoveNumbers = state.numberMode && prefs.solve.showSolutionMoveNumbers;
+    const showMoveNumbers =
+      state.numberMode && prefs.solve.showSolutionMoveNumbers;
+
+    // ハイライト有効かどうかをここで一元管理
+    const enableLastMoveHighlight =
+      prefs.solve.highlightLastMove && !options?.suppressLastMoveHighlight;
 
     return {
       geometry,
       stars: this.getStarPositions(state.boardSize),
       coordinates: this.buildCoordinateLabels(geometry),
       stones: this.buildStoneModels(state.board, geometry),
-      moveNumbers: showMoveNumbers ? this.buildMoveNumberModels(state, geometry) : [],
+      moveNumbers: showMoveNumbers
+        ? this.buildMoveNumberModels(state, geometry)
+        : [],
       showMoveNumbers,
-      lastMoveHighlight: prefs.solve.highlightLastMove
+      lastMoveHighlight: enableLastMoveHighlight
         ? this.buildLastMoveHighlight(state, geometry)
         : undefined,
     };
   }
+
 
   buildInfoModel(): InfoRenderModel {
     const state = this.store.snapshot;
@@ -136,26 +145,32 @@ class RendererViewModelBuilder {
     return stones;
   }
 
-  private buildMoveNumberModels(state: GameState, geometry: RendererGeometry): MoveNumberRenderInfo[] {
-    const start = state.numberStartIndex || 0;
-    const numbers: MoveNumberRenderInfo[] = [];
+private buildMoveNumberModels(state: GameState, geometry: RendererGeometry): MoveNumberRenderInfo[] {
+  const start = state.numberStartIndex || 0;
+  const numbers: MoveNumberRenderInfo[] = [];
 
-    for (let i = start; i < state.sgfIndex; i++) {
-      const move = state.sgfMoves[i];
-      const { cx, cy } = geometry.toPixel({ col: move.col, row: move.row });
-      const fill = state.board[move.row][move.col] === 1 ? '#fff' : '#000';
+  for (let i = start; i < state.sgfIndex; i++) {
+    const move = state.sgfMoves[i];
+    if (!move) continue;
 
-      numbers.push({
-        cx,
-        cy,
-        fontSize: geometry.moveNumberFontSize,
-        fill,
-        text: (i - start + 1).toString()
-      });
-    }
+    // 正しい描画色は sgfMoves の color
+    const fill = move.color === 1 ? '#fff' : '#000';
 
-    return numbers;
+    const { cx, cy } = geometry.toPixel({ col: move.col, row: move.row });
+
+    numbers.push({
+      cx,
+      cy,
+      fontSize: geometry.moveNumberFontSize,
+      fill,
+      text: (i - start + 1).toString()
+    });
   }
+
+  return numbers;
+}
+
+
 
   private buildLastMoveHighlight(state: GameState, geometry: RendererGeometry): LastMoveHighlightRenderInfo | undefined {
     if (state.sgfIndex <= 0 || state.sgfIndex > state.sgfMoves.length) {
@@ -270,8 +285,10 @@ export class Renderer {
     this.viewModelBuilder = new RendererViewModelBuilder(store, getPreferences);
   }
 
-  render(): void {
-    const model = this.viewModelBuilder.buildBoardModel();
+  // 通常は renderer.render() のままでOK
+  // 盤面保存時だけ renderer.render({ suppressLastMoveHighlight: true }) を使う
+  render(options?: { suppressLastMoveHighlight?: boolean }): void {
+    const model = this.viewModelBuilder.buildBoardModel(options);
     const size = model.geometry.viewBoxSize;
 
     this.elements.svg.innerHTML = '';
@@ -453,61 +470,57 @@ export class Renderer {
     });
   }
 
-  private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
-    numbers.forEach(number => {
+private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
+  const stoneRadius = DEFAULT_CONFIG.STONE_RADIUS;
+  const borderMargin = 2; // 黒枠を残すための余白(調整用)
 
-      // === 背景円（透け防止＋視認性最大化） ===
-      // 石の半径 ≒ number.fontSize * 約1.3〜1.35 に近い
-      // → これに合わせて背景円を95%ほどに設定
-      const bgRadius = number.fontSize * 1.15;
+  numbers.forEach(number => {
+    // 元の計算値
+    const idealRadius = number.fontSize * 1.15;
 
-      // 白石の上の黒数字 → 背景は濃い黒
-      // 黒石の上の白数字 → 背景は純白
-      // （別ソフトもこの方式）
-      const bgColor = number.fill === '#000'
-        ? '#ffffff'
-        : '#000000';
+    // 背景円が石の内側に収まるようにクリップ
+    const maxRadius = stoneRadius - borderMargin;
+    const bgRadius = Math.min(idealRadius, maxRadius);
 
-      const bg = this.createSVGElement('circle', {
-        cx: number.cx.toString(),
-        cy: number.cy.toString(),
-        r: bgRadius.toString(),
-        fill: bgColor,
-        filter: 'url(#num-shadow)'  // 背景ごと影を付けて浮かせる
-      });
+    const bgColor = number.fill === '#000'
+      ? '#ffffff' // 白石の上の黒数字 → 白背景
+      : '#000000'; // 黒石の上の白数字 → 黒背景
 
-      this.elements.svg.appendChild(bg);
-
-
-      // === 数字本体 ===
-      const text = this.createSVGElement('text', {
-        x: number.cx.toString(),
-        y: number.cy.toString(),
-        fill: number.fill,  // 白 or 黒
-        class: 'move-num'
-      });
-
-      // 超太字（900相当）
-      text.setAttribute('font-weight', '900');
-
-      // 数字の大きさ
-      const size = number.fontSize * 1.20;
-      text.setAttribute('font-size', size.toString());
-
-      // 視認性の肝：太い縁取り（石画像みたいに見える）
-      const strokeColor = number.fill === '#000' ? '#fff' : '#000';
-      text.setAttribute('stroke', strokeColor);
-      text.setAttribute('stroke-width', (size * 0.22).toString());
-      text.setAttribute('paint-order', 'stroke');
-      text.setAttribute('dominant-baseline', 'central');
-
-      // 数字にも影を微弱に乗せる
-      text.setAttribute('filter', 'url(#num-shadow)');
-
-      text.textContent = number.text;
-      this.elements.svg.appendChild(text);
+    // === 背景円 ===
+    const bg = this.createSVGElement('circle', {
+      cx: number.cx.toString(),
+      cy: number.cy.toString(),
+      r: bgRadius.toString(),
+      fill: bgColor,
+      filter: 'url(#num-shadow)'
     });
-  }
+    this.elements.svg.appendChild(bg);
+
+    // === 数字本体 ===
+    const text = this.createSVGElement('text', {
+      x: number.cx.toString(),
+      y: number.cy.toString(),
+      fill: number.fill,
+      class: 'move-num',
+      'text-anchor': 'middle',
+      'dominant-baseline': 'central',
+    });
+
+    const size = number.fontSize * 1.20;
+    text.setAttribute('font-weight', '900');
+    text.setAttribute('font-size', size.toString());
+
+    const strokeColor = number.fill === '#000' ? '#fff' : '#000';
+    text.setAttribute('stroke', strokeColor);
+    text.setAttribute('stroke-width', (size * 0.22).toString());
+    text.setAttribute('paint-order', 'stroke');
+    text.setAttribute('filter', 'url(#num-shadow)');
+
+    text.textContent = number.text;
+    this.elements.svg.appendChild(text);
+  });
+}
+
 
   private drawLastMoveHighlight(highlight: LastMoveHighlightRenderInfo): void {
     this.elements.svg.appendChild(
