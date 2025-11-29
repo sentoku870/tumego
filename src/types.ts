@@ -147,6 +147,14 @@ export interface GroupInfo {
   libs: number;
 }
 
+export interface GameInfo {
+  title: string;
+  playerBlack: string | null;
+  playerWhite: string | null;
+  komi: number | null;
+  result: string | null;
+}
+
 // ============ SGF関連 ============
 export interface SGFParseResult {
   moves: Move[];
@@ -154,19 +162,16 @@ export interface SGFParseResult {
   rawSGF?: string;
 }
 
-export interface SGFGameInfo {
+export interface SGFGameInfo extends GameInfo {
   boardSize?: number;
-  komi?: number | null;
+  komi: number | null;
   handicapStones?: number;
   handicapPositions?: Position[];
   startColor?: StoneColor;
   problemDiagramSet?: boolean;
   problemDiagramBlack?: Position[];
   problemDiagramWhite?: Position[];
-  playerBlack?: string | null;
-  playerWhite?: string | null;
   handicap?: number | null;
-  result?: string | null;
 }
 
 // ============ イベント関連 ============

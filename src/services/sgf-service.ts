@@ -136,11 +136,19 @@ export class SGFService {
     state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     state.eraseMode = false;
     state.gameInfo = {
+      title: '',
       komi: state.komi,
       handicap: null,
       playerBlack: null,
       playerWhite: null,
-      result: null
+      result: null,
+      boardSize: state.boardSize,
+      handicapStones: state.handicapStones,
+      handicapPositions: state.handicapPositions,
+      startColor: state.startColor,
+      problemDiagramSet: state.problemDiagramSet,
+      problemDiagramBlack: state.problemDiagramBlack,
+      problemDiagramWhite: state.problemDiagramWhite,
     };
 
     return {
@@ -154,9 +162,6 @@ export class SGFService {
   private runApplicationPhase(input: ApplicationPhaseInput): ApplicationPhaseOutput {
     const { state, moves, gameInfo } = input;
 
-    if (gameInfo.komi !== undefined && gameInfo.komi !== null) {
-      state.komi = gameInfo.komi;
-    }
     if (gameInfo.startColor !== undefined) state.startColor = gameInfo.startColor as StoneColor;
     if (gameInfo.handicapStones !== undefined) state.handicapStones = gameInfo.handicapStones;
     if (gameInfo.handicapPositions) {
@@ -174,13 +179,17 @@ export class SGFService {
       state.problemDiagramSet = true;
     }
 
-    state.gameInfo = {
-      ...state.gameInfo,
-      komi: gameInfo.komi ?? state.komi,
-      handicap: gameInfo.handicap ?? null,
+    this.store.updateGameInfo({
+      title: gameInfo.title ?? state.gameInfo.title ?? '',
       playerBlack: gameInfo.playerBlack ?? null,
       playerWhite: gameInfo.playerWhite ?? null,
+      komi: gameInfo.komi ?? state.komi,
       result: gameInfo.result ?? null,
+    });
+
+    state.gameInfo = {
+      ...state.gameInfo,
+      handicap: gameInfo.handicap ?? state.gameInfo.handicap ?? null,
       boardSize: gameInfo.boardSize ?? state.boardSize,
       handicapStones: gameInfo.handicapStones ?? state.handicapStones,
       handicapPositions: gameInfo.handicapPositions ?? state.handicapPositions,

@@ -97,6 +97,36 @@
       <!-- SGFテキストエリア -->
       <textarea id="sgf-text" rows="4" placeholder="SGF を貼り付け / コピー" style="width:100%;max-width:480px;"></textarea>
 
+      <div id="file-panel">
+        <h3 class="file-panel-title">対局情報（SGFヘッダ）</h3>
+        <div class="file-panel-grid">
+          <label class="file-panel-field">
+            <span>Title</span>
+            <input type="text" id="header-title" />
+          </label>
+          <label class="file-panel-field">
+            <span>Black (PB)</span>
+            <input type="text" id="header-black" />
+          </label>
+          <label class="file-panel-field">
+            <span>White (PW)</span>
+            <input type="text" id="header-white" />
+          </label>
+          <label class="file-panel-field">
+            <span>Komi (KM)</span>
+            <input type="number" step="0.5" inputmode="decimal" id="header-komi" />
+          </label>
+          <label class="file-panel-field">
+            <span>Result (RE)</span>
+            <input type="text" id="header-result" placeholder="例: B+R, W+2.5" />
+          </label>
+        </div>
+        <div class="file-panel-actions">
+          <button id="btn-header-apply" class="ctrl-btn">適用</button>
+          <button id="btn-header-reset" class="ctrl-btn">リセット</button>
+        </div>
+      </div>
+
       <button id="settings-toggle" class="settings-toggle-button" aria-expanded="false">設定</button>
       <div id="settings-panel" class="settings-panel" hidden>
         <div class="settings-tabs" role="tablist">

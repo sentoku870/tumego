@@ -16,6 +16,7 @@ export class SGFParser {
 
     const moves: Move[] = [];
     const gameInfo: SGFGameInfo = {
+      title: '',
       komi: DEFAULT_CONFIG.DEFAULT_KOMI,
       handicap: null,
       handicapStones: 0,
@@ -28,6 +29,11 @@ export class SGFParser {
       playerWhite: null,
       result: null
     };
+
+    const titleMatch = rawText.match(/GN\[([^\]]*)\]/i);
+    if (titleMatch) {
+      gameInfo.title = titleMatch[1] || '';
+    }
 
     // 盤サイズの解析
     const sizeMatch = rawText.match(/SZ\[(\d+)\]/i);
@@ -147,12 +153,16 @@ export class SGFParser {
 
   // ============ SGF出力 ============
   export(state: GameState): string {
-    const komi = state.gameInfo?.komi ?? state.komi;
+    const komi = state.komi ?? state.gameInfo?.komi;
     const handicapMeta = state.gameInfo?.handicap;
     let sgf = `(;GM[1]FF[4]SZ[${state.boardSize}]`;
 
     if (komi !== null && komi !== undefined) {
       sgf += `KM[${komi}]`;
+    }
+
+    if (state.gameInfo?.title) {
+      sgf += `GN[${state.gameInfo.title}]`;
     }
 
     // 置石がある場合はハンディキャップとして記録

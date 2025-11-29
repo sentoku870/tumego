@@ -84,6 +84,7 @@ body.horizontal .moves {
 #captured-stones { order: 7; }
 #sgf-controls { order: 8; }
 #msg { order: 9; }
+#file-panel { order: 10; }
 #sgf-text { order: 10; }
 .settings-toggle-button { order: 11; }
 #settings-panel { order: 12; }
@@ -104,12 +105,17 @@ body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #captured-stones,
 body:not(.horizontal) #sgf-controls,
+body:not(.horizontal) #file-panel,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .settings-toggle-button,
 body:not(.horizontal) #settings-panel,
 body:not(.horizontal) .msg {
   width: var(--board-width);
   max-width: var(--board-width);
+}
+
+#file-panel {
+  margin-top: -4px;
 }
 
 #sgf-text {
@@ -167,6 +173,57 @@ body:not(.horizontal) .msg {
   width: 100%;
   max-width: 480px;
   padding: 4px;
+}
+
+#file-panel {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-panel-title {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text-main);
+}
+
+.file-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.file-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.file-panel-field input {
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  font-size: 14px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.file-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-panel-actions .ctrl-btn {
+  min-width: 96px;
 }
 
 /* ===== ボタンスタイル ===== */
@@ -284,7 +341,8 @@ body:not(.horizontal) .msg {
 
 /* ===== 横レイアウト時の調整 ===== */
 body.horizontal #move-slider,
-body.horizontal #sgf-text {
+body.horizontal #sgf-text,
+body.horizontal #file-panel {
   width: 100%;
 }
 
@@ -424,6 +482,7 @@ body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #sgf-controls,
+body:not(.horizontal) #file-panel,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .msg {
   width: var(--board-width);
@@ -744,6 +803,7 @@ body.device-tablet:not(.horizontal) #move-slider,
 body.device-tablet:not(.horizontal) .moves,
 body.device-tablet:not(.horizontal) #captured-stones,
 body.device-tablet:not(.horizontal) #sgf-controls,
+body.device-tablet:not(.horizontal) #file-panel,
 body.device-tablet:not(.horizontal) #sgf-text,
 body.device-tablet:not(.horizontal) .settings-toggle-button,
 body.device-tablet:not(.horizontal) #settings-panel,
@@ -793,6 +853,7 @@ body.device-phone.horizontal #ui {
 
 body.device-phone #controls,
 body.device-phone #sgf-controls,
+body.device-phone #file-panel,
 body.device-phone #settings-panel {
   max-width: 100%;
 }
