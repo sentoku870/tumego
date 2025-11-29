@@ -33,6 +33,7 @@ const createState = (overrides = {}) => {
     gameTree: overrides.gameTree ?? null,
     sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? true,
     gameInfo: overrides.gameInfo ?? {
+      title: overrides.title ?? '',
       boardSize: size,
       komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
       handicap: overrides.handicap ?? null,

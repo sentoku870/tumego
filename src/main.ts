@@ -27,6 +27,7 @@ function createInitialState(): GameState {
     gameTree: null,
     sgfLoadedFromExternal: false,
     gameInfo: {
+      title: '',
       komi: DEFAULT_CONFIG.DEFAULT_KOMI,
       handicap: null,
       playerBlack: null,

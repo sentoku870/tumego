@@ -26,11 +26,19 @@ const createState = (overrides = {}) => {
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
     gameTree: overrides.gameTree ?? null,
     gameInfo: overrides.gameInfo ?? {
+      title: overrides.title ?? '',
       komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
       handicap: overrides.handicap ?? null,
       playerBlack: overrides.playerBlack ?? null,
       playerWhite: overrides.playerWhite ?? null,
-      result: overrides.result ?? null
+      result: overrides.result ?? null,
+      boardSize: size,
+      handicapStones: overrides.handicapStones ?? 0,
+      handicapPositions: overrides.handicapPositions ?? [],
+      startColor: overrides.startColor ?? 1,
+      problemDiagramSet: overrides.problemDiagramSet ?? false,
+      problemDiagramBlack: overrides.problemDiagramBlack ?? [],
+      problemDiagramWhite: overrides.problemDiagramWhite ?? []
     }
   };
 };

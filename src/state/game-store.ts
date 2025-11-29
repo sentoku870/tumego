@@ -4,6 +4,8 @@ import {
   CapturedCounts,
   GameState,
   Position,
+  GameInfo,
+  SGFGameInfo,
   StoneColor,
   DEFAULT_CONFIG,
 } from "../types.js";
@@ -56,10 +58,55 @@ export class GameStore {
     if (!this.state.capturedCounts) {
       this.state.capturedCounts = { black: 0, white: 0 };
     }
+
+    if (!this.state.gameInfo) {
+      this.state.gameInfo = this.createDefaultGameInfo();
+    } else {
+      this.state.gameInfo = {
+        ...this.createDefaultGameInfo(),
+        ...this.state.gameInfo,
+        komi: this.state.gameInfo.komi ?? this.state.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
+      };
+    }
   }
 
   get snapshot(): GameState {
     return this.state;
+  }
+
+  getGameInfo(): GameInfo {
+    const info = this.state.gameInfo ?? this.createDefaultGameInfo();
+
+    return {
+      title: info.title ?? "",
+      playerBlack: info.playerBlack ?? null,
+      playerWhite: info.playerWhite ?? null,
+      komi: info.komi ?? this.state.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
+      result: info.result ?? null,
+    };
+  }
+
+  updateGameInfo(patch: Partial<GameInfo>): void {
+    const current = this.getGameInfo();
+    const next: GameInfo = {
+      ...current,
+      ...patch,
+    };
+
+    if (patch.komi !== undefined) {
+      if (typeof patch.komi === "number" && Number.isFinite(patch.komi)) {
+        this.state.komi = patch.komi;
+        next.komi = patch.komi;
+      } else {
+        next.komi = current.komi;
+      }
+    }
+
+    this.state.gameInfo = {
+      ...this.state.gameInfo,
+      ...next,
+      komi: next.komi,
+    };
   }
 
   get historyManager(): HistoryManager {
@@ -82,6 +129,31 @@ export class GameStore {
       rebuildBoardFromMoves: {
         ...this.performanceMetrics.rebuildBoardFromMoves,
       },
+    };
+  }
+
+  private createDefaultGameInfo(): SGFGameInfo {
+    return {
+      title: "",
+      playerBlack: null,
+      playerWhite: null,
+      komi: this.state.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
+      result: null,
+      handicap: null,
+      handicapStones: 0,
+      handicapPositions: [],
+      boardSize: this.state.boardSize,
+      startColor: this.state.startColor,
+      problemDiagramSet: false,
+      problemDiagramBlack: [],
+      problemDiagramWhite: [],
+    };
+  }
+
+  private syncKomiToGameInfo(): void {
+    this.state.gameInfo = {
+      ...this.state.gameInfo,
+      komi: this.state.komi,
     };
   }
 
@@ -383,6 +455,10 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
     this.state.gameTree = null;
     this.state.sgfLoadedFromExternal = false;
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+    this.state.gameInfo = {
+      ...this.createDefaultGameInfo(),
+      title: "",
+    };
     this.resetCapturedCounts();
   }
 
@@ -556,6 +632,7 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
     this.capturedCountsTimeline[this.state.sgfIndex] = this.cloneCapturedCounts(
       this.state.capturedCounts
     );
+    this.syncKomiToGameInfo();
   }
 
   private invalidateCache(): void {
@@ -826,6 +903,14 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
       this.state.handicapPositions = [];
       this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
       this.state.startColor = 1;
+      this.state.gameInfo = {
+        ...this.state.gameInfo,
+        handicap: null,
+        handicapStones: 0,
+        handicapPositions: [],
+        startColor: this.state.startColor,
+      };
+      this.syncKomiToGameInfo();
       return;
     }
 
@@ -834,6 +919,14 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
       this.state.handicapPositions = [];
       this.state.komi = 0;
       this.state.startColor = 1;
+      this.state.gameInfo = {
+        ...this.state.gameInfo,
+        handicap: null,
+        handicapStones: 0,
+        handicapPositions: [],
+        startColor: this.state.startColor,
+      };
+      this.syncKomiToGameInfo();
       return;
     }
 
@@ -842,6 +935,14 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
     this.state.komi = 0;
     this.state.startColor = 2;
     this.state.turn = 0;
+    this.state.gameInfo = {
+      ...this.state.gameInfo,
+      handicap: context.stones,
+      handicapStones: context.stones,
+      handicapPositions: context.positions.map((pos) => ({ ...pos })),
+      startColor: this.state.startColor,
+    };
+    this.syncKomiToGameInfo();
   }
   /** Debug: board[][] dump for SGF apply tracing */
   private logBoardDump(reason: string = "dump"): void {

@@ -85,7 +85,8 @@ export class UIController {
       this.qrManager,
       () => this.updateUI(),
       (sgfText) => this.syncSgfTextarea(sgfText),
-      () => this.toolbarController.updateAnswerButtonDisplay()
+      () => this.toolbarController.updateAnswerButtonDisplay(),
+      this.store
     );
 
     this.settingsController = new SettingsController(this.preferences);
@@ -126,6 +127,7 @@ export class UIController {
       this.updateUI();
       this.syncSgfTextarea(applyResult.sgfText);
       this.toolbarController.updateAnswerButtonDisplay();
+      this.fileMenuController.syncHeaderEditor();
       this.renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
     }
 

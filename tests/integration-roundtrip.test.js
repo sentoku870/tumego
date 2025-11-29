@@ -43,11 +43,22 @@ const createState = (size = 9) => {
     gameTree: null,
     sgfLoadedFromExternal: true,
     gameInfo: {
+      title: '',
       komi: 5.5,
       handicap: 2,
       playerBlack: null,
       playerWhite: null,
-      result: null
+      result: null,
+      boardSize: size,
+      handicapStones: 2,
+      handicapPositions: [
+        { col: 2, row: 2 },
+        { col: size - 3, row: size - 3 }
+      ],
+      startColor: 2,
+      problemDiagramSet: true,
+      problemDiagramBlack: [{ col: 3, row: 3 }],
+      problemDiagramWhite: [{ col: 4, row: 4 }]
     }
   };
 };
