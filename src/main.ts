@@ -64,6 +64,41 @@ function getUIElements(): UIElements {
   };
 }
 
+// ============ SGF 情報タブの初期化 ============
+function setupSgfInfoTabs(): void {
+  const panel = document.getElementById('sgf-info-panel');
+  if (!panel) return;
+
+  const tabButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-sgf-tab]'));
+  const basicContent = document.getElementById('sgf-tab-basic');
+  const advancedContent = document.getElementById('sgf-tab-advanced');
+
+  const activateTab = (tab: 'basic' | 'advanced') => {
+    tabButtons.forEach(button => {
+      const isActive = button.dataset.sgfTab === tab;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', String(isActive));
+    });
+
+    if (basicContent) {
+      basicContent.hidden = tab !== 'basic';
+    }
+
+    if (advancedContent) {
+      advancedContent.hidden = tab !== 'advanced';
+    }
+  };
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.dataset.sgfTab === 'advanced' ? 'advanced' : 'basic';
+      activateTab(targetTab);
+    });
+  });
+
+  activateTab('basic');
+}
+
 // ============ アプリケーション初期化 ============
 function initializeApp(): void {
   try {
@@ -72,10 +107,13 @@ function initializeApp(): void {
     // 状態とUI要素を初期化
     const gameState = createInitialState();
     const uiElements = getUIElements();
-    
+
     // UIコントローラーを作成
     const uiController = new UIController(gameState, uiElements);
-    
+
+    // SGF 情報タブの挙動を設定
+    setupSgfInfoTabs();
+
     // グローバルスコープに登録（置石ダイアログなどで使用）
     (window as any).tumegoUIController = uiController;
     
