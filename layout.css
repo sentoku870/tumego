@@ -84,8 +84,7 @@ body.horizontal .moves {
 #captured-stones { order: 7; }
 #sgf-controls { order: 8; }
 #msg { order: 9; }
-#file-panel { order: 10; }
-#sgf-text { order: 10; }
+#sgf-info-panel { order: 10; }
 .settings-toggle-button { order: 11; }
 #settings-panel { order: 12; }
 
@@ -105,6 +104,7 @@ body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #captured-stones,
 body:not(.horizontal) #sgf-controls,
+body:not(.horizontal) #sgf-info-panel,
 body:not(.horizontal) #file-panel,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .settings-toggle-button,
@@ -114,12 +114,17 @@ body:not(.horizontal) .msg {
   max-width: var(--board-width);
 }
 
-#file-panel {
-  margin-top: -4px;
-}
-
-#sgf-text {
-  margin-top: -4px;
+#sgf-info-panel {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ===== ボタングリッド ===== */
@@ -171,21 +176,21 @@ body:not(.horizontal) .msg {
 
 #sgf-text {
   width: 100%;
-  max-width: 480px;
+  max-width: 100%;
   padding: 4px;
 }
 
 #file-panel {
   width: 100%;
-  max-width: 480px;
-  background: #fff;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-soft);
-  padding: 8px;
+  max-width: 100%;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .file-panel-title {
@@ -341,6 +346,7 @@ body:not(.horizontal) .msg {
 
 /* ===== 横レイアウト時の調整 ===== */
 body.horizontal #move-slider,
+body.horizontal #sgf-info-panel,
 body.horizontal #sgf-text,
 body.horizontal #file-panel {
   width: 100%;
@@ -482,6 +488,7 @@ body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #sgf-controls,
+body:not(.horizontal) #sgf-info-panel,
 body:not(.horizontal) #file-panel,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .msg {
@@ -511,7 +518,7 @@ body:not(.horizontal) .msg {
 /* SGFテキストエリアの見た目を整える */
 #sgf-text {
   width: 100%;
-  max-width: 480px;
+  max-width: 100%;
   padding: 6px 8px;
   font-size: 14px;
   line-height: 1.5;
@@ -521,6 +528,19 @@ body:not(.horizontal) .msg {
   resize: vertical;
   /* 横レイアウトでも十分な入力エリアを確保する */
   min-height: 120px;
+}
+
+#file-panel {
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ボタンスタイルの微調整 */
@@ -648,7 +668,8 @@ body:not(.horizontal) .msg {
 
 /* 設定タブ（Basic / Advanced）の見た目調整 */
 /* 検索キーワード: settings-tabs */
-#settings-panel .settings-tabs {
+#settings-panel .settings-tabs,
+#sgf-info-panel .settings-tabs {
   position: relative;
   display: flex;
   gap: 0;
@@ -656,7 +677,8 @@ body:not(.horizontal) .msg {
   margin-bottom: 4px;
 }
 
-#settings-panel .settings-tab {
+#settings-panel .settings-tab,
+#sgf-info-panel .settings-tab {
   position: relative;
   flex: 1;
   padding: 10px 12px;
@@ -671,12 +693,14 @@ body:not(.horizontal) .msg {
 }
 
 /* タブ同士の境界線を1本に揃える */
-#settings-panel .settings-tab + .settings-tab {
+#settings-panel .settings-tab + .settings-tab,
+#sgf-info-panel .settings-tab + .settings-tab {
   border-left: none;
 }
 
 /* 選択中タブを強調 */
-#settings-panel .settings-tab.active {
+#settings-panel .settings-tab.active,
+#sgf-info-panel .settings-tab.active {
   background: #fff;
   color: var(--text-main);
   border-color: var(--accent);
@@ -685,7 +709,8 @@ body:not(.horizontal) .msg {
 }
 
 /* アクティブタブの下にアクセント色の下線を追加 */
-#settings-panel .settings-tab.active::after {
+#settings-panel .settings-tab.active::after,
+#sgf-info-panel .settings-tab.active::after {
   content: "";
   position: absolute;
   left: 16px;
@@ -697,13 +722,15 @@ body:not(.horizontal) .msg {
 }
 
 
-#settings-panel .settings-content {
+#settings-panel .settings-content,
+#sgf-info-panel .settings-content {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-#settings-panel .settings-content[hidden] {
+#settings-panel .settings-content[hidden],
+#sgf-info-panel .settings-content[hidden] {
   display: none;
 }
 
@@ -803,6 +830,7 @@ body.device-tablet:not(.horizontal) #move-slider,
 body.device-tablet:not(.horizontal) .moves,
 body.device-tablet:not(.horizontal) #captured-stones,
 body.device-tablet:not(.horizontal) #sgf-controls,
+body.device-tablet:not(.horizontal) #sgf-info-panel,
 body.device-tablet:not(.horizontal) #file-panel,
 body.device-tablet:not(.horizontal) #sgf-text,
 body.device-tablet:not(.horizontal) .settings-toggle-button,
@@ -853,6 +881,7 @@ body.device-phone.horizontal #ui {
 
 body.device-phone #controls,
 body.device-phone #sgf-controls,
+body.device-phone #sgf-info-panel,
 body.device-phone #file-panel,
 body.device-phone #settings-panel {
   max-width: 100%;
@@ -881,12 +910,14 @@ body.device-phone #settings-panel {
   overflow-y: auto;
 }
 
-body.device-phone #settings-panel .settings-tabs {
+body.device-phone #settings-panel .settings-tabs,
+body.device-phone #sgf-info-panel .settings-tabs {
   flex-wrap: wrap;
   gap: 6px;
 }
 
-body.device-phone #settings-panel .settings-tab {
+body.device-phone #settings-panel .settings-tab,
+body.device-phone #sgf-info-panel .settings-tab {
   min-width: 140px;
   padding: 8px 10px;
 }
