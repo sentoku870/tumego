@@ -85,28 +85,30 @@ export class GameStore {
     };
   }
 
-  tryMove(pos: Position, color: StoneColor, record = true): boolean {
-    const result = this.engine.playMove(this.state, pos, color);
-    if (!result) {
-      return false;
-    }
+tryMove(pos: Position, color: StoneColor, record = true): boolean {
+  // ★ color 引数は無視し、現在の正しい手番を色とする
+  const moveColor = this.currentColor;
 
-    this.pushHistorySnapshot();
-    this.state.board = result.board;
-    this.state.turn++;
-
-    if (record) {
-      this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
-      this.state.sgfMoves.push({ col: pos.col, row: pos.row, color });
-      this.state.sgfIndex = this.state.sgfMoves.length;
-    }
-
-    // ★★★ 重要：番号石描画に必須 ★★★
-    this.rebuildBoardFromMoves(this.state.sgfIndex);
-
-    this.invalidateCache();
-    return true;
+  const result = this.engine.playMove(this.state, pos, moveColor);
+  if (!result) {
+    return false;
   }
+
+  this.pushHistorySnapshot();
+  this.state.board = result.board;
+  this.state.turn++;
+
+  if (record) {
+    this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
+    this.state.sgfMoves.push({ col: pos.col, row: pos.row, color: moveColor });
+    this.state.sgfIndex = this.state.sgfMoves.length;
+  }
+
+  this.rebuildBoardFromMoves(this.state.sgfIndex);
+  this.invalidateCache();
+  return true;
+}
+
 
   removeStone(pos: Position): boolean {
     if (!this.isValidPosition(pos)) {
