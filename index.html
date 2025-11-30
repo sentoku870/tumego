@@ -46,7 +46,6 @@
       <!-- ===== SGF・ゲーム操作ボタン ===== -->
       <div id="sgf-controls">
         <div class="sgf-row">
-          <button class="ctrl-btn" id="btn-problem" title="現在の盤面を問題図として保存します">🧩 問題図</button>
           <button class="ctrl-btn play-btn" id="btn-black" title="編集モードで黒石を配置します">黒配置</button>
           <button class="ctrl-btn play-btn" id="btn-white" title="編集モードで白石を配置します">白配置</button>
           <button class="ctrl-btn" id="btn-prev-move" title="棋譜・解答手順を1手だけさかのぼります">1手戻る</button>
@@ -54,12 +53,8 @@
         </div>
 
         <div class="sgf-row">
-          <button class="ctrl-btn size-btn" data-size="9">9路</button>
-          <button class="ctrl-btn size-btn" data-size="13">13路</button>
-          <button class="ctrl-btn size-btn" data-size="19">19路</button>
-        </div>
-
-        <div class="sgf-row">
+          <button class="ctrl-btn" id="btn-problem" title="現在の盤面を問題図として保存します">🧩 問題図</button>
+          <button class="ctrl-btn history-btn" id="btn-history" title="履歴一覧から任意の状態にジャンプします">📜 履歴</button>
           <div class="menu-container file-menu">
             <button class="ctrl-btn" id="btn-file">📁 ファイル</button>
             <div class="menu-dropdown file-dropdown" id="file-dropdown">
@@ -72,8 +67,13 @@
             </div>
           </div>
 
-          <button class="ctrl-btn history-btn" id="btn-history" title="履歴一覧から任意の状態にジャンプします">📜 履歴</button>
+          <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
+        </div>
 
+        <div class="sgf-row">
+          <button class="ctrl-btn size-btn" data-size="9">9路</button>
+          <button class="ctrl-btn size-btn" data-size="13">13路</button>
+          <button class="ctrl-btn size-btn" data-size="19">19路</button>
           <div class="menu-container feature-menu">
             <button class="ctrl-btn" id="btn-feature">🛠️ 機能</button>
             <div class="menu-dropdown feature-dropdown" id="feature-dropdown">
@@ -83,8 +83,6 @@
               <button id="feature-copy-answer-sequence">解答手順をコピー</button>
             </div>
           </div>
-
-          <button class="ctrl-btn" id="btn-save-board">盤面保存</button>
         </div>
       </div>
 
