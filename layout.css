@@ -8,6 +8,8 @@
   --accent: #0066cc;
   --black: #000;
   --white: #fff;
+  --board-width: min(95vmin, 840px);
+  --panel-max-width: 520px;
 }
 
 * {
@@ -76,10 +78,10 @@ body.horizontal .moves {
 
 /* ===== 要素の並び順 ===== */
 #controls { order: 1; }
-.info { order: 2; }
-#branch-info { order: 3; }
-#move-slider { order: 4; }
-#board-wrapper { order: 5; }
+#board-wrapper { order: 2; }
+.info { order: 3; }
+#branch-info { order: 4; }
+#move-slider { order: 5; }
 .moves { order: 6; }
 #captured-stones { order: 7; }
 #sgf-controls { order: 8; }
@@ -110,13 +112,13 @@ body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .settings-toggle-button,
 body:not(.horizontal) #settings-panel,
 body:not(.horizontal) .msg {
-  width: var(--board-width);
-  max-width: var(--board-width);
+  width: min(var(--board-width), var(--panel-max-width));
+  max-width: min(var(--board-width), var(--panel-max-width));
 }
 
 #sgf-info-panel {
   width: 100%;
-  max-width: 480px;
+  max-width: var(--panel-max-width);
   background: #fff;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -133,7 +135,7 @@ body:not(.horizontal) .msg {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--panel-max-width);
 }
 
 .toolbar-row {
@@ -160,7 +162,7 @@ body:not(.horizontal) .msg {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  max-width: 480px;
+  max-width: var(--panel-max-width);
 }
 
 .sgf-row {
@@ -437,6 +439,8 @@ body.horizontal #sgf-controls .sgf-row {
   --border-subtle: #e0e0e0;
   --text-main: #222;
   --text-muted: #666;
+  --board-width: min(95vmin, 840px);
+  --panel-max-width: 520px;
 }
 
 body {
@@ -492,8 +496,8 @@ body:not(.horizontal) #sgf-info-panel,
 body:not(.horizontal) #file-panel,
 body:not(.horizontal) #sgf-text,
 body:not(.horizontal) .msg {
-  width: var(--board-width);
-  max-width: var(--board-width);
+  width: min(var(--board-width), var(--panel-max-width));
+  max-width: min(var(--board-width), var(--panel-max-width));
 }
 
 /* コントロールエリアをカードっぽく */
@@ -592,8 +596,8 @@ body:not(.horizontal) .msg {
 #move-slider {
   display: block;
   margin-bottom: 8px;
-  width: var(--board-width);
-  max-width: var(--board-width);
+  width: min(var(--board-width), var(--panel-max-width));
+  max-width: min(var(--board-width), var(--panel-max-width));
   height: 14px;
   padding: 0;
   accent-color: var(--accent);
@@ -663,7 +667,7 @@ body:not(.horizontal) .msg {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 480px;
+  max-width: var(--panel-max-width);
 }
 
 /* 設定タブ（Basic / Advanced）の見た目調整 */
@@ -672,7 +676,8 @@ body:not(.horizontal) .msg {
 #sgf-info-panel .settings-tabs {
   position: relative;
   display: flex;
-  gap: 0;
+  flex-wrap: wrap;
+  gap: 6px;
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 4px;
 }
@@ -681,6 +686,7 @@ body:not(.horizontal) .msg {
 #sgf-info-panel .settings-tab {
   position: relative;
   flex: 1;
+  min-width: 140px;
   padding: 10px 12px;
   border: 1px solid var(--border-subtle);
   border-bottom: none;
@@ -885,6 +891,11 @@ body.device-phone #sgf-info-panel,
 body.device-phone #file-panel,
 body.device-phone #settings-panel {
   max-width: 100%;
+}
+
+body.device-phone #sgf-info-panel {
+  max-height: 70vh;
+  overflow: auto;
 }
 
 body.device-phone #board-wrapper {
