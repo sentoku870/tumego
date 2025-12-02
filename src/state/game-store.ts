@@ -232,6 +232,10 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
   }
 
   undo(): boolean {
+    if (this.state.numberMode) {
+      return this.undoSolveMove();
+    }
+
     const restored =
       typeof this.history.restoreLast === "function"
         ? this.history.restoreLast(this.state)
@@ -460,6 +464,29 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
       title: "",
     };
     this.resetCapturedCounts();
+  }
+
+  private undoSolveMove(): boolean {
+    if (!this.state.numberMode) {
+      return false;
+    }
+
+    if (this.state.sgfIndex <= 0 || this.state.sgfMoves.length <= 0) {
+      return false;
+    }
+
+    const targetIndex = Math.max(
+      0,
+      Math.min(this.state.sgfIndex - 1, this.state.sgfMoves.length - 1)
+    );
+
+    this.state.sgfMoves = this.state.sgfMoves.slice(0, targetIndex);
+    this.state.sgfIndex = targetIndex;
+
+    this.rebuildBoardFromMoves(targetIndex);
+    this.invalidateCache();
+
+    return true;
   }
 
   private pushHistorySnapshot(): void {

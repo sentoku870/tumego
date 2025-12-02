@@ -290,7 +290,9 @@ export class ToolbarController {
         const state = this.store.snapshot;
         const isSolve = this.isSolveMode();
         const hasHistorySnapshots = this.store.historyManager.getList().length > 0;
-        this.setDisabled(this.undoBtn, !hasHistorySnapshots);
+        const hasSolveMoves = state.sgfIndex > state.numberStartIndex;
+        const undoAvailable = isSolve ? hasSolveMoves : hasHistorySnapshots;
+        this.setDisabled(this.undoBtn, !undoAvailable);
         if (isSolve) {
             this.disableEraseMode();
         }

@@ -81,19 +81,39 @@ describe('History snapshots and undo behavior', () => {
     expect(history.getList().length < 3).toBe(true);
   });
 
-  test('solve mode undo uses snapshots rather than per-move playback', () => {
+  test('solve mode undo walks back moves one at a time without leaving solve mode', () => {
     state.board[0][0] = 1;
     store.setProblemDiagram();
 
     store.enterSolveMode();
-    store.tryMove({ col: 0, row: 1 }, 2);
-    store.tryMove({ col: 1, row: 1 }, 1);
+
+    const moves = [
+      { col: 0, row: 1 },
+      { col: 1, row: 1 },
+      { col: 1, row: 2 },
+      { col: 2, row: 2 },
+      { col: 2, row: 3 }
+    ];
+
+    moves.forEach((pos) => {
+      expect(store.tryMove(pos, store.currentColor)).toBe(true);
+    });
 
     expect(state.numberMode).toBe(true);
-    expect(store.undo()).toBe(true);
-    expect(state.numberMode).toBe(false);
+    expect(state.sgfMoves).toHaveLength(5);
+    expect(state.turn).toBe(5);
+
+    for (let i = moves.length - 1; i >= 0; i--) {
+      expect(store.undo()).toBe(true);
+      expect(state.numberMode).toBe(true);
+      expect(state.sgfMoves).toHaveLength(i);
+      expect(state.sgfIndex).toBe(i);
+      expect(state.board[moves[i].row][moves[i].col]).toBe(0);
+    }
+
     expect(state.board[0][0]).toBe(1);
-    expect(state.sgfMoves).toEqual([]);
+    expect(state.turn).toBe(0);
+    expect(store.undo()).toBe(false);
   });
 
   test('step-back followed by a new move overwrites the move tail', () => {

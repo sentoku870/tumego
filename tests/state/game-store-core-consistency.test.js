@@ -184,7 +184,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expect(state.turn).toBe(3);
   });
 
-  test('Test7: undo 後に setMoveIndex を呼ぶと “redo 的” に全手が復元される', () => {
+  test('Test7: 解答モードの undo は直前の手だけを取り消す', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -198,9 +198,14 @@ describe('Core consistency: GameStore state alignment', () => {
 
     const undone = store.undo();
 
-    expect(undone).toBe(false);
-    expect(state.sgfIndex).toBe(moves.length);
-    expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
+    expect(undone).toBe(true);
+    expect(state.sgfIndex).toBe(moves.length - 1);
+    expect(state.turn).toBe(moves.length - 1);
+    expect(state.sgfMoves).toHaveLength(moves.length - 1);
+    expectBoardState(
+      state,
+      buildBoardFromMoves(state.boardSize, moves.slice(0, moves.length - 1))
+    );
   });
 
   test('Test8: 解答モードから空盤面の編集に戻す', () => {
