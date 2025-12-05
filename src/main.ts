@@ -1,13 +1,14 @@
-// ============ メインエントリーポイント ============
+// ============ Main entry point ============
 import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
 
-// ============ グローバル状態初期化 ============
+// ============ Initialize global game state ============
 function createInitialState(): GameState {
   return {
     boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
-    board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () => 
-           Array(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE).fill(0)),
+    board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () =>
+      Array(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE).fill(0)
+    ),
     mode: 'alt',
     eraseMode: false,
     history: [],
@@ -38,7 +39,7 @@ function createInitialState(): GameState {
   };
 }
 
-// ============ DOM要素の取得 ============
+// ============ Acquire required DOM elements ============
 function getUIElements(): UIElements {
   const svg = document.getElementById('goban') as unknown as SVGSVGElement;
   const boardWrapper = document.getElementById('board-wrapper') as HTMLElement;
@@ -48,7 +49,7 @@ function getUIElements(): UIElements {
   const msgEl = document.getElementById('msg') as HTMLElement;
   const capturedEl = document.getElementById('captured-stones') as HTMLElement | null;
 
-  // 必須要素の存在確認
+  // Ensure essential elements exist before continuing
   if (!svg || !boardWrapper) {
     throw new Error('必要なDOM要素が見つかりません (svg, boardWrapper)');
   }
@@ -64,7 +65,7 @@ function getUIElements(): UIElements {
   };
 }
 
-// ============ SGF 情報タブの初期化 ============
+// ============ Initialize SGF info tabs ============
 function setupSgfInfoTabs(): void {
   const panel = document.getElementById('sgf-info-panel');
   if (!panel) return;
@@ -99,29 +100,29 @@ function setupSgfInfoTabs(): void {
   activateTab('basic');
 }
 
-// ============ アプリケーション初期化 ============
+// ============ Application bootstrap ============
 function initializeApp(): void {
   try {
     console.log('Tumego TypeScript版 初期化開始...');
-    
-    // 状態とUI要素を初期化
+
+    // Prepare initial state and DOM references
     const gameState = createInitialState();
     const uiElements = getUIElements();
 
-    // UIコントローラーを作成
+    // Set up UI controller
     const uiController = new UIController(gameState, uiElements);
 
-    // SGF 情報タブの挙動を設定
+    // Wire up SGF info tab behavior
     setupSgfInfoTabs();
 
-    // グローバルスコープに登録（置石ダイアログなどで使用）
+    // Expose controller for dialogs that rely on the global scope
     (window as any).tumegoUIController = uiController;
-    
-    // 初期化完了
+
+    // Finalize initialization
     uiController.initialize();
-    
+
     console.log('Tumego TypeScript版 初期化完了！');
-    
+
   } catch (error) {
     console.error('初期化エラー:', error);
     alert('アプリケーションの初期化に失敗しました: ' + (error as Error).message);
