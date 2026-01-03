@@ -103,8 +103,6 @@ function setupSgfInfoTabs(): void {
 // ============ Application bootstrap ============
 function initializeApp(): void {
   try {
-    console.log('Tumego TypeScript版 初期化開始...');
-
     // Prepare initial state and DOM references
     const gameState = createInitialState();
     const uiElements = getUIElements();
@@ -120,8 +118,6 @@ function initializeApp(): void {
 
     // Finalize initialization
     uiController.initialize();
-
-    console.log('Tumego TypeScript版 初期化完了！');
 
   } catch (error) {
     console.error('初期化エラー:', error);

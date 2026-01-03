@@ -419,8 +419,6 @@ export class Renderer {
 
     const actualWidth = this.elements.boardWrapper.getBoundingClientRect().width;
     document.documentElement.style.setProperty('--board-width', actualWidth + 'px');
-
-    console.log(`盤サイズ更新: ${state.boardSize}路, 実際の幅: ${actualWidth}px, モバイル: ${isMobile}, 横レイアウト: ${isHorizontal}`);
   }
 
   private drawBoardLines(geometry: RendererGeometry): void {
