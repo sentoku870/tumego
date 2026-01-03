@@ -340,8 +340,6 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
    * 編集モードの状態をすべて破棄し、
    * 問題図をベースにしたクリーンな盤面から解答を始める。
    */
-  /** 解答モードに正式に入る初期化 */
-  /** 解答モードに正式に入る初期化 */
   enterSolveMode(): void {
     this.saveToHistory(`解答開始前（${this.state.sgfMoves.length}手）`);
 
@@ -580,7 +578,6 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
     } else {
       this.state.turn = limit;
     }
-    this.logBoardDump(`after rebuildBoardFromMoves(limit=${limit})`);
     if (profiling) {
       const metrics = this.performanceMetrics.rebuildBoardFromMoves;
       const duration = this.getTimestamp() - startTime;
@@ -872,11 +869,6 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
       this.state.boardSize,
       numeric
     );
-    console.log(`置石設定: ${stones}子, 位置:`, positions);
-    console.log(
-      `${this.state.boardSize}路盤 ${stones}子局の置石位置:`,
-      positions
-    );
 
     return { mode: "fixed", stones: numeric, positions };
   }
@@ -943,18 +935,6 @@ tryMove(pos: Position, color: StoneColor, record = true): boolean {
       startColor: this.state.startColor,
     };
     this.syncKomiToGameInfo();
-  }
-  /** Debug: board[][] dump for SGF apply tracing */
-  private logBoardDump(reason: string = "dump"): void {
-    const size = this.state.boardSize;
-    const board = this.state.board;
-
-    const ts = new Date().toLocaleTimeString();
-    console.log(`[${ts}] Board dump (${reason}), size=${size}`);
-
-    for (let row = 0; row < size; row++) {
-      console.log(`row ${row}: ${board[row].join(" ")}`);
-    }
   }
   /** =========================================================================
    * 編集モード専用：囲碁ルールを使わない石配置（board へ直接書き込む）
