@@ -1,23 +1,38 @@
-# docs/ – Tumego Web App 公式ドキュメント（AI補助用）
+# docs/ – tumego Web版 公式ドキュメント
 
-このフォルダは、GitHub リポジトリ `sentoku870/tumego` の **公式ドキュメント入口** です。
+このフォルダは、GitHub リポジトリ `sentoku870/tumego` の **公式ドキュメント** です。
 
-- 主な読者:
-  - ChatGPT / Codex / DeepResearch などの「開発支援 AI」
-  - 将来の自分（開発運用を思い出したいとき）
+## 主な読者
+- Claude Code などの開発支援AI
+- 将来の自分（開発運用を思い出したいとき）
 
-- 目的:
-  - リポジトリ内の設計・運用ルールを **機械が読みやすい形** でまとめる
-  - 「どのブランチを触ってよいか」「dist の扱い」「Codex に何を任せてよいか」を明示する
+## 目的
+- リポジトリ内の設計・運用ルールをまとめる
+- ブランチ運用、distの扱い、開発ルールを明示する
 
-- 優先順位:
-  - `docs/` 内のドキュメントは、同じ内容を扱う他の md/docx ファイルよりも **優先される公式仕様** とする
-  - より詳細な背景説明は、リポジトリ直下や `テキスト資料/` などにある設計メモを参照する
+## 優先順位
+- `docs/` 内のドキュメントは **優先される公式仕様** とする
+- 詳細な背景説明は `.claude/rules/` や外部参考資料を参照
 
-まずは次の文書から読むことを推奨する:
+## ドキュメント一覧
 
-1. `00-overview.md` – プロジェクト全体の概要とドキュメント構成
-2. `10-branch-strategy.md` – ブランチ運用ポリシー
-3. `11-release-flow.md` – リリース手順（stable ブランチと dist の更新）
-4. `12-dist-handling.md` – dist/ ディレクトリの扱い
-5. `20-codex-rules.md` – Codex / DeepResearch に関するルール
+### 基本情報
+- `00-purpose-and-scope.md` – 目的とスコープ（やること/やらないこと）
+- `02-code-structure.md` – コード構造
+
+### Git/リリース運用
+- `10-branch-strategy.md` – ブランチ運用ポリシー
+- `11-release-flow.md` – リリース手順（stable ブランチと dist の更新）
+- `12-dist-handling.md` – dist/ ディレクトリの扱い
+
+### 開発ルール
+- `20-codex-rules.md` – AI開発支援に関するルール
+
+### ロードマップ・履歴
+- `30-roadmap.md` – バージョンロードマップ（ver2-6）
+- `33-worklog.md` – ver2作業ログ
+- `34-reference-materials.md` – 外部参考資料の整理
+
+---
+
+最終更新: 2025-01-03
