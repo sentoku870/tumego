@@ -4,6 +4,7 @@ import { BoardCaptureService } from "../../services/board-capture-service.js";
 import { UIElements, PlayMode } from "../../types.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
 import { UIEventBus } from "../../app/event-bus.js";
+import { HistoryView } from "../views/history-view.js";
 
 export class ToolbarController {
   private clearBtn: HTMLButtonElement | null = null;
@@ -251,13 +252,18 @@ export class ToolbarController {
       historyBtn.title = "編集・解答の履歴一覧を開き、任意の状態にジャンプします";
     }
     historyBtn?.addEventListener("click", () => {
-      this.store.historyManager.showHistoryDialog((index) => {
-        if (this.store.restoreHistorySnapshot(index)) {
-          this.renderer.updateBoardSize();
-          this.eventBus.emitUIUpdate();
-          this.renderer.showMessage("履歴を復元しました");
-        }
-      });
+      const historyView = new HistoryView();
+      historyView.render(
+        this.store.historyManager.getList(),
+        (index) => {
+          if (this.store.restoreHistorySnapshot(index)) {
+            this.renderer.updateBoardSize();
+            this.eventBus.emitUIUpdate();
+            this.renderer.showMessage("履歴を復元しました");
+          }
+        },
+        () => this.store.historyManager.clear()
+      );
     });
 
     this.problemBtn = document.getElementById("btn-problem") as HTMLButtonElement | null;
