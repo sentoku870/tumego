@@ -293,3 +293,35 @@ step 8 は step 2 取り込みのため rebase --force-with-lease。
 - P3-4: `state` の private 化（破壊的変更）
 - 実 jest 導入 or ローカルランナー拡張（testEnvironment: 'jsdom' 対応）
 
+
+## 2026-06-24 アーキテクチャレビュー残課題対応 (PR #137)
+
+前回の 9 PR 統合後、残っていた問題に対応。
+
+### A-1: Modal 移行 3 箇所
+- `src/qr-manager.ts` の 2 ポップアップ（共有方法選択 / QR コード表示）
+- `src/ui/controllers/feature-menu-controller.ts` の置石ダイアログ
+- `src/services/board-capture-service.ts` の盤面プレビューモーダル
+
+これで 4 箇所すべてのインライン モーダル実装が `src/ui/views/modal.ts` に集約された。
+
+### C-1: GameStore カプセル化回復
+- `GameStore.modeOps` を `readonly` → `private readonly` に戻した
+- `SGFService` は既存の GameStore ラッパー経由 (`resetForSgfLoad`, `applySgfMeta`, `updateGameInfoFromSgf`, `setSgfMoves`) でアクセス
+- ステップ 8 で一時的に緩めた可視性を回復
+
+### C-2: ドキュメント更新
+- `docs/02-code-structure.md` を全面書き換え
+  - 最新のファイル構造を反映（`src/renderer/` 分割、`src/state/board-utils.ts`、`src/ui/views/modal.ts` 等）
+  - GameStore 公開 API カテゴリ表
+  - イベントバスの役割
+  - データフロー図（石配置 / SGF 読込 / モーダル）
+  - Modal 共通コンポーネントの利用パターン一覧
+  - テスト一覧（合計 654 ケース）
+  - 変更時の注意点セクション追加
+
+### 検証
+- `npm test` 全件緑（654/654）
+- `npm run build` 緑
+- main に push 完了（マージコミット `0e0610f`）
+
