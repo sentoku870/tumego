@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^24.0.4",
     "jest": "file:packages/jest",
+    "jsdom": "^29.1.1",
     "typescript": "^5.8.3"
   }
 }
