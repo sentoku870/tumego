@@ -23,3 +23,5 @@ global.SVGSVGElement = dom.window.SVGSVGElement;
 global.Image = dom.window.Image;
 global.XMLSerializer = dom.window.XMLSerializer;
 global.DOMParser = dom.window.DOMParser;
+global.FileReader = dom.window.FileReader;
+global.Blob = dom.window.Blob;

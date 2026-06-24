@@ -56,6 +56,8 @@
 - GameEngine の抜本再設計
 - 重い解析機能
 
+> **補足**: `src/types.ts` の `GameTree` / `SGFNode` 型と `state.gameTree: GameTree | null` フィールドは **ver4以降の変化図(分岐図)機能の布石**。現時点では代入のみで実体ロジックなし。ver3 で削除せず保持する方針(2026-06-24 確認)。
+
 ---
 
 ### ver4: ヒント機能 v1
