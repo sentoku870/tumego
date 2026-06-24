@@ -5,11 +5,12 @@ import {
   DEFAULT_CONFIG,
   GameState,
   Position,
+  SGFGameInfo,
   StoneColor,
 } from "../types.js";
+import { createEmptyBoard, createInitialCapturedCounts, hasGameData } from "./board-utils.js";
 import { HistoryManager } from "../history-manager.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
-import { createEmptyBoard, createInitialCapturedCounts, hasGameData } from "./board-utils.js";
 
 export class ModeOperations {
   constructor(
@@ -29,7 +30,7 @@ export class ModeOperations {
   initBoard(size: number, options?: { skipHistory?: boolean }): void {
     const skipHistory = options?.skipHistory ?? false;
 
-    if (!skipHistory && this.hasGameData()) {
+    if (!skipHistory && hasGameData(this.state)) {
       this.saveToHistory(`${this.state.boardSize}路盤→${size}路盤 変更前`);
     }
 
@@ -39,7 +40,7 @@ export class ModeOperations {
 
   /** 「全消去」ボタン相当 */
   resetForClearAll(): void {
-    if (this.hasGameData()) {
+    if (hasGameData(this.state)) {
       this.saveToHistory(`全消去前（${this.state.boardSize}路盤）`);
     }
     this.resetToEmptyEditState({ preserveProblemDiagram: false });
@@ -147,6 +148,111 @@ export class ModeOperations {
   /** 現 state に問題図が設定されているか */
   hasProblemDiagram(): boolean {
     return this.state.problemDiagramSet;
+  }
+
+  // ============================================================
+  // 公開: SGF 読み込み時の状態初期化
+  // ============================================================
+
+  /**
+   * SGF 読み込み時に状態を初期化する。履歴保存 + 盤サイズ/盤面変更 +
+   * 各種フラグのリセットを行う。
+   */
+  resetForSgfLoad(sgfMovesCountBeforeLoad: number): void {
+    this.history.save(
+      `SGF読み込み前（${sgfMovesCountBeforeLoad}手）`,
+      this.state
+    );
+    this.state.history = [];
+    this.state.turn = 0;
+    this.state.sgfMoves = [];
+    this.state.sgfIndex = 0;
+    this.state.numberMode = false;
+    this.state.numberStartIndex = 0;
+    this.state.handicapStones = 0;
+    this.state.gameTree = null;
+    this.state.sgfLoadedFromExternal = true;
+    this.state.handicapPositions = [];
+    this.state.problemDiagramSet = false;
+    this.state.problemDiagramBlack = [];
+    this.state.problemDiagramWhite = [];
+    this.state.startColor = 1;
+    this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+    this.state.eraseMode = false;
+    this.state.gameInfo = {
+      ...this.state.gameInfo,
+      title: '',
+      komi: this.state.komi,
+      handicap: null,
+      playerBlack: null,
+      playerWhite: null,
+      result: null,
+      boardSize: this.state.boardSize,
+      handicapStones: 0,
+      handicapPositions: [],
+      startColor: 1,
+      problemDiagramSet: false,
+      problemDiagramBlack: [],
+      problemDiagramWhite: [],
+    };
+    this.cache.invalidate();
+  }
+
+  /**
+   * SGF のメタ情報（先手色/置石/問題図）を state に適用する。
+   * BoardCacheManager の初期盤面構築は呼び出し側で行う。
+   */
+  applySgfMeta(gameInfo: SGFGameInfo): void {
+    if (gameInfo.startColor !== undefined) {
+      this.state.startColor = gameInfo.startColor as StoneColor;
+    }
+    if (gameInfo.handicapStones !== undefined) {
+      this.state.handicapStones = gameInfo.handicapStones;
+    }
+    if (gameInfo.handicapPositions) {
+      this.state.handicapPositions = gameInfo.handicapPositions.map((pos) => ({ ...pos }));
+    }
+    if (gameInfo.problemDiagramBlack) {
+      this.state.problemDiagramBlack = gameInfo.problemDiagramBlack.map((pos) => ({ ...pos }));
+    }
+    if (gameInfo.problemDiagramWhite) {
+      this.state.problemDiagramWhite = gameInfo.problemDiagramWhite.map((pos) => ({ ...pos }));
+    }
+    if (gameInfo.problemDiagramSet !== undefined) {
+      this.state.problemDiagramSet = gameInfo.problemDiagramSet;
+    } else if (
+      this.state.problemDiagramBlack.length > 0 ||
+      this.state.problemDiagramWhite.length > 0
+    ) {
+      this.state.problemDiagramSet = true;
+    }
+  }
+
+  /**
+   * SGF メタ情報から gameInfo を更新する（対局者・コミ・結果・タイトル等）。
+   * GameStore.updateGameInfo と同じ更新だが、boardSize/handicap 系は別途適用。
+   */
+  updateGameInfoFromSgf(sgfGameInfo: SGFGameInfo): void {
+    this.state.gameInfo = {
+      ...this.state.gameInfo,
+      handicap: sgfGameInfo.handicap ?? this.state.gameInfo.handicap ?? null,
+      boardSize: sgfGameInfo.boardSize ?? this.state.boardSize,
+      handicapStones: sgfGameInfo.handicapStones ?? this.state.handicapStones,
+      handicapPositions: sgfGameInfo.handicapPositions ?? this.state.handicapPositions,
+      startColor: this.state.startColor,
+      problemDiagramSet: this.state.problemDiagramSet,
+      problemDiagramBlack: this.state.problemDiagramBlack,
+      problemDiagramWhite: this.state.problemDiagramWhite,
+    };
+  }
+
+  /**
+   * SGF から読み込んだ手順を state.sgfMoves にセットし、sgfIndex を 0 にする。
+   * BoardCacheManager 側の rebuild は呼び出し側で行う。
+   */
+  setSgfMoves(moves: import("../types.js").Move[]): void {
+    this.state.sgfMoves = moves.map((move) => ({ ...move }));
+    this.state.sgfIndex = 0;
   }
 
   // ============================================================

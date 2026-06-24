@@ -8,6 +8,7 @@ import {
   DEFAULT_CONFIG,
   GameInfo,
   GameState,
+  Move,
   PlayMode,
   Position,
   SGFGameInfo,
@@ -26,7 +27,7 @@ import { cloneBoard, createInitialCapturedCounts, isValidPosition } from "./boar
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
-  private readonly modeOps: ModeOperations;
+  readonly modeOps: ModeOperations;
   private readonly handicap: HandicapSetter;
   private readonly monitor: PerformanceMonitor;
 
@@ -335,6 +336,30 @@ export class GameStore {
 
   setHandicap(stones: number | string): void {
     this.handicap.apply(stones);
+  }
+
+  // ============================================================
+  // 公開: SGF 適用（ModeOperations への委譲ラッパー）
+  // ============================================================
+
+  /** SGF 読み込み時の状態初期化を委譲 */
+  resetForSgfLoad(sgfMovesCountBeforeLoad: number): void {
+    this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad);
+  }
+
+  /** SGF メタ情報（先手色/置石/問題図）の適用を委譲 */
+  applySgfMeta(gameInfo: SGFGameInfo): void {
+    this.modeOps.applySgfMeta(gameInfo);
+  }
+
+  /** SGF メタ情報から gameInfo を更新（boardSize/handicap 系）を委譲 */
+  updateGameInfoFromSgf(sgfGameInfo: SGFGameInfo): void {
+    this.modeOps.updateGameInfoFromSgf(sgfGameInfo);
+  }
+
+  /** SGF 手順のセットを委譲 */
+  setSgfMoves(moves: Move[]): void {
+    this.modeOps.setSgfMoves(moves);
   }
 
   // ============================================================
