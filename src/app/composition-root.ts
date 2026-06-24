@@ -48,7 +48,6 @@ export function compositionRoot(
   const historyManager = new HistoryManager();
   const uiState = new UIInteractionState();
   const preferences = new PreferencesStore();
-  const qrManager = new QRManager();
   const dropdownManager = new DropdownManager(uiState);
 
   const store = new GameStore(state, engine, historyManager);
@@ -57,6 +56,7 @@ export function compositionRoot(
   const boardCapture = new BoardCaptureService(elements.svg, renderer);
   const sgfIO = new SGFIO(sgfParser);
   const sgfShare = new SGFShare(sgfParser);
+  const qrManager = new QRManager(sgfParser, sgfShare);
   const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
 
   const toolbar = new ToolbarController(

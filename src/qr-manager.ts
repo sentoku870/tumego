@@ -1,19 +1,21 @@
 // ============ QRコード管理 ============
 import { GameState } from './types.js';
 import { SGFParser } from './sgf-parser.js';
+import { SGFShare } from './services/sgf-share.js';
+
+const SHARE_URL_LENGTH_LIMIT = 2000;
 
 export class QRManager {
-  private sgfParser: SGFParser;
-
-  constructor() {
-    this.sgfParser = new SGFParser();
-  }
+  constructor(
+    private readonly sgfParser: SGFParser = new SGFParser(),
+    private readonly sgfShare: SGFShare = new SGFShare(this.sgfParser)
+  ) {}
 
   // ============ QRコード作成 ============
   createSGFQRCode(state: GameState): void {
     try {
       const sgfData = this.sgfParser.export(state);
-      
+
       if (!sgfData || sgfData.trim() === '' || sgfData === '(;GM[1]FF[4]SZ[9])') {
         alert('SGFデータがありません。まず石を配置してください。');
         return;
@@ -35,13 +37,9 @@ export class QRManager {
         return;
       }
 
-      const compressed = btoa(sgfData);
-      const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-        ? 'https://sentoku870.github.io/tumego/'
-        : window.location.origin + window.location.pathname;
-      const shareURL = baseURL + '?sgf=' + compressed;
+      const shareURL = this.sgfShare.createShareURL(sgfData);
 
-      if (shareURL.length > 2000) {
+      if (shareURL.length > SHARE_URL_LENGTH_LIMIT) {
         alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用してください。');
         return;
       }
@@ -125,13 +123,9 @@ export class QRManager {
 
   // ============ 自動表示QR作成 ============
   private createAutoLoadQR(sgfData: string): void {
-    const compressed = btoa(sgfData);
-    const baseURL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
-      ? 'https://sentoku870.github.io/tumego/'
-      : window.location.origin + window.location.pathname;
-    const shareURL = baseURL + '?sgf=' + compressed;
+    const shareURL = this.sgfShare.createShareURL(sgfData);
 
-    if (shareURL.length > 2000) {
+    if (shareURL.length > SHARE_URL_LENGTH_LIMIT) {
       alert('⚠️ データが大きすぎてURL形式では共有できません。\nSGFデータ直接方式を使用します。');
       this.createDirectSGFQR(sgfData);
       return;
