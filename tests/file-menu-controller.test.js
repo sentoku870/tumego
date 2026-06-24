@@ -6,6 +6,8 @@ import { HistoryManager } from '../dist/history-manager.js';
 import { Renderer } from '../dist/renderer.js';
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { QRManager } from '../dist/qr-manager.js';
 import { UIInteractionState } from '../dist/ui/state/ui-interaction-state.js';
 import { DropdownManager } from '../dist/ui/controllers/dropdown-manager.js';
@@ -119,7 +121,7 @@ describe('FileMenuController', () => {
       },
       ui: { deviceProfile: 'auto' }
     }));
-    sgfService = new SGFService(new SGFParser(), store);
+    sgfService = new SGFService(new SGFParser(), store, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
     qrManager = new QRManager();
     uiState = new UIInteractionState();
     dropdownManager = new DropdownManager(uiState);

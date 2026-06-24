@@ -1,5 +1,7 @@
 import { SGFService } from '../../dist/services/sgf-service.js';
 import { SGFParser } from '../../dist/sgf-parser.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
 import { GameStore } from '../../dist/state/game-store.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
@@ -36,7 +38,7 @@ const createService = (state) => {
   const engine = new GoEngine();
   const history = new HistoryManager();
   const store = new GameStore(state, engine, history);
-  return new SGFService(new SGFParser(), store);
+  return new SGFService(new SGFParser(), store, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
 };
 
 describe('SGFService extended', () => {
@@ -191,7 +193,7 @@ describe('SGFService extended', () => {
       const saveCalls = [];
       history.save = (label, s) => saveCalls.push({ label, s });
       const store = new GameStore(state, engine, history);
-      const service = new SGFService(new SGFParser(), store);
+      const service = new SGFService(new SGFParser(), store, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
       service.apply({
         moves: [{ col: 0, row: 0, color: 1 }],
         gameInfo: { boardSize: 9 }

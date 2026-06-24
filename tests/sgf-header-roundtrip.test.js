@@ -1,5 +1,7 @@
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
@@ -54,7 +56,7 @@ describe('SGF header editing via GameStore', () => {
   test('roundtrips header metadata after manual edits', () => {
     const parser = new SGFParser();
     const store = new GameStore(createState(), new GoEngine(), new HistoryManager());
-    const service = new SGFService(parser, store);
+    const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     store.updateGameInfo({
       title: 'Title Sample',
@@ -73,7 +75,7 @@ describe('SGF header editing via GameStore', () => {
 
     const parsed = parser.parse(sgf);
     const restoredStore = new GameStore(createState(), new GoEngine(), new HistoryManager());
-    const restoredService = new SGFService(parser, restoredStore);
+    const restoredService = new SGFService(parser, restoredStore, new SGFIO(parser), new SGFShare(parser));
     restoredService.apply(parsed);
 
     const info = restoredStore.getGameInfo();

@@ -1,5 +1,7 @@
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
@@ -68,7 +70,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     });
     const store = new GameStore(state, engine, history);
     store.setMoveIndex(state.sgfIndex);
-    const service = new SGFService(parser, store);
+    const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     const baseline = cloneState(state);
     const sgfText = service.export();
@@ -76,7 +78,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     const parsed = parser.parse(sgfText);
     const restoredState = createState({ boardSize: 9, board: createBoard(9) });
     const restoredStore = new GameStore(restoredState, new GoEngine(), new HistoryManager());
-    const restoredService = new SGFService(parser, restoredStore);
+    const restoredService = new SGFService(parser, restoredStore, new SGFIO(parser), new SGFShare(parser));
     restoredService.apply(parsed);
 
     expect(restoredState).toEqual(baseline);
@@ -101,7 +103,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     });
     const store = new GameStore(state, engine, history);
     store.setMoveIndex(state.sgfIndex);
-    const service = new SGFService(parser, store);
+    const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     const baseline = cloneState(state);
     const sgfText = service.export();
@@ -109,7 +111,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     const parsed = parser.parse(sgfText);
     const restoredState = createState({ boardSize: 9, board: createBoard(9) });
     const restoredStore = new GameStore(restoredState, new GoEngine(), new HistoryManager());
-    const restoredService = new SGFService(parser, restoredStore);
+    const restoredService = new SGFService(parser, restoredStore, new SGFIO(parser), new SGFShare(parser));
     restoredService.apply(parsed);
 
     expect(restoredState.sgfMoves).toEqual(baseline.sgfMoves);
@@ -124,7 +126,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     const engine = new GoEngine();
     const state = createState({ boardSize: 9, board: createBoard(9) });
     const store = new GameStore(state, engine, history);
-    const service = new SGFService(parser, store);
+    const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     history.save('initial', state);
 
@@ -153,7 +155,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     const parsed = parser.parse(sgfText);
     const restoredState = createState({ boardSize: 9, board: createBoard(9) });
     const restoredStore = new GameStore(restoredState, new GoEngine(), new HistoryManager());
-    const restoredService = new SGFService(parser, restoredStore);
+    const restoredService = new SGFService(parser, restoredStore, new SGFIO(parser), new SGFShare(parser));
     restoredService.apply(parsed);
     restoredStore.setMoveIndex(baseline.sgfIndex);
 
