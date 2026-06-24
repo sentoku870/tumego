@@ -217,3 +217,44 @@ Claude Code から opencode への移行準備と、AI が Git 操作（commit /
 - Claude Code 固有設定の `.claude/settings.local.json` は commit 対象外
 - 過去のコミット 3a1399f（settings.local.json の変更）はそのまま（revert せず、`.gitignore` で「今後」除外）
 
+---
+
+## 2025-12-30 Claude Code 関連ドキュメント整理
+
+### 概要
+
+再利用しない方針に伴い、Claude Code 専用のドキュメント／設定をリポジトリから撤去し、AI 向け入口を `AGENTS.md` に一本化した。
+
+### 変更内容
+
+#### 削除
+- `CLAUDE.md` - 旧 Claude Code 用中心ドキュメント
+- `.claude/rules/01-correction-levels.md` - 修正レベル定義
+- `.claude/rules/02-git-workflow.md` - Git 運用ルール
+- `.claude/rules/03-debug-workflow.md` - デバッグ手順
+- `.claude/rules/04-go-domain.md` - 囲碁ドメイン
+- `.claude/settings.local.json` - 個人設定（既に `.gitignore` 済）
+- `docs/20-codex-rules.md` - 旧 Codex / Claude Code 向け AI ルール
+
+#### AGENTS.md の自己完結化（旧 CLAUDE.md / .claude/rules/ の内容を取り込み）
+- §4 コード構造 - 旧 `CLAUDE.md` §4 から取り込み
+- §6 修正レベル（Lv0-5） - 旧 `.claude/rules/01` から要約
+- §7 Git ワークフロー - 旧 `.claude/rules/02` から要約
+- §8 デバッグ手順 - 旧 `.claude/rules/03` から要約
+- §9 囲碁ドメイン - 旧 `.claude/rules/04` から要約
+- §10 アプリの役割と制約 - 旧 `CLAUDE.md` §5 から取り込み
+
+#### 他 docs の参照差し替え
+- `docs/00-purpose-and-scope.md` - 囲碁ドメイン参照を `AGENTS.md` §9 へ
+- `docs/README.md` - 読者説明・優先順位を一般化、`20-codex-rules.md` 行を削除
+- `docs/02-code-structure.md` / `docs/30-roadmap.md` - 変更履歴追記
+
+### 残した事項
+- 既存の「Claude Code 移行」「Codex → Claude Code」関連の作業ログは過去事実としてそのまま
+- `.gitignore` の `.claude/settings.local.json` 行は維持（今後も個人設定を取り込まないため）
+
+### 確認
+- `git ls-files | grep -E "CLAUDE\.md|\.claude/"` → 0 件
+- `docs/` `AGENTS.md` 内に残存する `.claude/` 参照 → 0 件
+- `git status` - 削除 7 件、修正 5 件、未追跡 0 件
+

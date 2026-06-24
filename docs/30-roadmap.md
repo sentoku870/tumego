@@ -145,6 +145,7 @@
 
 ## 5. 変更履歴
 
+- 2025-12-30: Claude Code 関連ドキュメント整理（CLAUDE.md / .claude/ / docs/20-codex-rules.md 削除、AGENTS.md 自己完結化）
 - 2025-12-30: Claude Code移行対応で整理
 - 2025-12-08: 優先順位変更（PC版優先、ver3一時停止）
 - 2025-12-01: ドラフト作成

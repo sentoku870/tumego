@@ -228,3 +228,4 @@ npx gh-pages -d dist
 ## 10. 変更履歴
 
 - 2025-12-30: v1.0 作成（Claude Code移行対応）
+- 2025-12-30: v1.1 Claude Code 関連ドキュメント整理（履歴追記）

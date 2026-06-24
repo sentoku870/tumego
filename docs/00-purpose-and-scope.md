@@ -137,11 +137,12 @@
 - **解説レベル**: A/B を提供（C/D は対象外）
 - **スタイル**: NHK解説風のワンポイントコメント
 
-詳細は `.claude/rules/04-go-domain.md` を参照。
+詳細は `AGENTS.md` §9 を参照。
 
 ---
 
 ## 10. 変更履歴
 
+- 2025-12-30: v1.2 Claude Code 関連ドキュメント整理（`.claude/rules/04-go-domain.md` への参照を `AGENTS.md` §9 へ差し替え）
 - 2025-12-30: v1.1 Claude Code移行対応で整理
 - 2025-12-08: 優先順位変更（PC版優先、ver3一時停止）
