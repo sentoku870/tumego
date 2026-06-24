@@ -7,6 +7,8 @@ import { GameStore } from '../state/game-store.js';
 import { Renderer } from '../renderer.js';
 import { BoardCaptureService } from '../services/board-capture-service.js';
 import { SGFService } from '../services/sgf-service.js';
+import { SGFIO } from '../services/sgf-io.js';
+import { SGFShare } from '../services/sgf-share.js';
 import { PreferencesStore } from '../services/preferences-store.js';
 import { UIInteractionState } from '../ui/state/ui-interaction-state.js';
 import { DropdownManager } from '../ui/controllers/dropdown-manager.js';
@@ -53,7 +55,9 @@ export function compositionRoot(
 
   const renderer = new Renderer(store, elements, () => preferences.state);
   const boardCapture = new BoardCaptureService(elements.svg, renderer);
-  const sgfService = new SGFService(sgfParser, store);
+  const sgfIO = new SGFIO(sgfParser);
+  const sgfShare = new SGFShare(sgfParser);
+  const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
 
   const toolbar = new ToolbarController(
     store,

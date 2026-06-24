@@ -1,5 +1,7 @@
 import './helpers/dom-setup.js';
 import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createState = (overrides = {}) => {
@@ -119,8 +121,9 @@ describe('SGFParser', () => {
   });
 
   test('compresses SGF text by removing unnecessary whitespace', () => {
+    const share = new SGFShare(parser);
     const messy = ' ( ;B [aa ] ; W[ bb] ) ';
-    expect(parser.compress(messy)).toBe('(;B[aa];W[bb])');
+    expect(share.compress(messy)).toBe('(;B[aa];W[bb])');
   });
 });
 
@@ -219,58 +222,61 @@ describe('SGFParser export()', () => {
   });
 });
 
-describe('SGFParser compress()', () => {
+describe('SGFShare compress()', () => {
   const parser = new SGFParser();
+  const share = new SGFShare(parser);
 
   test('removes spaces around brackets', () => {
-    expect(parser.compress('( ; B [aa ] ; W[ bb ] )')).toBe('(;B[aa];W[bb])');
+    expect(share.compress('( ; B [aa ] ; W[ bb ] )')).toBe('(;B[aa];W[bb])');
   });
 
   test('collapses multiple whitespace', () => {
-    expect(parser.compress('B  [aa]')).toBe('B[aa]');
+    expect(share.compress('B  [aa]')).toBe('B[aa]');
   });
 
   test('handles complex SGF with multiple moves', () => {
     const input = '( ; GM[1] SZ[9] ; B[aa] ; W[bb] ; B[cc] )';
-    const result = parser.compress(input);
+    const result = share.compress(input);
     expect(result).toBe('(;GM[1]SZ[9];B[aa];W[bb];B[cc])');
   });
 });
 
-describe('SGFParser encode/decode URL', () => {
+describe('SGFShare encode/decode URL', () => {
   const parser = new SGFParser();
+  const share = new SGFShare(parser);
 
   test('round-trips SGF through Base64', () => {
     const sgf = '(;GM[1]FF[4]SZ[9];B[dd])';
-    const encoded = parser.encodeForURL(sgf);
-    const decoded = parser.decodeFromURL(encoded);
+    const encoded = share.encodeForURL(sgf);
+    const decoded = share.decodeFromURL(encoded);
     expect(decoded).toBe(sgf);
   });
 
   test('encodeForURL returns non-empty for valid SGF', () => {
-    const result = parser.encodeForURL('(;B[aa])');
+    const result = share.encodeForURL('(;B[aa])');
     expect(result.length > 0).toBe(true);
   });
 
   test('decodeFromURL handles non-base64 strings gracefully', () => {
-    const result = parser.decodeFromURL('###invalid###');
+    const result = share.decodeFromURL('###invalid###');
     expect(result).toBe('');
   });
 
   test('encodes special characters in SGF', () => {
     const sgf = '(;GM[1]FF[4]SZ[9]GN[Title with spaces];B[aa])';
-    const encoded = parser.encodeForURL(sgf);
+    const encoded = share.encodeForURL(sgf);
     expect(encoded.length > 0).toBe(true);
   });
 });
 
-describe('SGFParser loadFromClipboard()', () => {
+describe('SGFIO loadFromClipboard()', () => {
   const parser = new SGFParser();
+  const io = new SGFIO(parser);
 
   test('parses SGF from clipboard', async () => {
     const sgf = '(;GM[1]FF[4]SZ[9];B[dd])';
     global.navigator.clipboard = { readText: async () => sgf };
-    const result = await parser.loadFromClipboard();
+    const result = await io.loadFromClipboard();
     expect(result.moves).toEqual([{ col: 3, row: 3, color: 1 }]);
   });
 
@@ -278,7 +284,7 @@ describe('SGFParser loadFromClipboard()', () => {
     global.navigator.clipboard = { readText: async () => '   ' };
     let threw = false;
     try {
-      await parser.loadFromClipboard();
+      await io.loadFromClipboard();
     } catch (e) {
       threw = true;
     }
@@ -286,13 +292,14 @@ describe('SGFParser loadFromClipboard()', () => {
   });
 });
 
-describe('SGFParser copyToClipboard()', () => {
+describe('SGFIO copyToClipboard()', () => {
   const parser = new SGFParser();
+  const io = new SGFIO(parser);
 
   test('writes to clipboard via API when available', async () => {
     let written = null;
     global.navigator.clipboard = { writeText: async (t) => { written = t; } };
-    await parser.copyToClipboard('(;B[aa])');
+    await io.copyToClipboard('(;B[aa])');
     expect(written).toBe('(;B[aa])');
   });
 
@@ -300,7 +307,7 @@ describe('SGFParser copyToClipboard()', () => {
     global.navigator.clipboard = { writeText: async () => undefined };
     let threw = false;
     try {
-      await parser.copyToClipboard('test data');
+      await io.copyToClipboard('test data');
     } catch (e) {
       threw = true;
     }
@@ -312,7 +319,7 @@ describe('SGFParser copyToClipboard()', () => {
     global.navigator.clipboard = undefined;
     let threw = false;
     try {
-      await parser.copyToClipboard('test');
+      await io.copyToClipboard('test');
     } catch (e) {
       threw = true;
     }
@@ -320,8 +327,9 @@ describe('SGFParser copyToClipboard()', () => {
   });
 });
 
-describe('SGFParser saveToFile()', () => {
+describe('SGFIO saveToFile()', () => {
   const parser = new SGFParser();
+  const io = new SGFIO(parser);
 
   test('returns a Promise', () => {
     global.window.showSaveFilePicker = async () => ({
@@ -330,7 +338,7 @@ describe('SGFParser saveToFile()', () => {
         close: async () => {}
       })
     });
-    const result = parser.saveToFile('test', 'x.sgf');
+    const result = io.saveToFile('test', 'x.sgf');
     expect(result instanceof Promise).toBe(true);
     delete global.window.showSaveFilePicker;
   });
@@ -343,7 +351,7 @@ describe('SGFParser saveToFile()', () => {
     };
     let threw = false;
     try {
-      await parser.saveToFile('test');
+      await io.saveToFile('test');
     } catch (e) {
       threw = true;
     }
@@ -371,43 +379,45 @@ describe('SGFParser saveToFile()', () => {
         close: async () => { closeCalled = true; }
       })
     });
-    await parser.saveToFile('(;B[aa])', 'test.sgf');
+    await io.saveToFile('(;B[aa])', 'test.sgf');
     expect(writeCalled).toBe(true);
     expect(closeCalled).toBe(true);
     delete global.window.showSaveFilePicker;
   });
 });
 
-describe('SGFParser createShareURL()', () => {
+describe('SGFShare createShareURL()', () => {
   const parser = new SGFParser();
+  const share = new SGFShare(parser);
 
   test('returns URL containing ?sgf=', () => {
-    const url = parser.createShareURL('(;B[aa])');
+    const url = share.createShareURL('(;B[aa])');
     expect(url.includes('?sgf=')).toBe(true);
   });
 
   test('accepts custom baseURL', () => {
-    const url = parser.createShareURL('(;B[aa])', 'https://example.com/path');
+    const url = share.createShareURL('(;B[aa])', 'https://example.com/path');
     expect(url.includes('https://example.com/path')).toBe(true);
   });
 
   test('uses provided baseURL when given', () => {
-    const url = parser.createShareURL('(;B[aa])', 'https://my-site.com/page');
+    const url = share.createShareURL('(;B[aa])', 'https://my-site.com/page');
     expect(url.startsWith('https://my-site.com/page?sgf=')).toBe(true);
   });
 
   test('encoded part is non-empty Base64', () => {
     const sgf = '(;GM[1]FF[4]SZ[9];B[dd])';
-    const url = parser.createShareURL(sgf, 'https://example.com/path');
+    const url = share.createShareURL(sgf, 'https://example.com/path');
     const encoded = url.split('?sgf=')[1];
     expect(encoded.length > 0).toBe(true);
-    const decoded = parser.decodeFromURL(encoded);
+    const decoded = share.decodeFromURL(encoded);
     expect(decoded).toBe(sgf);
   });
 });
 
-describe('SGFParser loadFromURL()', () => {
+describe('SGFShare loadFromURL()', () => {
   const parser = new SGFParser();
+  const share = new SGFShare(parser);
 
   test('returns parsed SGF when sgf param present (via mock URLSearchParams)', () => {
     const sgf = '(;GM[1]FF[4]SZ[9];B[dd])';
@@ -420,7 +430,7 @@ describe('SGFParser loadFromURL()', () => {
     };
     const origReplaceState = global.window.history.replaceState;
     global.window.history.replaceState = () => {};
-    const result = parser.loadFromURL();
+    const result = share.loadFromURL();
     expect(result).not.toBeNull();
     expect(result.moves.length).toBe(1);
     global.URLSearchParams = origParams;
@@ -432,7 +442,7 @@ describe('SGFParser loadFromURL()', () => {
     global.URLSearchParams = class {
       get() { return null; }
     };
-    const result = parser.loadFromURL();
+    const result = share.loadFromURL();
     expect(result).toBeNull();
     global.URLSearchParams = origParams;
   });
@@ -444,7 +454,7 @@ describe('SGFParser loadFromURL()', () => {
     };
     const origReplaceState = global.window.history.replaceState;
     global.window.history.replaceState = () => {};
-    const result = parser.loadFromURL();
+    const result = share.loadFromURL();
     expect(result).not.toBeNull();
     expect(result.moves.length).toBe(0);
     global.URLSearchParams = origParams;
@@ -463,19 +473,20 @@ describe('SGFParser loadFromURL()', () => {
     let replaceCalled = false;
     const origReplaceState = global.window.history.replaceState;
     global.window.history.replaceState = () => { replaceCalled = true; };
-    parser.loadFromURL();
+    share.loadFromURL();
     expect(replaceCalled).toBe(true);
     global.URLSearchParams = origParams;
     global.window.history.replaceState = origReplaceState;
   });
 });
 
-describe('SGFParser loadFromFile()', () => {
+describe('SGFIO loadFromFile()', () => {
   const parser = new SGFParser();
+  const io = new SGFIO(parser);
 
   test('returns a Promise', () => {
     const file = new Blob(['(;B[aa])'], { type: 'application/x-go-sgf' });
-    const result = parser.loadFromFile(file);
+    const result = io.loadFromFile(file);
     expect(result instanceof Promise).toBe(true);
   });
 
@@ -489,7 +500,7 @@ describe('SGFParser loadFromFile()', () => {
       }
     };
     const file = new Blob(['(;GM[1]FF[4]SZ[9];B[dd])'], { type: 'application/x-go-sgf' });
-    const result = await parser.loadFromFile(file);
+    const result = await io.loadFromFile(file);
     expect(result.moves.length).toBe(1);
     expect(result.moves[0]).toEqual({ col: 3, row: 3, color: 1 });
   });

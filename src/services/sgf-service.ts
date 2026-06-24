@@ -10,6 +10,8 @@ import {
   StoneColor
 } from '../types.js';
 import { SGFParser } from '../sgf-parser.js';
+import { SGFIO } from './sgf-io.js';
+import { SGFShare } from './sgf-share.js';
 
 export interface ApplyResult {
   sgfText: string;
@@ -43,7 +45,9 @@ interface HistoryAdjustmentOutput {
 export class SGFService {
   constructor(
     private readonly parser: SGFParser,
-    private readonly store: GameStore
+    private readonly store: GameStore,
+    private readonly io: SGFIO = new SGFIO(new SGFParser()),
+    private readonly share: SGFShare = new SGFShare(new SGFParser())
   ) {}
 
   get state(): GameState {
@@ -55,11 +59,11 @@ export class SGFService {
   }
 
   async loadFromFile(file: File): Promise<SGFParseResult> {
-    return this.parser.loadFromFile(file);
+    return this.io.loadFromFile(file);
   }
 
   async loadFromClipboard(): Promise<SGFParseResult> {
-    return this.parser.loadFromClipboard();
+    return this.io.loadFromClipboard();
   }
 
   export(): string {
@@ -67,15 +71,15 @@ export class SGFService {
   }
 
   async copyToClipboard(text: string): Promise<void> {
-    await this.parser.copyToClipboard(text);
+    await this.io.copyToClipboard(text);
   }
 
   async saveToFile(text: string): Promise<void> {
-    await this.parser.saveToFile(text);
+    await this.io.saveToFile(text);
   }
 
   loadFromURL(): SGFParseResult | null {
-    return this.parser.loadFromURL();
+    return this.share.loadFromURL();
   }
 
   apply(result: SGFParseResult): ApplyResult {
