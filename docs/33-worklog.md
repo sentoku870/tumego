@@ -325,3 +325,49 @@ step 8 は step 2 取り込みのため rebase --force-with-lease。
 - `npm run build` 緑
 - main に push 完了（マージコミット `0e0610f`）
 
+
+## 2026-06-24 残課題一括対応 (PR #138-#142)
+
+前回マージ後に残っていた課題を一斉対応。
+
+### PR #138: クリーンアップバッチ (B-1, B-3, B-4, B-6)
+- 新規 `src/utils/format.ts`: `toCircledNumber()` 純粋関数
+- `view-model.ts` / `sgf-service.ts` の丸数字変換共通化
+- `SGFShare.compress()` 削除（production 未使用、テスト 4 件削除）
+- マジックナンバーを `DEFAULT_CONFIG` へ集約（QR サイズ、Move Number 描画係数、CSS 変数配列等）
+- `sgf-io.ts` の `as any` を適切な intersection 型に置換
+- 658/658 テスト緑
+
+### PR #139: 未テストファイルへのテスト追加 (B-2)
+- `tests/ui/toolbar-buttons.test.js` (6 ケース)
+- `tests/ui/toolbar-state.test.js` (12 ケース)
+- `tests/sgf-io.test.js` (6 ケース、`loadFromFile` は jsdom 制約で除外)
+- 681/681 テスト緑
+
+### PR #140: TypeScript 品質改善 (B-3 残り)
+- `preferences-store.ts`: `readField<T>()` ヘルパー導入で 6 件の `!` 削減
+- `board-capture-service.ts`: `navigator.clipboard!` 解消
+- `go-engine.ts`: `stack.pop()!` をガードに置換
+- `toolbar-buttons.ts`: 3 件の `this.XBtn!` を null チェックに置換
+- `history-view.ts`: `dataset.index!` をガードに置換
+- 681/681 テスト緑
+
+### PR #141: jest 環境改善 (A-3)
+- ローカル jest ランナーに `setupFiles` 自動ロードを追加
+- 13 テストファイルから手動 `import './helpers/dom-setup.js';` 削除
+- 681/681 テスト緑
+
+### PR #142: state private 化 (A-2)
+- `store.snapshot` 戻り型を `Readonly<GameState>` に変更
+- 残っていた直接書込を除去:
+  - `SGFService.apply` → `store.prepareBoardForSgf(newSize)` 新設
+  - `ToolbarState.disableEraseMode` → `store.setEraseMode(false)` 経由
+- 684/684 テスト緑（+3 件 prepareBoardForSgf テスト）
+
+### 注記
+- `Readonly<GameState>` は shallow のため、ネスト配列要素 (`state.board[0][0]`) への書込は TypeScript 的に防げない
+- 真の deep readonly は別タスク（カスタム `DeepReadonly<T>` が必要）
+
+### 累計テスト数
+- 591 (元) → 654 (前回 9 PR) → 684 (今回 5 PR)
+- +93 テスト追加（うち -9 は dead code / jsdom 制約による削除）
