@@ -23,6 +23,20 @@ const findTestFiles = (dir) => {
   });
 };
 
+// Load jest config (jest.config.cjs) to honor testEnvironment,
+// setupFiles, and other options. The config is optional — missing
+// config falls back to defaults (node environment, no setup files).
+let config = {};
+const configPath = path.join(rootDir, 'jest.config.cjs');
+if (fs.existsSync(configPath)) {
+  try {
+    const required = require(configPath);
+    config = required.default ?? required;
+  } catch (err) {
+    console.warn(`Failed to load jest.config.cjs: ${err.message}`);
+  }
+}
+
 const suitesForFile = (fileName) => {
   const createSuite = (name, parent = null) => ({
     name,
@@ -179,6 +193,23 @@ const runFile = async (file) => {
   const rel = path.relative(rootDir, file);
   console.log(`\nRunning ${rel}`);
   const suite = suitesForFile(rel);
+
+  // setupFiles: load before the test file so any DOM/environment
+  // globals are in place when the test file's top-level imports run.
+  // Default: load tests/helpers/dom-setup.js if it exists, to keep
+  // backward compat with the manual import pattern.
+  const setupFiles = config.setupFiles && config.setupFiles.length > 0
+    ? config.setupFiles
+    : ['<rootDir>/tests/helpers/dom-setup.js'];
+  for (const relPath of setupFiles) {
+    const setupPath = path.isAbsolute(relPath)
+      ? relPath
+      : path.join(rootDir, relPath.replace('<rootDir>/', ''));
+    if (fs.existsSync(setupPath)) {
+      await import(pathToFileURL(setupPath));
+    }
+  }
+
   await import(pathToFileURL(file));
 
   const stats = { total: 0, passed: 0, failed: 0 };

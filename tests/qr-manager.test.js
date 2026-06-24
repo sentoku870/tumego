@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { QRManager } from '../dist/qr-manager.js';
 import { SGFParser } from '../dist/sgf-parser.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';

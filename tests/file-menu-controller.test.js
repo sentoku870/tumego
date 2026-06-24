@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { FileMenuController } from '../dist/ui/controllers/file-menu-controller.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';

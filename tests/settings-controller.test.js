@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { SettingsController } from '../dist/ui/controllers/settings-controller.js';
 import { PreferencesStore } from '../dist/services/preferences-store.js';
 

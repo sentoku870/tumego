@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { compositionRoot } from '../dist/app/composition-root.js';
 import { UIEventBus } from '../dist/app/event-bus.js';
 import { GameStore } from '../dist/state/game-store.js';

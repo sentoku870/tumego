@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { ToolbarController } from '../dist/ui/controllers/toolbar-controller.js';
 import { BoardCaptureService } from '../dist/services/board-capture-service.js';
 import { GameStore } from '../dist/state/game-store.js';

@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { DropdownManager } from '../dist/ui/controllers/dropdown-manager.js';
 import { UIInteractionState } from '../dist/ui/state/ui-interaction-state.js';
 

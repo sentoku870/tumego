@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { Renderer } from '../dist/renderer/renderer.js';
 import { getCircleNumber } from '../dist/renderer/view-model.js';
 import { GameStore } from '../dist/state/game-store.js';
