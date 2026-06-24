@@ -82,7 +82,10 @@ export class ToolbarButtons {
     document.querySelectorAll('.size-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const element = btn as HTMLElement;
-        const size = parseInt(element.dataset.size!, 10);
+        const sizeRaw = element.dataset.size;
+        if (sizeRaw === undefined) return;
+        const size = parseInt(sizeRaw, 10);
+        if (!Number.isFinite(size)) return;
         const state = this.store.snapshot;
         if (size === state.boardSize) {
           return;
@@ -139,10 +142,14 @@ export class ToolbarButtons {
     });
 
     this.blackBtn = document.getElementById('btn-black') as HTMLButtonElement | null;
-    this.blackBtn?.addEventListener('click', () => this.setMode('black', this.blackBtn!));
+    this.blackBtn?.addEventListener('click', () => {
+      if (this.blackBtn) this.setMode('black', this.blackBtn);
+    });
 
     this.whiteBtn = document.getElementById('btn-white') as HTMLButtonElement | null;
-    this.whiteBtn?.addEventListener('click', () => this.setMode('white', this.whiteBtn!));
+    this.whiteBtn?.addEventListener('click', () => {
+      if (this.whiteBtn) this.setMode('white', this.whiteBtn);
+    });
 
     this.altBtn = document.getElementById('btn-alt') as HTMLButtonElement | null;
     if (this.altBtn) {
@@ -151,7 +158,7 @@ export class ToolbarButtons {
     this.altBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
       this.store.setStartColor(state.startColor === 1 ? 2 : 1);
-      this.setMode('alt', this.altBtn!);
+      if (this.altBtn) this.setMode('alt', this.altBtn);
     });
   }
 

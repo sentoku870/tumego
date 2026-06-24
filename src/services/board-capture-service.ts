@@ -19,7 +19,8 @@ export class BoardCaptureService {
       const canvasElement = this.getBoardCaptureCanvas();
       const pngBlob = await this.convertSvgToPng(this.svgElement, canvasElement);
 
-      const clipboardWritable = typeof navigator.clipboard?.write === 'function';
+      const clipboard = navigator.clipboard;
+      const clipboardWritable = typeof clipboard?.write === 'function';
       const clipboardItemCtor = (window as Window & {
         ClipboardItem?: new (items: Record<string, Blob | Promise<Blob>>) => ClipboardItem;
       }).ClipboardItem;
@@ -27,10 +28,10 @@ export class BoardCaptureService {
       const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
         (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
 
-      if (clipboardWritable && clipboardItemCtor) {
+      if (clipboard && clipboardWritable && clipboardItemCtor) {
         try {
           const item = new clipboardItemCtor({ 'image/png': pngBlob });
-          await navigator.clipboard!.write([item]);
+          await clipboard.write([item]);
           this.renderer.showMessage('コピーしました');
           return;
         } catch (error) {

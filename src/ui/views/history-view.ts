@@ -91,7 +91,10 @@ export class HistoryView {
         element.style.background = '#fff';
       });
       element.addEventListener('click', () => {
-        const index = parseInt(element.dataset.index!, 10);
+        const indexRaw = element.dataset.index;
+        if (indexRaw === undefined) return;
+        const index = parseInt(indexRaw, 10);
+        if (!Number.isFinite(index)) return;
         if (
           confirm(
             'この操作履歴に復元しますか？\n\n⚠️ 復元すると、現在の状態が失われます。'
