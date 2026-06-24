@@ -165,19 +165,22 @@ npm run build
 
 ---
 
-## 7. Claude Code の役割
+## 7. AI（Claude Code / opencode）の役割
 
-### Claude Code がやること
-- ファイルの編集（Plan Mode で確認後）
+### AI がやること
+- ファイルの編集
 - 差分の説明
 - 次のコマンドの提示
+- **Git 操作**（`git add`, `git commit`, `git push`, `gh pr create` 等）
+  - **重要操作（main 直 push, PR 作成, force push 等）の前に必ずユーザー確認を取る**
+  - `force push` 等の破壊的操作は **絶対に行わない**
+- `npm run build`（ビルドスクリプトの実行）
 
-### Claude Code がやらないこと
-- `git commit`
-- `git push`
-- `gh pr create`
-- `npm run build`（ユーザーに指示）
-- デプロイ操作
+### AI がやらないこと（ユーザー判断に委ねる）
+- `force push`（明示的に指示されない限り禁止）
+- `stable-20251116` ブランチへの直接 push
+- GitHub Pages の公開設定変更
+- リリース時の `dist/` の本番反映判断
 
 ---
 

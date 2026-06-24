@@ -1,0 +1,32 @@
+# 改行コードの統一（LF固定）
+# Windows環境での誤ったCRLF変換を防ぐ
+
+*               text=auto eol=lf
+
+# 主要なテキストファイル
+*.md            text eol=lf
+*.ts            text eol=lf
+*.js            text eol=lf
+*.cjs           text eol=lf
+*.mjs           text eol=lf
+*.css           text eol=lf
+*.html          text eol=lf
+*.json          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+
+# シェルスクリプト
+*.sh            text eol=lf
+*.ps1           text eol=lf
+
+# バイナリ扱い
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.svg           binary
+*.woff          binary
+*.woff2         binary
+*.ttf           binary
+*.eot           binary
