@@ -2,7 +2,6 @@
 // 編集モード ⇄ 解答モードの切り替え、問題図の確定・復元、初期化などを行う。
 // 盤面タイムラインキャッシュの制御は BoardCacheManager に委譲する。
 import {
-  CellState,
   DEFAULT_CONFIG,
   GameState,
   Position,
@@ -10,6 +9,7 @@ import {
 } from "../types.js";
 import { HistoryManager } from "../history-manager.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
+import { createEmptyBoard, createInitialCapturedCounts, hasGameData } from "./board-utils.js";
 
 export class ModeOperations {
   constructor(
@@ -121,7 +121,7 @@ export class ModeOperations {
     this.state.eraseMode = false;
 
     this.state.turn = 0;
-    this.state.capturedCounts = { black: 0, white: 0 };
+    this.state.capturedCounts = createInitialCapturedCounts();
     this.state.history = [];
     this.cache.invalidate();
   }
@@ -160,16 +160,14 @@ export class ModeOperations {
   }): void {
     const size = this.state.boardSize;
 
-    this.state.board = Array.from({ length: size }, () =>
-      Array<CellState>(size).fill(0)
-    );
+    this.state.board = createEmptyBoard(size);
 
     this.state.history = [];
     this.state.turn = 0;
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.numberStartIndex = 0;
-    this.state.capturedCounts = { black: 0, white: 0 };
+    this.state.capturedCounts = createInitialCapturedCounts();
 
     this.state.numberMode = false;
     this.state.mode = "alt";
@@ -195,15 +193,11 @@ export class ModeOperations {
       ...this.state.gameInfo,
       title: "",
     };
-    this.state.capturedCounts = { black: 0, white: 0 };
+    this.state.capturedCounts = createInitialCapturedCounts();
   }
 
   private hasGameData(): boolean {
-    return (
-      this.state.sgfMoves.length > 0 ||
-      this.state.handicapStones > 0 ||
-      this.state.board.some((row) => row.some((cell) => cell !== 0))
-    );
+    return hasGameData(this.state);
   }
 
   private saveToHistory(label: string): void {

@@ -5,13 +5,13 @@
 import {
   Board,
   CapturedCounts,
-  CellState,
   GameState,
   Position,
   StoneColor,
 } from "../types.js";
 import { GoEngine } from "../go-engine.js";
 import { PerformanceMonitor } from "./performance-monitor.js";
+import { cloneBoard, createEmptyBoard, isValidPosition } from "./board-utils.js";
 
 export interface BoardRebuildResult {
   /** 該当手数時点の盤面（clone） */
@@ -78,7 +78,7 @@ export class BoardCacheManager {
     finalize?.(newlyApplied);
 
     return {
-      board: this.cloneBoard(finalBoard),
+      board: cloneBoard(finalBoard),
       history,
       turn,
       counts: this.cloneCapturedCounts(counts),
@@ -123,7 +123,7 @@ export class BoardCacheManager {
     this.cachedMoveApplied = [];
     this.capturedCountsTimeline = [];
 
-    const boardSnapshot = this.cloneBoard(this.state.board);
+    const boardSnapshot = cloneBoard(this.state.board);
     const countsSnapshot = this.cloneCapturedCounts(this.state.capturedCounts);
 
     this.cachedBoardState = boardSnapshot;
@@ -132,7 +132,7 @@ export class BoardCacheManager {
     this.capturedCountsTimeline[sgfIndex] = countsSnapshot;
 
     return {
-      board: this.cloneBoard(boardSnapshot),
+      board: cloneBoard(boardSnapshot),
       history: [],
       turn: this.computeTurn(sgfIndex, numberStartIndex),
       counts: this.cloneCapturedCounts(countsSnapshot),
@@ -192,13 +192,11 @@ export class BoardCacheManager {
   /** 現 state.board から初期盤面（置石 + 問題図）を構築して返す */
   applyInitialSetup(): Board {
     const size = this.state.boardSize;
-    const board: Board = Array.from({ length: size }, () =>
-      Array<CellState>(size).fill(0)
-    );
+    const board = createEmptyBoard(size);
 
     if (this.state.handicapPositions.length > 0) {
       this.state.handicapPositions.forEach((pos) => {
-        if (this.isValidPosition(pos)) {
+        if (isValidPosition(size, pos)) {
           board[pos.row][pos.col] = 1;
         }
       });
@@ -206,12 +204,12 @@ export class BoardCacheManager {
 
     if (this.state.problemDiagramSet) {
       this.state.problemDiagramBlack.forEach((pos) => {
-        if (this.isValidPosition(pos)) {
+        if (isValidPosition(size, pos)) {
           board[pos.row][pos.col] = 1;
         }
       });
       this.state.problemDiagramWhite.forEach((pos) => {
-        if (this.isValidPosition(pos)) {
+        if (isValidPosition(size, pos)) {
           board[pos.row][pos.col] = 2;
         }
       });
@@ -277,7 +275,7 @@ export class BoardCacheManager {
         continue;
       }
 
-      const workingBoard = this.cloneBoard(board);
+      const workingBoard = cloneBoard(board);
       const result = this.engine.playMove(
         this.state,
         move,
@@ -345,7 +343,7 @@ export class BoardCacheManager {
       }
       const snapshot = this.cachedBoardTimeline[i];
       if (snapshot) {
-        history.push(this.cloneBoard(snapshot));
+        history.push(cloneBoard(snapshot));
       }
     }
     return history;
@@ -357,7 +355,7 @@ export class BoardCacheManager {
     this.cachedAppliedMoveIndex = target;
 
     return {
-      board: this.cloneBoard(board),
+      board: cloneBoard(board),
       history: this.buildHistoryFromCache(target),
       turn: this.computeTurn(target, this.state.numberStartIndex),
       counts: this.cloneCapturedCounts(this.pickCapturedCounts(target)),
@@ -396,20 +394,7 @@ export class BoardCacheManager {
     return next;
   }
 
-  private cloneBoard(board: Board): Board {
-    return board.map((row) => row.slice());
-  }
-
   private cloneCapturedCounts(counts: CapturedCounts): CapturedCounts {
     return { black: counts.black, white: counts.white };
-  }
-
-  private isValidPosition(pos: Position): boolean {
-    return (
-      pos.col >= 0 &&
-      pos.col < this.state.boardSize &&
-      pos.row >= 0 &&
-      pos.row < this.state.boardSize
-    );
   }
 }

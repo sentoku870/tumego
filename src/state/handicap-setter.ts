@@ -3,7 +3,6 @@
 // GameStore 内部で state.board / state.gameInfo を直接更新する。
 import {
   CapturedCounts,
-  CellState,
   DEFAULT_CONFIG,
   GameState,
   Position,
@@ -12,6 +11,7 @@ import { GoEngine } from "../go-engine.js";
 import { HistoryManager } from "../history-manager.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
 import { ModeOperations } from "./mode-operations.js";
+import { hasGameData, isValidPosition } from "./board-utils.js";
 
 export type HandicapMode = "even" | "no-komi" | "fixed";
 
@@ -89,7 +89,7 @@ export class HandicapSetter {
     }
 
     context.positions.forEach((pos) => {
-      if (this.isValidPosition(pos)) {
+      if (isValidPosition(this.state.boardSize, pos)) {
         this.state.board[pos.row][pos.col] = 1;
       }
     });
@@ -155,19 +155,6 @@ export class HandicapSetter {
   }
 
   private hasGameData(): boolean {
-    return (
-      this.state.sgfMoves.length > 0 ||
-      this.state.handicapStones > 0 ||
-      this.state.board.some((row) => row.some((cell) => cell !== 0))
-    );
-  }
-
-  private isValidPosition(pos: Position): boolean {
-    return (
-      pos.col >= 0 &&
-      pos.col < this.state.boardSize &&
-      pos.row >= 0 &&
-      pos.row < this.state.boardSize
-    );
+    return hasGameData(this.state);
   }
 }
