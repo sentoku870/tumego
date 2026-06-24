@@ -1,5 +1,5 @@
 import { GameStore } from '../../state/game-store.js';
-import { Renderer } from '../../renderer.js';
+import { Renderer } from '../../renderer/renderer.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
 import { DropdownManager } from './dropdown-manager.js';

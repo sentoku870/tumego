@@ -4,7 +4,7 @@ import { BoardCaptureService } from '../dist/services/board-capture-service.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
-import { Renderer } from '../dist/renderer.js';
+import { Renderer } from '../dist/renderer/renderer.js';
 import { PreferencesStore } from '../dist/services/preferences-store.js';
 import { UIEventBus } from '../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';

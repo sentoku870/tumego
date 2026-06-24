@@ -4,7 +4,7 @@ import { SGFParser } from '../sgf-parser.js';
 import { QRManager } from '../qr-manager.js';
 import { HistoryManager } from '../history-manager.js';
 import { GameStore } from '../state/game-store.js';
-import { Renderer } from '../renderer.js';
+import { Renderer } from '../renderer/renderer.js';
 import { BoardCaptureService } from '../services/board-capture-service.js';
 import { SGFService } from '../services/sgf-service.js';
 import { SGFIO } from '../services/sgf-io.js';

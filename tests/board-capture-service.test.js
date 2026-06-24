@@ -3,7 +3,7 @@ import { BoardCaptureService } from '../dist/services/board-capture-service.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
-import { Renderer } from '../dist/renderer.js';
+import { Renderer } from '../dist/renderer/renderer.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>

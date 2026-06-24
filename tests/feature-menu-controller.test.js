@@ -3,7 +3,7 @@ import { FeatureMenuController } from '../dist/ui/controllers/feature-menu-contr
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
-import { Renderer } from '../dist/renderer.js';
+import { Renderer } from '../dist/renderer/renderer.js';
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
 import { UIInteractionState } from '../dist/ui/state/ui-interaction-state.js';
