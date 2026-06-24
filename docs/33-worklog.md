@@ -258,3 +258,38 @@ Claude Code から opencode への移行準備と、AI が Git 操作（commit /
 - `docs/` `AGENTS.md` 内に残存する `.claude/` 参照 → 0 件
 - `git status` - 削除 7 件、修正 5 件、未追跡 0 件
 
+
+## 2026-06-24 アーキテクチャレビュー改善 9 件一斉適用
+
+アーキテクチャレビューに基づき、9 件の PR を順次作成・マージした。
+
+| Step | 内容 | Lv | PR |
+|:--:|---|:--:|:--:|
+| 1 | SGFService デフォルト引数 footgun 解消 | 1 | #128 |
+| 2 | board-utils 集約 (createEmptyBoard, cloneBoard, isValidPosition, hasGameData 等) | 2 | #129 |
+| 3 | QRManager ↔ SGFShare 重複統合 | 2 | #130 |
+| 4 | Preferences 型不整合修正 (ToggleSetting → boolean) | 2 | #131 |
+| 5 | UI 層の state 直書きを GameStore API 経由に | 3 | #132 |
+| 6 | モーダル共通化 (Modal コンポーネント新設, HistoryView 移行) | 2 | #133 |
+| 7 | renderer.ts 分離 (view-model.ts / renderer.ts) | 2 | #134 |
+| 8 | SGFService → ModeOperations 経由化 | 3 | #135 |
+| 9 | マジックナンバー → DEFAULT_CONFIG, buildContext internal 化 | 1 | #136 |
+
+### マージ順序
+依存関係に基づき step 2 を最初にマージ（base として使用）。
+step 8 は step 2 取り込みのため rebase --force-with-lease。
+
+### 主な成果
+- テスト数: 591 → 654 件 (+63)
+- `src/renderer.ts` (563行) を view-model + DOM 描画に分離
+- 4 箇所で重複していた「黒半透明オーバーレイ + 白カード」HTML を Modal に集約
+- 5 箇所で重複していた cloneBoard / isValidPosition 等のロジックを board-utils に集約
+- SGFService が Facade (ModeOperations) 経由で状態書込 → キャッシュ不整合リスクの解消
+- `ToggleSetting` 型削除、boolean 統一
+- DEFAULT_CONFIG に座標オフセット / レスポンシブ閾値を集約
+
+### 残課題（将来 PR）
+- P1-3 残: QRManager / FeatureMenuController / BoardCaptureService の 3 ポップアップを Modal 化
+- P3-4: `state` の private 化（破壊的変更）
+- 実 jest 導入 or ローカルランナー拡張（testEnvironment: 'jsdom' 対応）
+
