@@ -1,12 +1,12 @@
-import { BooleanPreference, DeviceProfile, Preferences, RulesMode, ToggleSetting } from "../types.js";
+import { BooleanPreference, DeviceProfile, Preferences, RulesMode } from "../types.js";
 
 const STORAGE_KEY = "tumego.preferences";
 
 const DEFAULT_PREFERENCES: Preferences = {
   edit: { rulesMode: "standard" },
   solve: {
-    showCapturedStones: "on",
-    enableFullReset: "on",
+    showCapturedStones: true,
+    enableFullReset: true,
     highlightLastMove: true,
     showSolutionMoveNumbers: false,
   },
@@ -21,16 +21,22 @@ function isRulesMode(value: unknown): value is RulesMode {
   return value === "standard" || value === "free";
 }
 
-function isToggleSetting(value: unknown): value is ToggleSetting {
-  return value === "on" || value === "off";
-}
-
 function isDeviceProfile(value: unknown): value is DeviceProfile {
   return value === "auto" || value === "desktop" || value === "phone" || value === "tablet";
 }
 
 function isBooleanPreference(value: unknown): value is BooleanPreference {
   return typeof value === "boolean";
+}
+
+/**
+ * Legacy migration: previous schema stored these as "on"/"off" strings.
+ * Convert to boolean so the rest of the code can use them directly.
+ */
+function legacyToggleToBoolean(value: unknown): boolean | null {
+  if (value === "on") return true;
+  if (value === "off") return false;
+  return null;
 }
 
 function normalizePreferences(raw: unknown): Preferences {
@@ -45,12 +51,16 @@ function normalizePreferences(raw: unknown): Preferences {
     const ui = parsed.ui as Record<string, unknown> | undefined;
 
     const rulesMode = isRulesMode(edit?.rulesMode) ? edit!.rulesMode : DEFAULT_PREFERENCES.edit.rulesMode;
-    const showCapturedStones = isToggleSetting(solve?.showCapturedStones)
-      ? solve!.showCapturedStones
-      : DEFAULT_PREFERENCES.solve.showCapturedStones;
-    const enableFullReset = isToggleSetting(solve?.enableFullReset)
-      ? solve!.enableFullReset
-      : DEFAULT_PREFERENCES.solve.enableFullReset;
+    const showCapturedStones =
+      isBooleanPreference(solve?.showCapturedStones)
+        ? solve!.showCapturedStones
+        : legacyToggleToBoolean(solve?.showCapturedStones) ??
+          DEFAULT_PREFERENCES.solve.showCapturedStones;
+    const enableFullReset =
+      isBooleanPreference(solve?.enableFullReset)
+        ? solve!.enableFullReset
+        : legacyToggleToBoolean(solve?.enableFullReset) ??
+          DEFAULT_PREFERENCES.solve.enableFullReset;
     const highlightLastMove = isBooleanPreference(solve?.highlightLastMove)
       ? solve!.highlightLastMove
       : DEFAULT_PREFERENCES.solve.highlightLastMove;
@@ -96,13 +106,13 @@ export class PreferencesStore {
     this.updatePrefs({ edit: { rulesMode: mode } });
   }
 
-  setShowCapturedStones(value: ToggleSetting): void {
-    if (!isToggleSetting(value)) return;
+  setShowCapturedStones(value: boolean): void {
+    if (!isBooleanPreference(value)) return;
     this.updatePrefs({ solve: { showCapturedStones: value } });
   }
 
-  setEnableFullReset(value: ToggleSetting): void {
-    if (!isToggleSetting(value)) return;
+  setEnableFullReset(value: boolean): void {
+    if (!isBooleanPreference(value)) return;
     this.updatePrefs({ solve: { enableFullReset: value } });
   }
 

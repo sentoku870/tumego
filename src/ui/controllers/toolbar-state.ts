@@ -108,7 +108,7 @@ export class ToolbarState {
 
     const prefs = this.preferences.state;
     const isSolve = this.store.snapshot.numberMode;
-    const enableFullResetInSolve = prefs.solve.enableFullReset === 'on';
+    const enableFullResetInSolve = prefs.solve.enableFullReset;
 
     this.buttons.clearBtn.style.display = '';
 

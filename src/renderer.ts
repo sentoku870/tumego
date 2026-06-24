@@ -64,9 +64,7 @@ const prefs = this.getPreferences();
 const showMoveNumbers =
   state.numberMode && prefs.solve.showSolutionMoveNumbers;
 
-// ここで boolean に変換する（'on' / 'off' などは実際の定義に合わせてください）
-const showCapturedStones =
-  prefs.solve.showCapturedStones === 'on';  // ★ここがポイント
+const showCapturedStones = prefs.solve.showCapturedStones;
 
 // ハイライト有効かどうかをここで一元管理
 const enableLastMoveHighlight =

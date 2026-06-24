@@ -100,7 +100,7 @@ export function compositionRoot(
     renderer.updateInfo();
     renderer.updateSlider();
     renderer.updateCapturedStones(
-      preferences.state.solve.showCapturedStones === "on"
+      preferences.state.solve.showCapturedStones
     );
     feature.updateMenuState();
     toolbar.updateToolbarState();

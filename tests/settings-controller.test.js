@@ -195,13 +195,13 @@ describe('SettingsController', () => {
     test('toggling show captured updates preferences', () => {
       elements.showCaptured.checked = false;
       elements.showCaptured.dispatchEvent(new Event('change'));
-      expect(prefs.state.solve.showCapturedStones).toBe('off');
+      expect(prefs.state.solve.showCapturedStones).toBe(false);
     });
 
     test('toggling enable full reset updates preferences', () => {
       elements.enableReset.checked = false;
       elements.enableReset.dispatchEvent(new Event('change'));
-      expect(prefs.state.solve.enableFullReset).toBe('off');
+      expect(prefs.state.solve.enableFullReset).toBe(false);
     });
 
     test('toggling highlight last move updates preferences', () => {
@@ -229,12 +229,12 @@ describe('SettingsController', () => {
       // Modify preferences
       elements.showCaptured.checked = false;
       elements.showCaptured.dispatchEvent(new Event('change'));
-      expect(prefs.state.solve.showCapturedStones).toBe('off');
+      expect(prefs.state.solve.showCapturedStones).toBe(false);
 
       // Click reset
       elements.resetBtn.click();
       // Should be back to default
-      expect(prefs.state.solve.showCapturedStones).toBe('on');
+      expect(prefs.state.solve.showCapturedStones).toBe(true);
     });
 
     test('reset syncs UI back to default values', () => {
@@ -254,7 +254,7 @@ describe('SettingsController', () => {
   describe('reactivity to external preference changes', () => {
     test('external change to preferences updates UI', () => {
       controller.initialize();
-      prefs.setShowCapturedStones('off');
+      prefs.setShowCapturedStones(false);
       // UI should reflect the change
       expect(elements.showCaptured.checked).toBe(false);
     });

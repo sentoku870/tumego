@@ -61,8 +61,8 @@ describe('BoardCaptureService', () => {
     renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
       solve: {
-        showCapturedStones: 'on',
-        enableFullReset: 'on',
+        showCapturedStones: true,
+        enableFullReset: true,
         highlightLastMove: true,
         showSolutionMoveNumbers: false
       },
@@ -194,8 +194,8 @@ describe('BoardCaptureService - SVG conversion', () => {
     renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
       solve: {
-        showCapturedStones: 'on',
-        enableFullReset: 'on',
+        showCapturedStones: true,
+        enableFullReset: true,
         highlightLastMove: true,
         showSolutionMoveNumbers: false
       },
@@ -257,7 +257,7 @@ describe('BoardCaptureService - blobToDataUrl', () => {
     const elements = createUIElements();
     const renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
-      solve: { showCapturedStones: 'on', enableFullReset: 'on', highlightLastMove: true, showSolutionMoveNumbers: false },
+      solve: { showCapturedStones: true, enableFullReset: true, highlightLastMove: true, showSolutionMoveNumbers: false },
       ui: { deviceProfile: 'auto' }
     }));
     service = new BoardCaptureService(elements.svg, renderer);
@@ -305,7 +305,7 @@ describe('BoardCaptureService - showBoardPreviewModal', () => {
     const elements = createUIElements();
     const renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
-      solve: { showCapturedStones: 'on', enableFullReset: 'on', highlightLastMove: true, showSolutionMoveNumbers: false },
+      solve: { showCapturedStones: true, enableFullReset: true, highlightLastMove: true, showSolutionMoveNumbers: false },
       ui: { deviceProfile: 'auto' }
     }));
     service = new BoardCaptureService(elements.svg, renderer);
@@ -365,7 +365,7 @@ describe('BoardCaptureService - captureBoard flow', () => {
     const elements = createUIElements();
     const rendererInstance = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
-      solve: { showCapturedStones: 'on', enableFullReset: 'on', highlightLastMove: true, showSolutionMoveNumbers: false },
+      solve: { showCapturedStones: true, enableFullReset: true, highlightLastMove: true, showSolutionMoveNumbers: false },
       ui: { deviceProfile: 'auto' }
     }));
     renderer = rendererInstance;

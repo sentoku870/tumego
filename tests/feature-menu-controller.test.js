@@ -106,8 +106,8 @@ describe('FeatureMenuController', () => {
     renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
       solve: {
-        showCapturedStones: 'on',
-        enableFullReset: 'on',
+        showCapturedStones: true,
+        enableFullReset: true,
         highlightLastMove: true,
         showSolutionMoveNumbers: false
       },

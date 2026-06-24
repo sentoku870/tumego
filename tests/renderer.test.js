@@ -35,8 +35,8 @@ const createState = (size = 9) => ({
 const DEFAULT_PREFERENCES = {
   edit: { rulesMode: 'standard' },
   solve: {
-    showCapturedStones: 'on',
-    enableFullReset: 'on',
+    showCapturedStones: true,
+    enableFullReset: true,
     highlightLastMove: true,
     showSolutionMoveNumbers: false
   },
