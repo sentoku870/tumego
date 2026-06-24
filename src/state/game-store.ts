@@ -2,12 +2,13 @@
 // 盤面キャッシュ・置石・モード遷移・計測を内部の専用クラスへ委譲するファサード。
 // 公開API（既存呼び出し側との互換性）は維持する。
 import {
+  AnswerMode,
   Board,
   CapturedCounts,
-  CellState,
   DEFAULT_CONFIG,
   GameInfo,
   GameState,
+  PlayMode,
   Position,
   SGFGameInfo,
   StoneColor,
@@ -264,6 +265,7 @@ export class GameStore {
     return result.board;
   }
 
+
   // ============================================================
   // 公開: モード遷移（ModeOperations への委譲）
   // ============================================================
@@ -294,6 +296,37 @@ export class GameStore {
 
   resetForClearAll(): void {
     this.modeOps.resetForClearAll();
+  }
+
+  // ============================================================
+  // 公開: 単純な状態書込 setter
+  // ============================================================
+
+  /** 配置モード（black/white/alt）を切り替える */
+  setMode(mode: PlayMode): void {
+    this.state.mode = mode;
+  }
+
+  /** 消去モードをオン／オフする */
+  setEraseMode(enabled: boolean): void {
+    this.state.eraseMode = enabled;
+  }
+
+  /** 先手色（黒/白）を切り替える */
+  setStartColor(color: StoneColor): void {
+    this.state.startColor = color;
+  }
+
+  /** 解答モードでの先手色（黒先/白先）を切り替える */
+  setAnswerMode(mode: AnswerMode): void {
+    this.state.answerMode = mode;
+  }
+
+  /** バインド時の初期化: 編集モード・解答モード・消去モードを既定値に戻す */
+  resetInteractionModes(): void {
+    this.state.mode = 'alt';
+    this.state.numberMode = false;
+    this.state.eraseMode = false;
   }
 
   // ============================================================
