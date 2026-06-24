@@ -2,7 +2,7 @@
 // ボタンバインド (ToolbarButtons) と状態反映 (ToolbarState) を束ねるファサード。
 // 公開 API は従来互換を維持し、内部でサブクラスへ委譲する。
 import { GameStore } from '../../state/game-store.js';
-import { Renderer } from '../../renderer.js';
+import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
 import { UIElements } from '../../types.js';
 import { PreferencesStore } from '../../services/preferences-store.js';

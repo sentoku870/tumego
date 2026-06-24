@@ -3,7 +3,7 @@ import { FileMenuController } from '../dist/ui/controllers/file-menu-controller.
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
-import { Renderer } from '../dist/renderer.js';
+import { Renderer } from '../dist/renderer/renderer.js';
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
 import { SGFIO } from '../dist/services/sgf-io.js';

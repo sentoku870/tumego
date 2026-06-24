@@ -1,5 +1,6 @@
 import './helpers/dom-setup.js';
-import { Renderer, getCircleNumber } from '../dist/renderer.js';
+import { Renderer } from '../dist/renderer/renderer.js';
+import { getCircleNumber } from '../dist/renderer/view-model.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';

@@ -2,7 +2,7 @@
 // ボタンの DOM 参照保持と addEventListener バインドを担当する。
 // 状態反映(有効/無効、表示テキスト変更)は ToolbarState に分離。
 import { GameStore } from '../../state/game-store.js';
-import { Renderer } from '../../renderer.js';
+import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
 import { UIElements, PlayMode } from '../../types.js';
 import { UIEventBus } from '../../app/event-bus.js';
