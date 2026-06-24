@@ -1,30 +1,11 @@
 // ============ SGF 共有 ============
-// URL/Base64/圧縮/URL シェア生成/URL からの読み込みを担当する。
+// URL/Base64 共有生成/URL からの読み込みを担当する。
 // 内部で SGFParser を参照して SGF テキストの解析を行う。
 import { SGFParser } from '../sgf-parser.js';
 import { SGFParseResult } from '../types.js';
 
 export class SGFShare {
   constructor(private readonly parser: SGFParser) {}
-
-  // ============ SGFデータ圧縮 ============
-  compress(sgfData: string): string {
-    try {
-      let compressed = sgfData
-        .replace(/\s+/g, ' ')           // 複数の空白を1つに
-        .replace(/\s*;\s*/g, ';')       // セミコロン周りの空白削除
-        .replace(/\s*\[\s*/g, '[')      // 括弧周りの空白削除
-        .replace(/\s*\]\s*/g, ']')
-        .replace(/\s*\(\s*/g, '(')      // 丸括弧周りの空白削除
-        .replace(/\s*\)\s*/g, ')')
-        .trim();
-
-      return compressed;
-    } catch (error) {
-      console.error('圧縮エラー:', error);
-      return sgfData;
-    }
-  }
 
   // ============ URL共有用エンコード ============
   encodeForURL(sgfData: string): string {

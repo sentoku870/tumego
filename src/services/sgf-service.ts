@@ -1,5 +1,6 @@
 import { GameStore } from '../state/game-store.js';
 import { createEmptyBoard } from '../state/board-utils.js';
+import { toCircledNumber } from '../utils/format.js';
 import {
   GameState,
   Position,
@@ -125,7 +126,7 @@ export class SGFService {
       if (!coordinate) continue;
 
       const mark = move.color === 1 ? '■' : '□';
-      const num = this.getAnswerNumber(i - startIndex + 1);
+      const num = toCircledNumber(i - startIndex + 1);
       sequence.push(`${mark}${num} ${coordinate}`);
     }
 
@@ -139,14 +140,5 @@ export class SGFService {
 
     const row = state.boardSize - position.row;
     return `${col}${row}`;
-  }
-
-  private getAnswerNumber(order: number): string {
-    const circledNumbers = [
-      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
-      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳'
-    ];
-
-    return circledNumbers[order - 1] ?? order.toString();
   }
 }

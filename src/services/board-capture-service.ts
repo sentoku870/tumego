@@ -1,5 +1,6 @@
 import { Renderer } from '../renderer/renderer.js';
 import { Modal } from '../ui/views/modal.js';
+import { DEFAULT_CONFIG } from '../types.js';
 
 export class BoardCaptureService {
   private currentPreviewModal: Modal | null = null;
@@ -134,7 +135,7 @@ export class BoardCaptureService {
 
     inlineSvg.setAttribute('width', width.toString());
     inlineSvg.setAttribute('height', height.toString());
-    const cssVariables = ['--board', '--line', '--star', '--coord', '--black', '--white'];
+    const cssVariables = DEFAULT_CONFIG.BOARD_CAPTURE_CSS_VARS;
     cssVariables.forEach((name) => {
       const value = rootStyle.getPropertyValue(name);
       if (value) {

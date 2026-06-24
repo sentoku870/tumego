@@ -102,17 +102,27 @@ export class SGFIO {
     try {
       if ('showSaveFilePicker' in window) {
         // Modern File System Access API
-        const fileHandle = await (window as any).showSaveFilePicker({
-          suggestedName: finalFilename,
-          types: [{
-            description: 'SGF files',
-            accept: { 'application/x-go-sgf': ['.sgf'] }
-          }]
-        });
+        const showSaveFilePicker = (window as Window & {
+          showSaveFilePicker?: (options?: unknown) => Promise<{
+            createWritable: () => Promise<{
+              write: (data: string) => Promise<void>;
+              close: () => Promise<void>;
+            }>;
+          }>;
+        }).showSaveFilePicker;
+        if (showSaveFilePicker) {
+          const fileHandle = await showSaveFilePicker({
+            suggestedName: finalFilename,
+            types: [{
+              description: 'SGF files',
+              accept: { 'application/x-go-sgf': ['.sgf'] }
+            }]
+          });
 
-        const writable = await fileHandle.createWritable();
-        await writable.write(sgfData);
-        await writable.close();
+          const writable = await fileHandle.createWritable();
+          await writable.write(sgfData);
+          await writable.close();
+        }
       } else {
         // Fallback: download via blob
         const blob = new Blob([sgfData], { type: 'application/x-go-sgf' });
@@ -125,8 +135,9 @@ export class SGFIO {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
-    } catch (error: any) {
-      if (error.name !== 'AbortError') {
+    } catch (error: unknown) {
+      const err = error as { name?: string };
+      if (err.name !== 'AbortError') {
         throw error;
       }
     }

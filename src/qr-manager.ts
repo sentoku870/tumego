@@ -1,5 +1,5 @@
 // ============ QRコード管理 ============
-import { GameState } from './types.js';
+import { DEFAULT_CONFIG, GameState } from './types.js';
 import { SGFParser } from './sgf-parser.js';
 import { SGFShare } from './services/sgf-share.js';
 import { Modal } from './ui/views/modal.js';
@@ -135,16 +135,16 @@ export class QRManager {
   // ============ 直接SGF QR作成 ============
   private createDirectSGFQR(sgfData: string): void {
     const dataLength = sgfData.length;
-    let qrSize, errorCorrectionLevel, warningMessage = '';
+    let qrSize: string, errorCorrectionLevel: string, warningMessage = '';
 
-    if (dataLength <= 800) {
-      qrSize = '300x300';
+    if (dataLength <= DEFAULT_CONFIG.QR_DATA_SMALL) {
+      qrSize = DEFAULT_CONFIG.QR_IMAGE_SMALL;
       errorCorrectionLevel = 'M';
-    } else if (dataLength <= 1500) {
-      qrSize = '400x400';
+    } else if (dataLength <= DEFAULT_CONFIG.QR_DATA_MEDIUM) {
+      qrSize = DEFAULT_CONFIG.QR_IMAGE_MEDIUM;
       errorCorrectionLevel = 'L';
-    } else if (dataLength <= 2500) {
-      qrSize = '500x500';
+    } else if (dataLength <= DEFAULT_CONFIG.QR_DATA_LARGE) {
+      qrSize = DEFAULT_CONFIG.QR_IMAGE_LARGE;
       errorCorrectionLevel = 'L';
       warningMessage = '⚠️ データが大きいため、ハイエンドスマホでの読み取りを推奨します';
     } else {

@@ -209,11 +209,11 @@ export class Renderer {
 
 private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
   const stoneRadius = DEFAULT_CONFIG.STONE_RADIUS;
-  const borderMargin = 2; // 黒枠を残すための余白(調整用)
+  const borderMargin = DEFAULT_CONFIG.MOVE_NUM_BORDER_MARGIN;
 
   numbers.forEach(number => {
     // 元の計算値
-    const idealRadius = number.fontSize * 1.15;
+    const idealRadius = number.fontSize * DEFAULT_CONFIG.MOVE_NUM_BG_RADIUS_RATIO;
 
     // 背景円が石の内側に収まるようにクリップ
     const maxRadius = stoneRadius - borderMargin;
@@ -243,13 +243,13 @@ private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
       'dominant-baseline': 'central',
     });
 
-    const size = number.fontSize * 1.20;
+    const size = number.fontSize * DEFAULT_CONFIG.MOVE_NUM_FONT_SCALE;
     text.setAttribute('font-weight', '900');
     text.setAttribute('font-size', size.toString());
 
     const strokeColor = number.fill === '#000' ? '#fff' : '#000';
     text.setAttribute('stroke', strokeColor);
-    text.setAttribute('stroke-width', (size * 0.22).toString());
+    text.setAttribute('stroke-width', (size * DEFAULT_CONFIG.MOVE_NUM_STROKE_RATIO).toString());
     text.setAttribute('paint-order', 'stroke');
     text.setAttribute('filter', 'url(#num-shadow)');
 
