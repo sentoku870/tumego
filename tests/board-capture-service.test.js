@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { BoardCaptureService } from '../dist/services/board-capture-service.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';

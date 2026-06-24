@@ -1,10 +1,10 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  // NOTE: The local jest (packages/jest) used in this project does not
-  // support testEnvironment: 'jsdom'. Tests that need DOM globals must
-  // import './helpers/dom-setup.js' at the top of their file. The dom-setup
-  // helper manually attaches jsdom to globalThis.
+  // NOTE: The local jest runner (packages/jest) auto-loads the
+  // setupFiles below before each test file. Tests that need DOM
+  // globals no longer need to import dom-setup.js manually.
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  testMatch: ['**/?(*.)+(test).[jt]s']
+  testMatch: ['**/?(*.)+(test).[jt]s'],
+  setupFiles: ['<rootDir>/tests/helpers/dom-setup.js'],
 };

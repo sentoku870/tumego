@@ -1,4 +1,3 @@
-import '../helpers/dom-setup.js';
 import { Modal } from '../../dist/ui/views/modal.js';
 
 describe('Modal', () => {

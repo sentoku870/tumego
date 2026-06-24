@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { UIController } from '../dist/ui-controller.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 

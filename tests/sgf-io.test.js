@@ -1,4 +1,3 @@
-import './helpers/dom-setup.js';
 import { SGFIO } from '../dist/services/sgf-io.js';
 import { SGFParser } from '../dist/sgf-parser.js';
 
