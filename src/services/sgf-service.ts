@@ -1,13 +1,10 @@
 import { GameStore } from '../state/game-store.js';
 import { createEmptyBoard } from '../state/board-utils.js';
 import {
-  DEFAULT_CONFIG,
   GameState,
-  Move,
   Position,
   SGFGameInfo,
   SGFParseResult,
-  StoneColor
 } from '../types.js';
 import { SGFParser } from '../sgf-parser.js';
 import { SGFIO } from './sgf-io.js';
@@ -15,31 +12,6 @@ import { SGFShare } from './sgf-share.js';
 
 export interface ApplyResult {
   sgfText: string;
-}
-
-interface InitializationPhaseInput {
-  state: GameState;
-  result: SGFParseResult;
-}
-
-interface InitializationPhaseOutput {
-  state: GameState;
-  moves: Move[];
-  gameInfo: SGFGameInfo;
-  rawSGF?: string;
-}
-
-interface ApplicationPhaseInput extends InitializationPhaseOutput {}
-
-interface ApplicationPhaseOutput {
-  state: GameState;
-  appliedMoves: Move[];
-}
-
-interface HistoryAdjustmentInput extends ApplicationPhaseOutput {}
-
-interface HistoryAdjustmentOutput {
-  state: GameState;
 }
 
 export class SGFService {
@@ -82,17 +54,44 @@ export class SGFService {
     return this.share.loadFromURL();
   }
 
+  /**
+   * SGF 解析結果を state に適用する。
+   * 状態書込はすべて ModeOperations 経由。
+   */
   apply(result: SGFParseResult): ApplyResult {
     const validated = this.validateParseResult(result);
-    const initialized = this.runInitializationPhase({
-      state: this.state,
-      result: validated
+    const state = this.state;
+    const { moves, gameInfo, rawSGF } = validated;
+
+    // 1) 盤サイズ変更と盤面再生成
+    if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
+      state.boardSize = gameInfo.boardSize;
+    }
+    state.board = createEmptyBoard(state.boardSize);
+
+    // 2) 履歴保存 + フラグ類リセット
+    this.store.modeOps.resetForSgfLoad(this.state.sgfMoves.length);
+
+    // 3) メタ情報適用（startColor, handicap, problemDiagram）
+    this.store.modeOps.applySgfMeta(gameInfo);
+
+    // 4) 対局者・コミ・結果・タイトル等
+    this.store.updateGameInfo({
+      title: gameInfo.title ?? this.state.gameInfo.title ?? '',
+      playerBlack: gameInfo.playerBlack ?? null,
+      playerWhite: gameInfo.playerWhite ?? null,
+      komi: gameInfo.komi ?? this.state.komi,
+      result: gameInfo.result ?? null,
     });
-    const applied = this.runApplicationPhase(initialized);
-    this.runHistoryAdjustmentPhase(applied);
+    this.store.modeOps.updateGameInfoFromSgf(gameInfo);
+
+    // 5) 着手履歴セット + 0 手目に進める（手順があれば 1 手目）
+    this.store.modeOps.setSgfMoves(moves);
+    const firstIndex = this.state.sgfMoves.length > 0 ? 1 : 0;
+    this.store.setMoveIndex(firstIndex);
 
     return {
-      sgfText: validated.rawSGF ?? this.parser.export(this.state)
+      sgfText: rawSGF ?? this.parser.export(this.state)
     };
   }
 
@@ -104,116 +103,6 @@ export class SGFService {
     }
 
     return result;
-  }
-
-  private runInitializationPhase(input: InitializationPhaseInput): InitializationPhaseOutput {
-    const { state, result } = input;
-    const { moves, gameInfo, rawSGF } = result;
-
-    this.store.historyManager.save(`SGF読み込み前（${state.sgfMoves.length}手）`, state);
-
-    if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
-      const newSize = gameInfo.boardSize;
-      state.boardSize = newSize;
-      state.board = createEmptyBoard(newSize);
-    } else {
-      const currentSize = state.boardSize;
-      state.board = createEmptyBoard(currentSize);
-    }
-
-    state.history = [];
-    state.turn = 0;
-    state.sgfMoves = [];
-    state.sgfIndex = 0;
-    state.numberMode = false;
-    state.numberStartIndex = 0;
-    state.handicapStones = 0;
-    state.gameTree = null;
-    state.sgfLoadedFromExternal = true;
-    state.handicapPositions = [];
-    state.problemDiagramSet = false;
-    state.problemDiagramBlack = [];
-    state.problemDiagramWhite = [];
-    state.startColor = 1;
-    state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-    state.eraseMode = false;
-    state.gameInfo = {
-      title: '',
-      komi: state.komi,
-      handicap: null,
-      playerBlack: null,
-      playerWhite: null,
-      result: null,
-      boardSize: state.boardSize,
-      handicapStones: state.handicapStones,
-      handicapPositions: state.handicapPositions,
-      startColor: state.startColor,
-      problemDiagramSet: state.problemDiagramSet,
-      problemDiagramBlack: state.problemDiagramBlack,
-      problemDiagramWhite: state.problemDiagramWhite,
-    };
-
-    return {
-      state,
-      moves,
-      gameInfo,
-      rawSGF
-    };
-  }
-
-  private runApplicationPhase(input: ApplicationPhaseInput): ApplicationPhaseOutput {
-    const { state, moves, gameInfo } = input;
-
-    if (gameInfo.startColor !== undefined) state.startColor = gameInfo.startColor as StoneColor;
-    if (gameInfo.handicapStones !== undefined) state.handicapStones = gameInfo.handicapStones;
-    if (gameInfo.handicapPositions) {
-      state.handicapPositions = gameInfo.handicapPositions.map(pos => ({ ...pos }));
-    }
-    if (gameInfo.problemDiagramBlack) {
-      state.problemDiagramBlack = gameInfo.problemDiagramBlack.map(pos => ({ ...pos }));
-    }
-    if (gameInfo.problemDiagramWhite) {
-      state.problemDiagramWhite = gameInfo.problemDiagramWhite.map(pos => ({ ...pos }));
-    }
-    if (gameInfo.problemDiagramSet !== undefined) {
-      state.problemDiagramSet = gameInfo.problemDiagramSet;
-    } else if (state.problemDiagramBlack.length > 0 || state.problemDiagramWhite.length > 0) {
-      state.problemDiagramSet = true;
-    }
-
-    this.store.updateGameInfo({
-      title: gameInfo.title ?? state.gameInfo.title ?? '',
-      playerBlack: gameInfo.playerBlack ?? null,
-      playerWhite: gameInfo.playerWhite ?? null,
-      komi: gameInfo.komi ?? state.komi,
-      result: gameInfo.result ?? null,
-    });
-
-    state.gameInfo = {
-      ...state.gameInfo,
-      handicap: gameInfo.handicap ?? state.gameInfo.handicap ?? null,
-      boardSize: gameInfo.boardSize ?? state.boardSize,
-      handicapStones: gameInfo.handicapStones ?? state.handicapStones,
-      handicapPositions: gameInfo.handicapPositions ?? state.handicapPositions,
-      startColor: state.startColor,
-      problemDiagramSet: state.problemDiagramSet,
-      problemDiagramBlack: state.problemDiagramBlack,
-      problemDiagramWhite: state.problemDiagramWhite
-    };
-
-    state.sgfMoves = moves.map(move => ({ ...move }));
-    state.sgfIndex = 0;
-
-    return {
-      state,
-      appliedMoves: state.sgfMoves
-    };
-  }
-
-  private runHistoryAdjustmentPhase(input: HistoryAdjustmentInput): HistoryAdjustmentOutput {
-    const firstIndex = this.store.snapshot.sgfMoves.length > 0 ? 1 : 0;
-    this.store.setMoveIndex(firstIndex);
-    return { state: input.state };
   }
 
   buildAnswerSequence(state: GameState = this.state): string {
