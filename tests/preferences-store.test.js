@@ -39,9 +39,36 @@ describe("PreferencesStore", () => {
 
   test("reset clears overrides and restores defaults", () => {
     const store = new PreferencesStore(memoryStorage);
-    store.setEnableFullReset("off");
+    store.setEnableFullReset(false);
     store.reset();
     expect(store.state).toEqual(DEFAULT_PREFERENCES);
     expect(memoryStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  test("migrates legacy 'on'/'off' showCapturedStones to boolean", () => {
+    memoryStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ solve: { showCapturedStones: "on" } })
+    );
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.solve.showCapturedStones).toBe(true);
+  });
+
+  test("migrates legacy 'off' enableFullReset to false", () => {
+    memoryStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ solve: { enableFullReset: "off" } })
+    );
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.solve.enableFullReset).toBe(false);
+  });
+
+  test("falls back to default when legacy value is neither 'on' nor 'off'", () => {
+    memoryStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ solve: { showCapturedStones: "maybe" } })
+    );
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.solve.showCapturedStones).toBe(true);
   });
 });

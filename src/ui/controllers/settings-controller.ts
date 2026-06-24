@@ -1,4 +1,4 @@
-import { DeviceProfile, Preferences, RulesMode, ToggleSetting } from "../../types.js";
+import { DeviceProfile, Preferences, RulesMode } from "../../types.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
 
 export class SettingsController {
@@ -62,13 +62,11 @@ export class SettingsController {
     });
 
     this.showCapturedCheckbox?.addEventListener("change", (event) => {
-      const value = (event.target as HTMLInputElement).checked ? "on" : "off";
-      this.preferences.setShowCapturedStones(value as ToggleSetting);
+      this.preferences.setShowCapturedStones((event.target as HTMLInputElement).checked);
     });
 
     this.fullResetCheckbox?.addEventListener("change", (event) => {
-      const value = (event.target as HTMLInputElement).checked ? "on" : "off";
-      this.preferences.setEnableFullReset(value as ToggleSetting);
+      this.preferences.setEnableFullReset((event.target as HTMLInputElement).checked);
     });
 
     this.highlightLastMoveCheckbox?.addEventListener("change", (event) => {
@@ -97,10 +95,10 @@ export class SettingsController {
       this.rulesSelect.value = prefs.edit.rulesMode;
     }
     if (this.showCapturedCheckbox) {
-      this.showCapturedCheckbox.checked = prefs.solve.showCapturedStones === "on";
+      this.showCapturedCheckbox.checked = prefs.solve.showCapturedStones;
     }
     if (this.fullResetCheckbox) {
-      this.fullResetCheckbox.checked = prefs.solve.enableFullReset === "on";
+      this.fullResetCheckbox.checked = prefs.solve.enableFullReset;
     }
     if (this.highlightLastMoveCheckbox) {
       this.highlightLastMoveCheckbox.checked = prefs.solve.highlightLastMove;

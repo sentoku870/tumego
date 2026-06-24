@@ -90,7 +90,7 @@ export class UIController {
     const prefs = preferences.state;
     controllers.toolbar.updateFullResetVisibility();
     renderer.updateCapturedStones(
-      prefs.solve.showCapturedStones === "on"
+      prefs.solve.showCapturedStones
     );
     this.applyDeviceProfileClass(prefs.ui.deviceProfile);
   }
