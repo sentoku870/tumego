@@ -124,7 +124,6 @@ export interface OperationHistory {
   restoreLast(currentState: GameState): boolean;
   getList(): HistoryItem[];
   clear(): void;
-  showHistoryDialog(onRestore: (index: number) => void): void;
 }
 
 export interface HistoryItem {
