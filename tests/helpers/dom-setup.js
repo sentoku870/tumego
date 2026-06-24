@@ -21,3 +21,5 @@ global.cancelAnimationFrame = (id) => clearTimeout(id);
 global.SVGElement = dom.window.SVGElement;
 global.SVGSVGElement = dom.window.SVGSVGElement;
 global.Image = dom.window.Image;
+global.XMLSerializer = dom.window.XMLSerializer;
+global.DOMParser = dom.window.DOMParser;
