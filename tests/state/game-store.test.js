@@ -1,6 +1,6 @@
-import { GameStore } from '../dist/state/game-store.js';
-import { GoEngine } from '../dist/go-engine.js';
-import { DEFAULT_CONFIG } from '../dist/types.js';
+import { GameStore } from '../../dist/state/game-store.js';
+import { GoEngine } from '../../dist/go-engine.js';
+import { DEFAULT_CONFIG } from '../../dist/types.js';
 
 const createBoard = (size) => Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
 
