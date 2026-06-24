@@ -2,10 +2,14 @@
 import { GameState } from './types.js';
 import { SGFParser } from './sgf-parser.js';
 import { SGFShare } from './services/sgf-share.js';
+import { Modal } from './ui/views/modal.js';
 
 const SHARE_URL_LENGTH_LIMIT = 2000;
 
 export class QRManager {
+  private currentShareMethodModal: Modal | null = null;
+  private currentQrModal: Modal | null = null;
+
   constructor(
     private readonly sgfParser: SGFParser = new SGFParser(),
     private readonly sgfShare: SGFShare = new SGFShare(this.sgfParser)
@@ -73,52 +77,45 @@ export class QRManager {
 
   // ============ 共有方法選択 ============
   private showShareMethodSelection(sgfData: string): void {
-    const existing = document.getElementById('share-method-popup');
-    existing?.remove();
+    this.currentShareMethodModal?.close();
+    this.currentShareMethodModal = null;
 
     const dataLength = sgfData.length;
-    const popup = document.createElement('div');
-    popup.id = 'share-method-popup';
-    popup.innerHTML = `
-      <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; border-radius:15px; text-align:center; max-width:500px;">
-          <h2 style="margin-bottom:20px; color:#333;">📱 共有方法を選択</h2>
-          <p style="margin-bottom:25px; color:#666;">SGFデータ（${dataLength}文字）をどの形式で共有しますか？</p>
-          <div style="margin:20px 0;">
-            <button id="share-auto-load" style="display:block; width:100%; margin:10px 0; padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">🌐 自動表示QR（読み取ると碁盤が開く）</button>
-            <button id="share-direct-sgf" style="display:block; width:100%; margin:10px 0; padding:15px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">📋 SGFデータQR（データをコピー）</button>
-          </div>
-          <div style="font-size:12px; color:#999; margin-top:15px;">
-            自動表示: QRコードを読み取ると直接碁盤が表示<br>
-            SGFデータ: QRコードからSGFデータを取得して手動で貼り付け
-          </div>
-          <button id="share-close" style="margin-top:15px; padding:10px 20px; background:#666; color:white; border:none; border-radius:5px;">❌ キャンセル</button>
-        </div>
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <h2 style="margin-bottom:20px; color:#333;">📱 共有方法を選択</h2>
+      <p style="margin-bottom:25px; color:#666;">SGFデータ（${dataLength}文字）をどの形式で共有しますか？</p>
+      <div style="margin:20px 0;">
+        <button id="share-auto-load" style="display:block; width:100%; margin:10px 0; padding:15px; background:#2196F3; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">🌐 自動表示QR（読み取ると碁盤が開く）</button>
+        <button id="share-direct-sgf" style="display:block; width:100%; margin:10px 0; padding:15px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">📋 SGFデータQR（データをコピー）</button>
+      </div>
+      <div style="font-size:12px; color:#999; margin-top:15px;">
+        自動表示: QRコードを読み取ると直接碁盤が表示<br>
+        SGFデータ: QRコードからSGFデータを取得して手動で貼り付け
       </div>
     `;
 
-    // イベントリスナー
-    popup.addEventListener('click', (e) => {
-      if (e.target === popup.querySelector('div')) {
-        popup.remove();
-      }
-    });
-
-    popup.querySelector('#share-auto-load')?.addEventListener('click', () => {
-      popup.remove();
+    const autoLoadBtn = root.querySelector<HTMLButtonElement>('#share-auto-load');
+    autoLoadBtn?.addEventListener('click', () => {
+      this.currentShareMethodModal?.close();
+      this.currentShareMethodModal = null;
       this.createAutoLoadQR(sgfData);
     });
 
-    popup.querySelector('#share-direct-sgf')?.addEventListener('click', () => {
-      popup.remove();
+    const directSgfBtn = root.querySelector<HTMLButtonElement>('#share-direct-sgf');
+    directSgfBtn?.addEventListener('click', () => {
+      this.currentShareMethodModal?.close();
+      this.currentShareMethodModal = null;
       this.createDirectSGFQR(sgfData);
     });
 
-    popup.querySelector('#share-close')?.addEventListener('click', () => {
-      popup.remove();
+    this.currentShareMethodModal = new Modal({
+      id: 'share-method-popup',
+      content: root,
+      overlayOpacity: 0.8,
+      maxWidth: '500px',
     });
-
-    document.body.appendChild(popup);
+    this.currentShareMethodModal.open();
   }
 
   // ============ 自動表示QR作成 ============
@@ -161,55 +158,47 @@ export class QRManager {
 
   // ============ QRコードポップアップ表示 ============
   private showQRCodePopup(qrURL: string, data: string, title: string, description: string): void {
-    const existing = document.getElementById('qr-popup');
-    existing?.remove();
+    this.currentQrModal?.close();
+    this.currentQrModal = null;
 
-    const popup = document.createElement('div');
-    popup.id = 'qr-popup';
-    popup.innerHTML = `
-      <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center;">
-        <div style="background:white; padding:25px; border-radius:15px; text-align:center; max-width:90%; max-height:90%; overflow:auto;">
-          <h2 style="margin-bottom:20px; color:#333;">${title}</h2>
-          <p style="margin-bottom:20px; color:#666;">${description}</p>
-          <div style="margin:20px 0;">
-            <img src="${qrURL}" style="max-width:100%; max-height:70vh; border:2px solid #ddd; border-radius:10px;" alt="QR Code">
-          </div>
-          <div style="margin:20px 0;">
-            <button id="qr-copy" style="margin:5px; padding:12px 20px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">📋 データコピー</button>
-            <button id="qr-close" style="margin:5px; padding:12px 20px; background:#f44336; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">❌ 閉じる</button>
-          </div>
-        </div>
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <h2 style="margin-bottom:20px; color:#333;">${title}</h2>
+      <p style="margin-bottom:20px; color:#666;">${description}</p>
+      <div style="margin:20px 0;">
+        <img src="${qrURL}" style="max-width:100%; max-height:70vh; border:2px solid #ddd; border-radius:10px;" alt="QR Code">
+      </div>
+      <div style="margin:20px 0;">
+        <button id="qr-copy" style="margin:5px; padding:12px 20px; background:#4CAF50; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">📋 データコピー</button>
+        <button id="qr-close" style="margin:5px; padding:12px 20px; background:#f44336; color:white; border:none; border-radius:8px; cursor:pointer; font-size:14px;">❌ 閉じる</button>
       </div>
     `;
 
-    // イベントリスナー
-    popup.addEventListener('click', (e) => {
-      if (e.target === popup.querySelector('div')) {
-        popup.remove();
-      }
-    });
-
-    popup.querySelector('#qr-copy')?.addEventListener('click', async () => {
+    const copyBtn = root.querySelector<HTMLButtonElement>('#qr-copy');
+    copyBtn?.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(data);
         alert('📋 データをクリップボードにコピーしました！');
       } catch (error) {
         console.error('コピー失敗:', error);
-        const textArea = document.createElement('textarea');
-        textArea.value = data;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
+        this.copyToClipboardFallback(data);
         alert('📋 データをクリップボードにコピーしました！');
       }
     });
 
-    popup.querySelector('#qr-close')?.addEventListener('click', () => {
-      popup.remove();
+    const closeBtn = root.querySelector<HTMLButtonElement>('#qr-close');
+    closeBtn?.addEventListener('click', () => {
+      this.currentQrModal?.close();
+      this.currentQrModal = null;
     });
 
-    document.body.appendChild(popup);
+    this.currentQrModal = new Modal({
+      id: 'qr-popup',
+      content: root,
+      overlayOpacity: 0.85,
+      maxWidth: '90%',
+    });
+    this.currentQrModal.open();
   }
 
   private copyToClipboardFallback(text: string): void {

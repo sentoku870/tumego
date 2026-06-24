@@ -70,10 +70,10 @@ export class SGFService {
     state.board = createEmptyBoard(state.boardSize);
 
     // 2) 履歴保存 + フラグ類リセット
-    this.store.modeOps.resetForSgfLoad(this.state.sgfMoves.length);
+    this.store.resetForSgfLoad(this.state.sgfMoves.length);
 
     // 3) メタ情報適用（startColor, handicap, problemDiagram）
-    this.store.modeOps.applySgfMeta(gameInfo);
+    this.store.applySgfMeta(gameInfo);
 
     // 4) 対局者・コミ・結果・タイトル等
     this.store.updateGameInfo({
@@ -83,10 +83,10 @@ export class SGFService {
       komi: gameInfo.komi ?? this.state.komi,
       result: gameInfo.result ?? null,
     });
-    this.store.modeOps.updateGameInfoFromSgf(gameInfo);
+    this.store.updateGameInfoFromSgf(gameInfo);
 
     // 5) 着手履歴セット + 0 手目に進める（手順があれば 1 手目）
-    this.store.modeOps.setSgfMoves(moves);
+    this.store.setSgfMoves(moves);
     const firstIndex = this.state.sgfMoves.length > 0 ? 1 : 0;
     this.store.setMoveIndex(firstIndex);
 

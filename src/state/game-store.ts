@@ -1,6 +1,9 @@
 // ============ GameStore (Facade) ============
 // 盤面キャッシュ・置石・モード遷移・計測を内部の専用クラスへ委譲するファサード。
 // 公開API（既存呼び出し側との互換性）は維持する。
+// 内部の modeOps / cache / handicap / monitor は private であり、
+// 外部コード（services, controllers）は GameStore の公開メソッド経由でのみ
+// 状態書込を行う。直接アクセスが必要な操作は本クラスにラッパーを追加すること。
 import {
   AnswerMode,
   Board,
@@ -27,7 +30,7 @@ import { cloneBoard, createInitialCapturedCounts, isValidPosition } from "./boar
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
-  readonly modeOps: ModeOperations;
+  private readonly modeOps: ModeOperations;
   private readonly handicap: HandicapSetter;
   private readonly monitor: PerformanceMonitor;
 
