@@ -32,10 +32,7 @@ export class ToolbarButtons {
   ) {}
 
   bindAll(): void {
-    const state = this.store.snapshot;
-    state.mode = 'alt';
-    state.numberMode = false;
-    state.eraseMode = false;
+    this.store.resetInteractionModes();
 
     this.bindSizeButtons();
     this.bindBasicButtons();
@@ -76,7 +73,7 @@ export class ToolbarButtons {
     if (!state.eraseMode) {
       return;
     }
-    state.eraseMode = false;
+    this.store.setEraseMode(false);
     this.eraseBtn?.classList.remove('active');
     this.renderer.showMessage('');
   }
@@ -130,9 +127,9 @@ export class ToolbarButtons {
       this.eraseBtn.title = '任意の石だけを消すモードをオン／オフします（盤面の他の状態は変わりません）';
     }
     this.eraseBtn?.addEventListener('click', () => {
-      const state = this.store.snapshot;
-      state.eraseMode = !state.eraseMode;
-      if (state.eraseMode) {
+      const next = !this.store.snapshot.eraseMode;
+      this.store.setEraseMode(next);
+      if (next) {
         this.eraseBtn?.classList.add('active');
         this.renderer.showMessage('消去モード');
       } else {
@@ -153,7 +150,7 @@ export class ToolbarButtons {
     }
     this.altBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
-      state.startColor = state.startColor === 1 ? 2 : 1;
+      this.store.setStartColor(state.startColor === 1 ? 2 : 1);
       this.setMode('alt', this.altBtn!);
     });
   }
@@ -193,11 +190,11 @@ export class ToolbarButtons {
       }
 
       if (state.answerMode === 'black') {
-        state.answerMode = 'white';
-        state.startColor = 2;
+        this.store.setAnswerMode('white');
+        this.store.setStartColor(2);
       } else {
-        state.answerMode = 'black';
-        state.startColor = 1;
+        this.store.setAnswerMode('black');
+        this.store.setStartColor(1);
       }
 
       this.eventBus.emitUIUpdate();
@@ -209,8 +206,8 @@ export class ToolbarButtons {
 
       if (!this.store.snapshot.numberMode) {
         this.store.enterSolveMode();
-        this.store.snapshot.answerMode = 'black';
-        this.store.snapshot.startColor = 1;
+        this.store.setAnswerMode('black');
+        this.store.setStartColor(1);
       } else {
         this.store.exitSolveModeToEmptyBoard();
       }
@@ -244,7 +241,7 @@ export class ToolbarButtons {
 
       if (!state.numberMode) {
         this.store.setProblemDiagram();
-        state.answerMode = 'black';
+        this.store.setAnswerMode('black');
         this.eventBus.emitUIUpdate();
         this.renderer.showMessage('問題図を確定しました');
       } else {
@@ -279,9 +276,7 @@ export class ToolbarButtons {
 
   private setMode(mode: PlayMode, buttonElement: Element): void {
     this.dispatchDisableEraseMode();
-    const state = this.store.snapshot;
-
-    state.mode = mode;
+    this.store.setMode(mode);
 
     this.setActiveButton(buttonElement, 'play-btn');
 
