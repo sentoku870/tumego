@@ -1,5 +1,4 @@
 import { GameStore } from '../state/game-store.js';
-import { createEmptyBoard } from '../state/board-utils.js';
 import { toCircledNumber } from '../utils/format.js';
 import {
   GameState,
@@ -23,7 +22,7 @@ export class SGFService {
     private readonly share: SGFShare
   ) {}
 
-  get state(): GameState {
+  get state(): Readonly<GameState> {
     return this.store.snapshot;
   }
 
@@ -61,14 +60,10 @@ export class SGFService {
    */
   apply(result: SGFParseResult): ApplyResult {
     const validated = this.validateParseResult(result);
-    const state = this.state;
     const { moves, gameInfo, rawSGF } = validated;
 
     // 1) 盤サイズ変更と盤面再生成
-    if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
-      state.boardSize = gameInfo.boardSize;
-    }
-    state.board = createEmptyBoard(state.boardSize);
+    this.store.prepareBoardForSgf(gameInfo.boardSize);
 
     // 2) 履歴保存 + フラグ類リセット
     this.store.resetForSgfLoad(this.state.sgfMoves.length);

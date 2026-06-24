@@ -155,6 +155,18 @@ export class ModeOperations {
   // ============================================================
 
   /**
+   * SGF 読み込み前に盤サイズと盤面を初期化する。
+   * newSize が指定された場合のみ boardSize を更新し、盤面をクリアする。
+   * newSize が省略された場合は現在の boardSize で盤面だけクリアする。
+   */
+  prepareBoardForSgf(newSize?: number): void {
+    if (newSize !== undefined && newSize !== this.state.boardSize) {
+      this.state.boardSize = newSize;
+    }
+    this.state.board = createEmptyBoard(this.state.boardSize);
+  }
+
+  /**
    * SGF 読み込み時に状態を初期化する。履歴保存 + 盤サイズ/盤面変更 +
    * 各種フラグのリセットを行う。
    */

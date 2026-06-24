@@ -1,4 +1,4 @@
-import { UIElements, Position, DEFAULT_CONFIG } from "../../types.js";
+import { UIElements, Position, DEFAULT_CONFIG, GameState } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
@@ -61,7 +61,7 @@ export class BoardInteractionController {
     this.initPointerEvents();
   }
 
-  private get state() {
+  private get state(): Readonly<GameState> {
     return this.store.snapshot;
   }
 
