@@ -92,6 +92,20 @@ export function compositionRoot(
   );
   const settings = new SettingsController(preferences);
 
+  // EventBus と Renderer の接続:
+  // emitUIUpdate() が呼ばれたときに盤面を再描画する。
+  // 過去の UIController.updateUI() メソッドの動作を復元する形。
+  eventBus.onUIUpdate(() => {
+    renderer.render();
+    renderer.updateInfo();
+    renderer.updateSlider();
+    renderer.updateCapturedStones(
+      preferences.state.solve.showCapturedStones === "on"
+    );
+    feature.updateMenuState();
+    toolbar.updateToolbarState();
+  });
+
   return {
     store,
     renderer,

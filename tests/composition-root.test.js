@@ -174,4 +174,34 @@ describe('compositionRoot()', () => {
     app.eventBus.emitSgfApplied('(;SZ[9])');
     expect(received).toBe('(;SZ[9])');
   });
+
+  test('UIUpdate listener triggers renderer.render via composition root wiring', () => {
+    const app = compositionRoot(createState(), createUIElements());
+    let renderCalled = 0;
+    const original = app.renderer.render;
+    app.renderer.render = () => { renderCalled += 1; };
+    app.eventBus.emitUIUpdate();
+    expect(renderCalled).toBe(1);
+    app.renderer.render = original;
+  });
+
+  test('UIUpdate listener triggers toolbar.updateToolbarState via composition root wiring', () => {
+    const app = compositionRoot(createState(), createUIElements());
+    let updateToolbarCalled = 0;
+    const original = app.controllers.toolbar.updateToolbarState;
+    app.controllers.toolbar.updateToolbarState = () => { updateToolbarCalled += 1; };
+    app.eventBus.emitUIUpdate();
+    expect(updateToolbarCalled).toBe(1);
+    app.controllers.toolbar.updateToolbarState = original;
+  });
+
+  test('UIUpdate listener triggers feature.updateMenuState via composition root wiring', () => {
+    const app = compositionRoot(createState(), createUIElements());
+    let updateMenuCalled = 0;
+    const original = app.controllers.feature.updateMenuState;
+    app.controllers.feature.updateMenuState = () => { updateMenuCalled += 1; };
+    app.eventBus.emitUIUpdate();
+    expect(updateMenuCalled).toBe(1);
+    app.controllers.feature.updateMenuState = original;
+  });
 });
