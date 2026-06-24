@@ -1,5 +1,7 @@
 import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
@@ -72,7 +74,7 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     const engine = new GoEngine();
     const state = createState();
     const store = new GameStore(state, engine, history);
-    const sgfService = new SGFService(parser, store);
+    const sgfService = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     const baselineDescription = 'baseline snapshot';
     const baselineState = cloneState(state);
@@ -114,7 +116,7 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     const engine = new GoEngine();
     const state = createState();
     const store = new GameStore(state, engine, history);
-    const sgfService = new SGFService(parser, store);
+    const sgfService = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
     const sgfText = '(;GM[1]SZ[19]KM[6.5]PB[Black]PW[White]HA[4]RE[B+R];B[dd];W[pq])';
     const parsed = parser.parse(sgfText);

@@ -1,5 +1,7 @@
 import { SGFParser } from '../../dist/sgf-parser.js';
 import { SGFService } from '../../dist/services/sgf-service.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
 import { GameStore } from '../../dist/state/game-store.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
@@ -38,7 +40,7 @@ const setupService = () => {
   const history = new HistoryManager(state);
   const store = new GameStore(state, engine, history);
   const parser = new SGFParser();
-  const service = new SGFService(parser, store);
+  const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
 
   return { state, store, parser, service };
 };

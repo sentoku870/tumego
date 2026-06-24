@@ -2,6 +2,8 @@ import { GameStore } from '../../dist/state/game-store.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { SGFParser } from '../../dist/sgf-parser.js';
 import { SGFService } from '../../dist/services/sgf-service.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 
 const createBoard = (size) => Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
@@ -133,7 +135,7 @@ describe('Core consistency: GameStore state alignment', () => {
 
   test('Test5: SGF 読み込み → setMoveIndex の組み合わせ', () => {
     const parser = new SGFParser();
-    const service = new SGFService(parser, store);
+    const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
     const sgf = '(;GM[1]SZ[9];B[aa];W[ab];B[ba])';
 
     const result = service.parse(sgf);

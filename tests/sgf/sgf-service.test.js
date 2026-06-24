@@ -1,5 +1,7 @@
 import { SGFService } from '../../dist/services/sgf-service.js';
 import { SGFParser } from '../../dist/sgf-parser.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
 
 const createBoard = (size) => Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
 
@@ -26,7 +28,7 @@ const createState = (size = 9) => ({
   sgfLoadedFromExternal: false
 });
 
-const createService = (state) => new SGFService(new SGFParser(), { snapshot: state });
+const createService = (state) => new SGFService(new SGFParser(), { snapshot: state }, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
 
 describe('SGFService.buildAnswerSequence', () => {
   test('formats answer sequence with circled numbers and coordinates', () => {

@@ -46,8 +46,8 @@ export class SGFService {
   constructor(
     private readonly parser: SGFParser,
     private readonly store: GameStore,
-    private readonly io: SGFIO = new SGFIO(new SGFParser()),
-    private readonly share: SGFShare = new SGFShare(new SGFParser())
+    private readonly io: SGFIO,
+    private readonly share: SGFShare
   ) {}
 
   get state(): GameState {
