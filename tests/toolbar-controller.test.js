@@ -102,11 +102,13 @@ describe('ToolbarController', () => {
     });
 
     test('removes active class from erase button', () => {
-      state.eraseMode = true;
       const eraseBtn = document.createElement('button');
       eraseBtn.id = 'btn-erase';
       eraseBtn.classList.add('active');
       document.body.appendChild(eraseBtn);
+      controller.initialize();
+      state.eraseMode = true;
+      eraseBtn.classList.add('active');
       controller.disableEraseMode();
       expect(eraseBtn.classList.contains('active')).toBe(false);
     });
