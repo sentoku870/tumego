@@ -17,13 +17,11 @@ import {
   Preferences
 } from '../types.js';
 import { GameStore } from '../state/game-store.js';
+import { toCircledNumber } from '../utils/format.js';
 
 /** 1-50 を丸数字（①〜㊿）に変換する。範囲外は数字のまま。 */
 export function getCircleNumber(n: number): string {
-  if (n >= 1 && n <= 20) return String.fromCharCode(0x2460 + n - 1);
-  if (n >= 21 && n <= 35) return String.fromCharCode(0x3251 + n - 21);
-  if (n >= 36 && n <= 50) return String.fromCharCode(0x32b1 + n - 36);
-  return n.toString();
+  return toCircledNumber(n);
 }
 
 export class RendererGeometry {
@@ -201,7 +199,7 @@ export class RendererViewModelBuilder {
     return {
       cx,
       cy,
-      radius: DEFAULT_CONFIG.STONE_RADIUS + 5,
+      radius: DEFAULT_CONFIG.STONE_RADIUS + DEFAULT_CONFIG.LAST_MOVE_HIGHLIGHT_OFFSET,
     };
   }
 

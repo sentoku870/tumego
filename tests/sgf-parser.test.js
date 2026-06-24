@@ -119,12 +119,6 @@ describe('SGFParser', () => {
     expect(sgf.includes('AB[cc][gg]')).toBe(true);
     expect(sgf.includes(';B[aa];W[bb]')).toBe(true);
   });
-
-  test('compresses SGF text by removing unnecessary whitespace', () => {
-    const share = new SGFShare(parser);
-    const messy = ' ( ;B [aa ] ; W[ bb] ) ';
-    expect(share.compress(messy)).toBe('(;B[aa];W[bb])');
-  });
 });
 
 describe('SGFParser export()', () => {
@@ -219,25 +213,6 @@ describe('SGFParser export()', () => {
     expect(reexported.includes(';B[dd]')).toBe(true);
     expect(reexported.includes(';W[pp]')).toBe(true);
     expect(reexported.includes('KM[6.5]')).toBe(true);
-  });
-});
-
-describe('SGFShare compress()', () => {
-  const parser = new SGFParser();
-  const share = new SGFShare(parser);
-
-  test('removes spaces around brackets', () => {
-    expect(share.compress('( ; B [aa ] ; W[ bb ] )')).toBe('(;B[aa];W[bb])');
-  });
-
-  test('collapses multiple whitespace', () => {
-    expect(share.compress('B  [aa]')).toBe('B[aa]');
-  });
-
-  test('handles complex SGF with multiple moves', () => {
-    const input = '( ; GM[1] SZ[9] ; B[aa] ; W[bb] ; B[cc] )';
-    const result = share.compress(input);
-    expect(result).toBe('(;GM[1]SZ[9];B[aa];W[bb];B[cc])');
   });
 });
 

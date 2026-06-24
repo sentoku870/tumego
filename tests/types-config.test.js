@@ -33,4 +33,36 @@ describe('DEFAULT_CONFIG', () => {
       expect(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE <= DEFAULT_CONFIG.MAX_BOARD_SIZE).toBe(true);
     });
   });
+
+  describe('QR thresholds', () => {
+    test('QR_DATA thresholds are strictly increasing', () => {
+      expect(DEFAULT_CONFIG.QR_DATA_SMALL < DEFAULT_CONFIG.QR_DATA_MEDIUM).toBe(true);
+      expect(DEFAULT_CONFIG.QR_DATA_MEDIUM < DEFAULT_CONFIG.QR_DATA_LARGE).toBe(true);
+    });
+
+    test('QR image sizes follow WxH format', () => {
+      const format = /^\d+x\d+$/;
+      expect(format.test(DEFAULT_CONFIG.QR_IMAGE_SMALL)).toBe(true);
+      expect(format.test(DEFAULT_CONFIG.QR_IMAGE_MEDIUM)).toBe(true);
+      expect(format.test(DEFAULT_CONFIG.QR_IMAGE_LARGE)).toBe(true);
+    });
+  });
+
+  describe('move number drawing', () => {
+    test('MOVE_NUM ratios are positive', () => {
+      expect(DEFAULT_CONFIG.MOVE_NUM_BG_RADIUS_RATIO > 0).toBe(true);
+      expect(DEFAULT_CONFIG.MOVE_NUM_FONT_SCALE > 0).toBe(true);
+      expect(DEFAULT_CONFIG.MOVE_NUM_STROKE_RATIO > 0).toBe(true);
+      expect(DEFAULT_CONFIG.MOVE_NUM_BORDER_MARGIN > 0).toBe(true);
+    });
+  });
+
+  describe('BOARD_CAPTURE_CSS_VARS', () => {
+    test('includes the standard set of CSS variable names', () => {
+      const expected = ['--board', '--line', '--star', '--coord', '--black', '--white'];
+      for (const name of expected) {
+        expect(DEFAULT_CONFIG.BOARD_CAPTURE_CSS_VARS).toContain(name);
+      }
+    });
+  });
 });

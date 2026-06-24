@@ -58,6 +58,26 @@ export interface GameConfig {
   readonly MOBILE_HORIZONTAL_RESERVED: number;
   /** 横レイアウト・デスクトップ時の予約幅 (px) */
   readonly DESKTOP_HORIZONTAL_RESERVED: number;
+  /** QR データサイズしきい値 (SGF 文字数) */
+  readonly QR_DATA_SMALL: number;
+  readonly QR_DATA_MEDIUM: number;
+  readonly QR_DATA_LARGE: number;
+  /** QR コード画像サイズ (URL クエリ) */
+  readonly QR_IMAGE_SMALL: string;
+  readonly QR_IMAGE_MEDIUM: string;
+  readonly QR_IMAGE_LARGE: string;
+  /** 解答シーケンス番号表示: 数字描画の背景円半径係数 */
+  readonly MOVE_NUM_BG_RADIUS_RATIO: number;
+  /** 解答シーケンス番号表示: 黒枠の余白 (px) */
+  readonly MOVE_NUM_BORDER_MARGIN: number;
+  /** 解答シーケンス番号表示: 数字のフォントサイズ係数 */
+  readonly MOVE_NUM_FONT_SCALE: number;
+  /** 解答シーケンス番号表示: 数字のストローク幅係数 */
+  readonly MOVE_NUM_STROKE_RATIO: number;
+  /** 直前手のハイライト半径オフセット (px) */
+  readonly LAST_MOVE_HIGHLIGHT_OFFSET: number;
+  /** 盤面保存時にコピー対象とする CSS 変数名 */
+  readonly BOARD_CAPTURE_CSS_VARS: readonly string[];
 }
 
 // ============ ゲーム状態 ============
@@ -295,4 +315,16 @@ export const DEFAULT_CONFIG: GameConfig = {
   MOBILE_BREAKPOINT: 768,
   MOBILE_HORIZONTAL_RESERVED: 250,
   DESKTOP_HORIZONTAL_RESERVED: 350,
+  QR_DATA_SMALL: 800,
+  QR_DATA_MEDIUM: 1500,
+  QR_DATA_LARGE: 2500,
+  QR_IMAGE_SMALL: '300x300',
+  QR_IMAGE_MEDIUM: '400x400',
+  QR_IMAGE_LARGE: '500x500',
+  MOVE_NUM_BG_RADIUS_RATIO: 1.15,
+  MOVE_NUM_BORDER_MARGIN: 2,
+  MOVE_NUM_FONT_SCALE: 1.20,
+  MOVE_NUM_STROKE_RATIO: 0.22,
+  LAST_MOVE_HIGHLIGHT_OFFSET: 5,
+  BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white'],
 } as const;
