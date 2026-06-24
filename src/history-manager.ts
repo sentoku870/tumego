@@ -6,7 +6,6 @@
 // - 復元後のUI更新(Renderer.updateBoardSize/redraw等)は呼び出し側が実行する。
 import {
   AnswerMode,
-  CellState,
   GameState,
   HistoryItem,
   HistorySnapshot,
@@ -15,6 +14,7 @@ import {
   OperationHistory,
   Position,
 } from "./types.js";
+import { cloneBoard } from "./state/board-utils.js";
 
 export class HistoryManager implements OperationHistory {
   private snapshots: HistorySnapshot[] = [];
@@ -67,7 +67,7 @@ export class HistoryManager implements OperationHistory {
   private cloneSnapshotState(state: GameState): HistorySnapshotState {
     return {
       boardSize: state.boardSize,
-      board: this.cloneBoard(state.board),
+      board: cloneBoard(state.board),
       mode: state.mode,
       eraseMode: state.eraseMode,
       turn: state.turn,
@@ -90,10 +90,6 @@ export class HistoryManager implements OperationHistory {
     };
   }
 
-  private cloneBoard(board: CellState[][]): CellState[][] {
-    return board.map((row) => [...row]) as CellState[][];
-  }
-
   private cloneMoves(moves: Move[]): Move[] {
     return moves.map((move) => ({ ...move }));
   }
@@ -104,7 +100,7 @@ export class HistoryManager implements OperationHistory {
 
   private applySnapshot(saved: HistorySnapshotState, currentState: GameState): void {
     currentState.boardSize = saved.boardSize;
-    currentState.board = this.cloneBoard(saved.board);
+    currentState.board = cloneBoard(saved.board);
     currentState.mode = saved.mode;
     currentState.eraseMode = saved.eraseMode;
     currentState.turn = saved.turn;

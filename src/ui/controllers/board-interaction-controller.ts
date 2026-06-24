@@ -1,5 +1,6 @@
 import { UIElements, Position, DEFAULT_CONFIG } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
+import { isValidPosition } from "../../state/board-utils.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
 import {
   BoardInputStateMachine,
@@ -260,12 +261,7 @@ export class BoardInteractionController {
   }
 
   private isValidPosition(pos: Position): boolean {
-    return (
-      pos.col >= 0 &&
-      pos.col < this.state.boardSize &&
-      pos.row >= 0 &&
-      pos.row < this.state.boardSize
-    );
+    return isValidPosition(this.state.boardSize, pos);
   }
 
   private focusBoard(): void {

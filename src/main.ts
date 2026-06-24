@@ -3,14 +3,13 @@ import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
 import { compositionRoot } from './app/composition-root.js';
 import { createDebugApi } from './app/debug-api.js';
+import { createEmptyBoard, createInitialCapturedCounts } from './state/board-utils.js';
 
 // ============ Initialize global game state ============
 function createInitialState(): GameState {
   return {
     boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
-    board: Array.from({ length: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE }, () =>
-      Array(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE).fill(0)
-    ),
+    board: createEmptyBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE),
     mode: 'alt',
     eraseMode: false,
     history: [],
@@ -37,7 +36,7 @@ function createInitialState(): GameState {
       playerWhite: null,
       result: null
     },
-    capturedCounts: { black: 0, white: 0 }
+    capturedCounts: createInitialCapturedCounts()
   };
 }
 

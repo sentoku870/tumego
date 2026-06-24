@@ -21,6 +21,7 @@ import {
   PerformanceMetrics,
   PerformanceMonitor,
 } from "./performance-monitor.js";
+import { cloneBoard, createInitialCapturedCounts, isValidPosition } from "./board-utils.js";
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
@@ -39,7 +40,7 @@ export class GameStore {
     this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
 
     if (!this.state.capturedCounts) {
-      this.state.capturedCounts = { black: 0, white: 0 };
+      this.state.capturedCounts = createInitialCapturedCounts();
     }
 
     if (!this.state.gameInfo) {
@@ -382,15 +383,10 @@ export class GameStore {
   }
 
   private cloneBoard(): Board {
-    return this.state.board.map((row) => row.slice());
+    return cloneBoard(this.state.board);
   }
 
   private isValidPosition(pos: Position): boolean {
-    return (
-      pos.col >= 0 &&
-      pos.col < this.state.boardSize &&
-      pos.row >= 0 &&
-      pos.row < this.state.boardSize
-    );
+    return isValidPosition(this.state.boardSize, pos);
   }
 }

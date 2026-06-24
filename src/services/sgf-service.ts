@@ -1,6 +1,6 @@
 import { GameStore } from '../state/game-store.js';
+import { createEmptyBoard } from '../state/board-utils.js';
 import {
-  CellState,
   DEFAULT_CONFIG,
   GameState,
   Move,
@@ -115,12 +115,10 @@ export class SGFService {
     if (gameInfo.boardSize && gameInfo.boardSize !== state.boardSize) {
       const newSize = gameInfo.boardSize;
       state.boardSize = newSize;
-      state.board = Array.from({ length: newSize }, () =>
-        Array.from({ length: newSize }, () => 0 as CellState));
+      state.board = createEmptyBoard(newSize);
     } else {
       const currentSize = state.boardSize;
-      state.board = Array.from({ length: currentSize }, () =>
-        Array.from({ length: currentSize }, () => 0 as CellState));
+      state.board = createEmptyBoard(currentSize);
     }
 
     state.history = [];

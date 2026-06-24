@@ -7,6 +7,7 @@ import {
   Board,
   MoveResult
 } from './types.js';
+import { cloneBoard, isValidPosition } from './state/board-utils.js';
 
 /**
  * Pure go board logic. All state mutations are delegated to {@link GameStore}.
@@ -25,7 +26,7 @@ export class GoEngine {
     color: StoneColor,
     boardOverride?: Board
   ): MoveResult | null {
-    const board = boardOverride ?? this.cloneBoard(state.board);
+    const board = boardOverride ?? cloneBoard(state.board);
 
     const applied = this.tryApplyMove(board, state.boardSize, pos, color);
     if (!applied) {
@@ -57,7 +58,7 @@ export class GoEngine {
     pos: Position,
     color: StoneColor
   ): { board: Board; koPoint: Position | null; captured: Position[] } | null {
-    if (!this.isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
+    if (!isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
       return null;
     }
 
@@ -101,10 +102,6 @@ export class GoEngine {
       captured.length === 1 && selfGroup.libs === 1 ? captured[0] : null;
 
     return { board, koPoint, captured };
-  }
-
-  private cloneBoard(board: Board): Board {
-    return board.map(row => row.slice());
   }
 
   private removeStones(board: Board, stones: Position[]): void {
@@ -156,11 +153,7 @@ export class GoEngine {
       { col: pos.col + 1, row: pos.row },
       { col: pos.col, row: pos.row - 1 },
       { col: pos.col, row: pos.row + 1 }
-    ].filter(neighbor => this.isValidPosition(boardSize, neighbor));
-  }
-
-  private isValidPosition(boardSize: number, pos: Position): boolean {
-    return pos.col >= 0 && pos.col < boardSize && pos.row >= 0 && pos.row < boardSize;
+    ].filter(neighbor => isValidPosition(boardSize, neighbor));
   }
 
   private positionsEqual(a: Position, b: Position): boolean {
