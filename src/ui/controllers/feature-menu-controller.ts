@@ -4,12 +4,14 @@ import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { UIEventBus } from '../../app/event-bus.js';
+import { Modal } from '../views/modal.js';
 
 export type UIUpdater = () => void;
 
 export class FeatureMenuController {
   private isHorizontal = document.body.classList.contains('horizontal');
   private copyAnswerButton: HTMLButtonElement | null = null;
+  private currentHandicapModal: Modal | null = null;
 
   constructor(
     private readonly dropdownManager: DropdownManager,
@@ -139,33 +141,16 @@ export class FeatureMenuController {
   }
 
   private showHandicapDialog(): void {
-    const existing = document.getElementById('handicap-popup');
-    existing?.remove();
+    this.currentHandicapModal?.close();
+    this.currentHandicapModal = null;
 
-    const popup = document.createElement('div');
-    popup.id = 'handicap-popup';
-    popup.innerHTML = `
-      <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; border-radius:15px; text-align:center; max-width:500px;">
-          <h2 style="margin-bottom:20px; color:#333;">🔥 置石設定</h2>
-          <p style="margin-bottom:25px; color:#666;">置石の数を選択してください</p>
-          <div id="handicap-options" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0;"></div>
-          <button id="handicap-cancel" style="margin-top:15px; padding:10px 20px; background:#666; color:white; border:none; border-radius:5px;">❌ キャンセル</button>
-        </div>
-      </div>
+    const root = document.createElement('div');
+    root.innerHTML = `
+      <h2 style="margin-bottom:20px; color:#333;">🔥 置石設定</h2>
+      <p style="margin-bottom:25px; color:#666;">置石の数を選択してください</p>
+      <div id="handicap-options" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0;"></div>
+      <button id="handicap-cancel" style="margin-top:15px; padding:10px 20px; background:#666; color:white; border:none; border-radius:5px;">❌ キャンセル</button>
     `;
-
-    const overlay = popup.firstElementChild as HTMLElement | null;
-    overlay?.addEventListener('click', (event) => {
-      if (event.target === overlay) {
-        popup.remove();
-      }
-    });
-
-    const container = overlay?.firstElementChild as HTMLElement | null;
-    container?.addEventListener('click', (event) => {
-      event.stopPropagation();
-    });
 
     const options = [
       { label: '互先（コミあり）', value: 'even' as const },
@@ -180,7 +165,7 @@ export class FeatureMenuController {
       { label: '9子', value: 9 }
     ];
 
-    const optionContainer = popup.querySelector('#handicap-options');
+    const optionContainer = root.querySelector('#handicap-options');
     options.forEach(option => {
       const button = document.createElement('button');
       button.textContent = option.label;
@@ -193,16 +178,24 @@ export class FeatureMenuController {
       button.style.fontSize = '14px';
       button.addEventListener('click', () => {
         this.setHandicap(option.value);
-        popup.remove();
+        this.currentHandicapModal?.close();
+        this.currentHandicapModal = null;
       });
       optionContainer?.appendChild(button);
     });
 
-    popup.querySelector('#handicap-cancel')?.addEventListener('click', () => {
-      popup.remove();
+    root.querySelector('#handicap-cancel')?.addEventListener('click', () => {
+      this.currentHandicapModal?.close();
+      this.currentHandicapModal = null;
     });
 
-    document.body.appendChild(popup);
+    this.currentHandicapModal = new Modal({
+      id: 'handicap-popup',
+      content: root,
+      overlayOpacity: 0.8,
+      maxWidth: '500px',
+    });
+    this.currentHandicapModal.open();
   }
 
   private setHandicap(stones: number | 'even'): void {

@@ -1,6 +1,9 @@
 import { Renderer } from '../renderer/renderer.js';
+import { Modal } from '../ui/views/modal.js';
 
 export class BoardCaptureService {
+  private currentPreviewModal: Modal | null = null;
+
   constructor(
     private readonly svgElement: SVGSVGElement,
     private readonly renderer: Renderer
@@ -76,25 +79,12 @@ export class BoardCaptureService {
   }
 
   private showBoardPreviewModal(imageUrl: string): void {
-    const existingOverlay = document.getElementById('board-preview-overlay');
-    existingOverlay?.remove();
+    this.currentPreviewModal?.close();
+    this.currentPreviewModal = null;
 
-    const overlay = document.createElement('div');
-    overlay.id = 'board-preview-overlay';
-    overlay.style.position = 'fixed';
-    overlay.style.inset = '0';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
-    overlay.style.zIndex = '1000';
-
-    const container = document.createElement('div');
-    container.style.position = 'relative';
-    container.style.backgroundColor = '#ffffff';
-    container.style.padding = '16px';
-    container.style.borderRadius = '12px';
-    container.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.25)';
+    const root = document.createElement('div');
+    root.style.position = 'relative';
+    root.style.padding = '16px';
 
     const closeButton = document.createElement('button');
     closeButton.textContent = '閉じる';
@@ -108,7 +98,8 @@ export class BoardCaptureService {
     closeButton.style.borderRadius = '4px';
     closeButton.style.cursor = 'pointer';
     closeButton.addEventListener('click', () => {
-      overlay.remove();
+      this.currentPreviewModal?.close();
+      this.currentPreviewModal = null;
     });
 
     const image = document.createElement('img');
@@ -120,17 +111,16 @@ export class BoardCaptureService {
     image.style.maxHeight = '80vh';
     image.style.borderRadius = '8px';
 
-    container.appendChild(closeButton);
-    container.appendChild(image);
-    overlay.appendChild(container);
+    root.appendChild(closeButton);
+    root.appendChild(image);
 
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay) {
-        overlay.remove();
-      }
+    this.currentPreviewModal = new Modal({
+      id: 'board-preview-overlay',
+      content: root,
+      overlayOpacity: 0.6,
+      maxWidth: '90vw',
     });
-
-    document.body.appendChild(overlay);
+    this.currentPreviewModal.open();
   }
 
   private async convertSvgToPng(svgElement: SVGSVGElement, canvas: HTMLCanvasElement): Promise<Blob> {
