@@ -11,10 +11,10 @@
 ## 2. リリース手順チェックリスト
 
 1. **main を最新にする**
-   ```pwsh
-   git checkout main
+   ```bash
+   git switch main
    git pull
-````
+   ```
 
 2. **テストとビルド前確認**
 
@@ -27,7 +27,7 @@
 
 4. **本番ビルドと dist コミット**
 
-   ```pwsh
+   ```bash
    npm install
    npm run build
    git status
@@ -37,17 +37,17 @@
 
 5. **main を push（リモートを最新化）**
 
-   ```pwsh
+   ```bash
    git push
    ```
 
 6. **stable ブランチへの反映**
 
-   ```pwsh
-   git checkout stable-20251116
+   ```bash
+   git switch stable-20251116
    git reset --hard main
    git push --force-with-lease
-   git checkout main
+   git switch main
    ```
 
 7. **公開確認**
@@ -60,17 +60,16 @@
 
 ## 3. 注意事項
 
-* リリース作業中に **新しい feature / codex ブランチを main にマージしない**
+* リリース作業中に **新しい feature ブランチを main にマージしない**
 * `dist/` の更新は「リリース用コミット」のときだけ行う
 * `stable-20251116` 上で直接ファイルを編集しない（常に `main` を真とする）
 * `git push --force-with-lease` を使う場面は、基本的に `stable-20251116` 更新時のみに限定する
 
 ## 4. よくある NG パターン
 
-* `feature/*` や `codex/*` ブランチで `dist/` をコミットしてしまう
+* `feature/*` ブランチで `dist/` をコミットしてしまう
 * テストが通っていない状態で `dist/` を更新し、そのまま `stable-20251116` に反映する
 * GitHub Pages の公開設定を、仕様と異なるブランチやディレクトリに変えてしまう
 
 いずれもリリースの再現性と安定性を壊すため禁止する。
 
-````

@@ -131,7 +131,7 @@ GameStore
 
 ### docs-only / code-change の境界
 
-- **docs-only**（`docs/**/*.md`, README, CHANGELOG 等）→ **main 直接コミット可**
+- **docs-only**（`docs/**/*.md` または ルート直下の .md ファイル：README, AGENTS.md, CHANGELOG 等）→ **main 直接コミット可**
 - **code-change**（`src/**/*.ts`, `*.css`, `*.html`, `package.json`, 設定ファイル、`dist/` への影響がある変更）→ **feature ブランチ + PR 必須**
 - 迷ったら **code-change（安全側）** として扱う
 
@@ -187,6 +187,7 @@ GameStore
 ### 7.5 やってはいけないこと
 - `stable-20251116` への直接 push
 - `force push`（明示的指示がない限り）
+  - **例外**: `docs/11-release-flow.md` のリリース手順で実施する `git push --force-with-lease`（`stable-20251116` を `main` にリセット同期する用途）のみは限定許可
 - GitHub Pages の公開設定変更
 - 開発ブランチ（`feature/*`）で `dist/` を触ること
 
@@ -276,7 +277,7 @@ GameStore
 4. `dist/` は **リリース時のみ** 触る
 5. `stable-20251116` には直接コミットしない
 6. GitHub Pages の公開設定は変更しない
-7. AI ツール固有のローカル設定（`.tool-xxx/settings.local.json` 等）は commit 対象外。`.gitignore` で除外する
+7. AI ツール固有のローカル設定（`.tool-*/settings.local.json` 等）は commit 対象外。`.gitignore` で除外する
 
 ---
 

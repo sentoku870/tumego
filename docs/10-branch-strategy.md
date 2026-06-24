@@ -18,16 +18,11 @@
   - 完了後は PR を通じて main にマージする
   - 例: `feature/ver3-hint-mode`
 
-- `codex/*`
-  - Codex / AI に大きめの変更を任せる場合の専用ブランチ
-  - 例: `codex/add-responsive-layout-for-device-profiles`
-  - 人間側がレビューして問題なければ main にマージする
-
 ## 2. ブランチ運用ルール
 
 1. **開発作業の基本ルール**
    - 直接 `main` 上で大きな変更を行わない
-   - 必ず `feature/*` または `codex/*` ブランチを切って作業する
+   - 必ず `feature/*` ブランチを切って作業する
 
 2. **stable ブランチの扱い**
    - `stable-20251116` には **リリース済みの安定版のみ** を置く

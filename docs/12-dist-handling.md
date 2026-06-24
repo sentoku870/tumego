@@ -1,13 +1,9 @@
-
-#### 手順6: docs/12-dist-handling.md の作成
-
-```markdown
 # 12 – dist/ ディレクトリの扱い
 
 ## 1. dist/ の役割
 
 - `dist/` は、`npm run build` で生成される **ビルド成果物** を保存するディレクトリ
-- GitHub Pages は `stable-20251116` ブランチ上の `dist/` から公開される
+- GitHub Pages は `stable-20251116 / (root)` から公開される
 
 ## 2. 基本ルール
 
@@ -30,7 +26,7 @@
 
 ## 3. よくある NG パターン
 
-- `feature/*` や `codex/*` ブランチで `dist/` を含めてしまう
+- `feature/*` ブランチで `dist/` を含めてしまう
 - テストが通っていない状態で `dist/` を更新し、そのまま stable に反映する
 - `stable-20251116` 上で直接 `dist/` を編集する
 
