@@ -199,4 +199,31 @@ describe('ModeOperations SGF-related methods', () => {
       target.setSgfMoves = original;
     });
   });
+
+  describe('prepareBoardForSgf', () => {
+    test('updates boardSize and clears board when newSize differs', () => {
+      state.boardSize = 9;
+      state.board[0][0] = 1;
+      store.prepareBoardForSgf(19);
+      if (state.boardSize !== 19) throw new Error(`expected 19, got ${state.boardSize}`);
+      if (state.board[0][0] !== 0) throw new Error('board not cleared');
+      if (state.board.length !== 19) throw new Error('board not resized');
+    });
+
+    test('clears board without changing boardSize when newSize omitted', () => {
+      state.boardSize = 9;
+      state.board[3][4] = 2;
+      store.prepareBoardForSgf();
+      if (state.boardSize !== 9) throw new Error('boardSize changed unexpectedly');
+      if (state.board[3][4] !== 0) throw new Error('board not cleared');
+    });
+
+    test('clears board without changing boardSize when newSize equals current', () => {
+      state.boardSize = 13;
+      state.board[5][5] = 1;
+      store.prepareBoardForSgf(13);
+      if (state.boardSize !== 13) throw new Error('boardSize changed unexpectedly');
+      if (state.board[5][5] !== 0) throw new Error('board not cleared');
+    });
+  });
 });

@@ -22,11 +22,10 @@ export class ToolbarState {
   }
 
   disableEraseMode(): void {
-    const state = this.store.snapshot;
-    if (!state.eraseMode) {
+    if (!this.store.snapshot.eraseMode) {
       return;
     }
-    state.eraseMode = false;
+    this.store.setEraseMode(false);
     this.buttons.eraseBtn?.classList.remove('active');
     this.renderer.showMessage('');
   }

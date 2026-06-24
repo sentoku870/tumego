@@ -66,7 +66,7 @@ export class GameStore {
   // 公開: 状態参照
   // ============================================================
 
-  get snapshot(): GameState {
+  get snapshot(): Readonly<GameState> {
     return this.state;
   }
 
@@ -344,6 +344,11 @@ export class GameStore {
   // ============================================================
   // 公開: SGF 適用（ModeOperations への委譲ラッパー）
   // ============================================================
+
+  /** SGF 読み込み前に盤サイズと盤面を初期化を委譲 */
+  prepareBoardForSgf(newSize?: number): void {
+    this.modeOps.prepareBoardForSgf(newSize);
+  }
 
   /** SGF 読み込み時の状態初期化を委譲 */
   resetForSgfLoad(sgfMovesCountBeforeLoad: number): void {
