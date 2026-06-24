@@ -117,7 +117,8 @@ export class GoEngine {
     const stack: Position[] = [pos];
 
     while (stack.length > 0) {
-      const current = stack.pop()!;
+      const current = stack.pop();
+      if (!current) break;  // unreachable: guarded by stack.length > 0
       const key = `${current.col},${current.row}`;
       if (visited.has(key)) continue;
 

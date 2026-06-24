@@ -39,6 +39,22 @@ function legacyToggleToBoolean(value: unknown): boolean | null {
   return null;
 }
 
+/**
+ * Read a typed property from a possibly-undefined container.
+ * The trailing `!` is required because TypeScript does not narrow the
+ * container's presence from a successful type-guard on one of its
+ * properties. Equivalent runtime behavior to `container?.prop`.
+ */
+function readField<T>(
+  container: Record<string, unknown> | undefined,
+  key: string,
+  guard: (v: unknown) => v is T,
+): T | undefined {
+  if (container === undefined) return undefined;
+  const value = container[key];
+  return guard(value) ? value : undefined;
+}
+
 function normalizePreferences(raw: unknown): Preferences {
   if (!raw || typeof raw !== "object") {
     return clonePreferences(DEFAULT_PREFERENCES);
@@ -50,26 +66,24 @@ function normalizePreferences(raw: unknown): Preferences {
     const solve = parsed.solve as Record<string, unknown> | undefined;
     const ui = parsed.ui as Record<string, unknown> | undefined;
 
-    const rulesMode = isRulesMode(edit?.rulesMode) ? edit!.rulesMode : DEFAULT_PREFERENCES.edit.rulesMode;
+    const rulesMode = readField(edit, 'rulesMode', isRulesMode) ?? DEFAULT_PREFERENCES.edit.rulesMode;
     const showCapturedStones =
-      isBooleanPreference(solve?.showCapturedStones)
-        ? solve!.showCapturedStones
-        : legacyToggleToBoolean(solve?.showCapturedStones) ??
-          DEFAULT_PREFERENCES.solve.showCapturedStones;
+      readField(solve, 'showCapturedStones', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.showCapturedStones) ??
+      DEFAULT_PREFERENCES.solve.showCapturedStones;
     const enableFullReset =
-      isBooleanPreference(solve?.enableFullReset)
-        ? solve!.enableFullReset
-        : legacyToggleToBoolean(solve?.enableFullReset) ??
-          DEFAULT_PREFERENCES.solve.enableFullReset;
-    const highlightLastMove = isBooleanPreference(solve?.highlightLastMove)
-      ? solve!.highlightLastMove
-      : DEFAULT_PREFERENCES.solve.highlightLastMove;
-    const showSolutionMoveNumbers = isBooleanPreference(solve?.showSolutionMoveNumbers)
-      ? solve!.showSolutionMoveNumbers
-      : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
-    const deviceProfile = isDeviceProfile(ui?.deviceProfile)
-      ? ui!.deviceProfile
-      : DEFAULT_PREFERENCES.ui.deviceProfile;
+      readField(solve, 'enableFullReset', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.enableFullReset) ??
+      DEFAULT_PREFERENCES.solve.enableFullReset;
+    const highlightLastMove =
+      readField(solve, 'highlightLastMove', isBooleanPreference) ??
+      DEFAULT_PREFERENCES.solve.highlightLastMove;
+    const showSolutionMoveNumbers =
+      readField(solve, 'showSolutionMoveNumbers', isBooleanPreference) ??
+      DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
+    const deviceProfile =
+      readField(ui, 'deviceProfile', isDeviceProfile) ??
+      DEFAULT_PREFERENCES.ui.deviceProfile;
 
     return {
       edit: { rulesMode },
