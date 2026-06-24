@@ -22,3 +22,6 @@ Thumbs.db
 
 # バックアップ
 original/
+
+# Claude Code 固有のローカル設定（ユーザー固有・commit 対象外）
+.claude/settings.local.json

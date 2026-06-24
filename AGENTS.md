@@ -79,6 +79,7 @@ npm test       # npm run build && jest
 5. `stable-20251116` には直接コミットしない
 6. GitHub Pages の公開設定は変更しない
 7. 詳細ルールは `.claude/rules/` を参照
+8. **Claude Code 固有のローカル設定**（`.claude/settings.local.json` 等）は commit 対象外。`.gitignore` で除外済み
 
 ---
 
