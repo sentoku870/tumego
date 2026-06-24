@@ -49,6 +49,16 @@ export interface GameConfig {
   readonly DEFAULT_KOMI: number;
   readonly COORD_FONT_RATIO: number;
   readonly MOVE_NUM_FONT_RATIO: number;
+  /** 座標ラベル X 軸オフセット（盤外側） */
+  readonly COORD_LABEL_OFFSET_X: number;
+  /** 座標ラベル Y 軸オフセット（盤外側） */
+  readonly COORD_LABEL_OFFSET_Y: number;
+  /** モバイル判定の window.innerWidth 閾値 (px) */
+  readonly MOBILE_BREAKPOINT: number;
+  /** 横レイアウト・モバイル時の予約幅 (px) */
+  readonly MOBILE_HORIZONTAL_RESERVED: number;
+  /** 横レイアウト・デスクトップ時の予約幅 (px) */
+  readonly DESKTOP_HORIZONTAL_RESERVED: number;
 }
 
 // ============ ゲーム状態 ============
@@ -280,5 +290,10 @@ export const DEFAULT_CONFIG: GameConfig = {
   DEFAULT_BOARD_SIZE: 9,
   DEFAULT_KOMI: 6.5,
   COORD_FONT_RATIO: 0.28,
-  MOVE_NUM_FONT_RATIO: 0.4
+  MOVE_NUM_FONT_RATIO: 0.4,
+  COORD_LABEL_OFFSET_X: 20,
+  COORD_LABEL_OFFSET_Y: 15,
+  MOBILE_BREAKPOINT: 768,
+  MOBILE_HORIZONTAL_RESERVED: 250,
+  DESKTOP_HORIZONTAL_RESERVED: 350,
 } as const;

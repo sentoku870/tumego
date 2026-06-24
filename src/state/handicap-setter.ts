@@ -48,11 +48,6 @@ export class HandicapSetter {
     this.cache.invalidate();
   }
 
-  /** キャッシュを使わず、与えられた stones からコンテキストだけを構築（テスト/参照用） */
-  buildContext(stones: number | string): HandicapContext {
-    return this.createContext(stones);
-  }
-
   // ============================================================
   // Internal
   // ============================================================

@@ -53,46 +53,6 @@ describe('HandicapSetter', () => {
     setter = new HandicapSetter(state, engine, history, modeOps, cache);
   });
 
-  describe('buildContext', () => {
-    test('"even" returns even mode', () => {
-      const ctx = setter.buildContext('even');
-      expect(ctx).toEqual({ mode: 'even', stones: 0, positions: [] });
-    });
-
-    test('0 returns no-komi mode', () => {
-      const ctx = setter.buildContext(0);
-      expect(ctx).toEqual({ mode: 'no-komi', stones: 0, positions: [] });
-    });
-
-    test('positive number returns fixed mode with positions', () => {
-      const ctx = setter.buildContext(4);
-      expect(ctx.mode).toBe('fixed');
-      expect(ctx.stones).toBe(4);
-      expect(ctx.positions).toHaveLength(4);
-    });
-
-    test('throws for invalid negative value', () => {
-      let thrown = null;
-      try {
-        setter.buildContext(-1);
-      } catch (e) {
-        thrown = e;
-      }
-      expect(thrown).not.toBeNull();
-      expect(thrown.message).toContain('無効な置石数');
-    });
-
-    test('throws for NaN', () => {
-      let thrown = null;
-      try {
-        setter.buildContext(NaN);
-      } catch (e) {
-        thrown = e;
-      }
-      expect(thrown).not.toBeNull();
-    });
-  });
-
   describe('apply', () => {
     test('"even" resets handicap and sets default komi + startColor=1', () => {
       state.handicapStones = 5;

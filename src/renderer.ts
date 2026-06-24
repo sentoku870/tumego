@@ -214,6 +214,8 @@ return {
     const labels: CoordinateLabel[] = [];
     const margin = geometry.margin;
     const bottom = geometry.viewBoxSize - margin;
+    const dx = DEFAULT_CONFIG.COORD_LABEL_OFFSET_X;
+    const dy = DEFAULT_CONFIG.COORD_LABEL_OFFSET_Y;
 
     for (let i = 0; i < geometry.boardSize; i++) {
       const pos = geometry.coordinateAt(i);
@@ -223,27 +225,27 @@ return {
       labels.push({
         text: col,
         x: pos,
-        y: margin - 15,
+        y: margin - dy,
         fontSize: geometry.coordFontSize,
         className: 'coord'
       });
       labels.push({
         text: col,
         x: pos,
-        y: bottom + 15,
+        y: bottom + dy,
         fontSize: geometry.coordFontSize,
         className: 'coord'
       });
       labels.push({
         text: row.toString(),
-        x: margin - 20,
+        x: margin - dx,
         y: pos,
         fontSize: geometry.coordFontSize,
         className: 'coord'
       });
       labels.push({
         text: row.toString(),
-        x: bottom + 20,
+        x: bottom + dx,
         y: pos,
         fontSize: geometry.coordFontSize,
         className: 'coord'
@@ -388,10 +390,13 @@ export class Renderer {
 
     const state = this.store.snapshot;
     const isHorizontal = document.body.classList.contains('horizontal');
-    const isMobile = window.innerWidth <= 768;
+    const isMobile = window.innerWidth <= DEFAULT_CONFIG.MOBILE_BREAKPOINT;
 
     if (isHorizontal) {
-      const availableWidth = window.innerWidth - (isMobile ? 250 : 350);
+      const reserved = isMobile
+        ? DEFAULT_CONFIG.MOBILE_HORIZONTAL_RESERVED
+        : DEFAULT_CONFIG.DESKTOP_HORIZONTAL_RESERVED;
+      const availableWidth = window.innerWidth - reserved;
       const availableHeight = window.innerHeight * 0.95;
       const maxSize = Math.min(availableWidth, availableHeight);
 
