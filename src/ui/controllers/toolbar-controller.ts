@@ -1,8 +1,9 @@
 import { GameStore } from "../../state/game-store.js";
 import { Renderer } from "../../renderer.js";
 import { BoardCaptureService } from "../../services/board-capture-service.js";
-import { UIElements, PlayMode, Preferences } from "../../types.js";
-import { UIUpdater } from "./feature-menu-controller.js";
+import { UIElements, PlayMode } from "../../types.js";
+import { PreferencesStore } from "../../services/preferences-store.js";
+import { UIEventBus } from "../../app/event-bus.js";
 
 export class ToolbarController {
   private clearBtn: HTMLButtonElement | null = null;
@@ -17,19 +18,21 @@ export class ToolbarController {
   private undoBtn: HTMLButtonElement | null = null;
   private exitSolveBtn: HTMLButtonElement | null = null;
 
+  private unsubscribeFromEventBus: (() => void) | null = null;
+
   constructor(
     private readonly store: GameStore,
     private readonly renderer: Renderer,
     private readonly boardCapture: BoardCaptureService,
     private readonly elements: UIElements,
-    private readonly updateUI: UIUpdater,
-    private readonly getPreferences: () => Preferences
+    private readonly eventBus: UIEventBus,
+    private readonly preferences: PreferencesStore
   ) {}
 
   initialize(): void {
     const state = this.store.snapshot;
-    state.mode = "alt"; // 黒→白→黒→白（編集モードでの交互配置）
-    state.numberMode = false; // 解答モードではない
+    state.mode = "alt";
+    state.numberMode = false;
     state.eraseMode = false;
 
     this.initSizeButtons();
@@ -37,6 +40,15 @@ export class ToolbarController {
     this.initGameButtons();
     this.initBoardSaveButton();
     this.updateFullResetVisibility();
+
+    this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
+      this.disableEraseMode();
+    });
+  }
+
+  dispose(): void {
+    this.unsubscribeFromEventBus?.();
+    this.unsubscribeFromEventBus = null;
   }
 
   disableEraseMode(): void {
@@ -51,13 +63,11 @@ export class ToolbarController {
     this.renderer.showMessage("");
   }
 
-  // 黒先ボタン / 解答開始ボタンの表示更新
   updateAnswerButtonDisplay(): void {
     this.ensureButtonRefs();
     const state = this.store.snapshot;
 
     if (this.answerBtn) {
-      // ラベルと見た目
       if (state.answerMode === "white") {
         this.answerBtn.textContent = "⚪ 白先";
         this.answerBtn.classList.add("white-mode");
@@ -66,14 +76,12 @@ export class ToolbarController {
         this.answerBtn.classList.remove("white-mode");
       }
 
-      // ツールチップ
       if (state.numberMode) {
         this.answerBtn.title =
           state.answerMode === "white"
             ? "この問題を白番から解答します"
             : "この問題を黒番から解答します";
       } else {
-        // 編集モード中は「解答モード専用」であることだけ伝える
         this.answerBtn.title = "解答モード中のみ使用できます";
       }
     }
@@ -86,7 +94,6 @@ export class ToolbarController {
         this.exitSolveBtn.textContent = "解答開始";
         this.exitSolveBtn.title = "問題図から解答モードを開始します";
       }
-      // 常に表示しておく（CSS 側のレイアウトに任せる）
       this.exitSolveBtn.style.display = "";
     }
   }
@@ -107,7 +114,8 @@ export class ToolbarController {
         }
 
         this.store.initBoard(size);
-        this.updateUI();
+        this.eventBus.emitUIUpdate();
+        this.eventBus.emitAnswerButtonUpdate();
         this.setActiveButton(element, "size-btn");
       });
     });
@@ -122,8 +130,8 @@ export class ToolbarController {
       const state = this.store.snapshot;
       this.disableEraseMode();
       this.store.resetForClearAll();
-      this.updateUI();
-      this.updateAnswerButtonDisplay();
+      this.eventBus.emitUIUpdate();
+      this.eventBus.emitAnswerButtonUpdate();
       (document.getElementById("sgf-text") as HTMLTextAreaElement).value = "";
     });
 
@@ -136,7 +144,7 @@ export class ToolbarController {
       if (restored) {
         this.renderer.updateBoardSize();
       }
-      this.updateUI();
+      this.eventBus.emitUIUpdate();
     });
 
     this.eraseBtn = document.getElementById("btn-erase") as HTMLButtonElement | null;
@@ -182,7 +190,7 @@ export class ToolbarController {
       const state = this.store.snapshot;
       if (state.sgfIndex > 0) {
         this.store.setMoveIndex(state.sgfIndex - 1);
-        this.updateUI();
+        this.eventBus.emitUIUpdate();
       }
     });
 
@@ -194,7 +202,7 @@ export class ToolbarController {
       const state = this.store.snapshot;
       if (state.sgfIndex < state.sgfMoves.length) {
         this.store.setMoveIndex(state.sgfIndex + 1);
-        this.updateUI();
+        this.eventBus.emitUIUpdate();
       }
     });
 
@@ -216,7 +224,7 @@ export class ToolbarController {
       }
 
       this.updateAnswerButtonDisplay();
-      this.updateUI();
+      this.eventBus.emitUIUpdate();
     });
 
     this.exitSolveBtn = document.getElementById("btn-exit-solve-edit") as HTMLButtonElement | null;
@@ -235,7 +243,7 @@ export class ToolbarController {
       }
 
       this.updateAnswerButtonDisplay();
-      this.updateUI();
+      this.eventBus.emitUIUpdate();
     });
 
     const historyBtn = document.getElementById("btn-history") as HTMLButtonElement | null;
@@ -246,7 +254,7 @@ export class ToolbarController {
       this.store.historyManager.showHistoryDialog((index) => {
         if (this.store.restoreHistorySnapshot(index)) {
           this.renderer.updateBoardSize();
-          this.updateUI();
+          this.eventBus.emitUIUpdate();
           this.renderer.showMessage("履歴を復元しました");
         }
       });
@@ -261,7 +269,7 @@ export class ToolbarController {
         this.store.setProblemDiagram();
         state.answerMode = "black";
         this.updateAnswerButtonDisplay();
-        this.updateUI();
+        this.eventBus.emitUIUpdate();
         this.renderer.showMessage("問題図を確定しました");
       } else {
         if (!this.store.hasProblemDiagram()) {
@@ -270,7 +278,7 @@ export class ToolbarController {
         }
 
         this.store.restoreProblemDiagram();
-        this.updateUI();
+        this.eventBus.emitUIUpdate();
         this.renderer.showMessage("問題図に戻しました");
       }
     });
@@ -278,7 +286,7 @@ export class ToolbarController {
     this.elements.sliderEl?.addEventListener("input", (event) => {
       const target = event.target as HTMLInputElement;
       this.store.setMoveIndex(parseInt(target.value, 10));
-      this.updateUI();
+      this.eventBus.emitUIUpdate();
     });
   }
 
@@ -298,14 +306,11 @@ export class ToolbarController {
     this.disableEraseMode();
     const state = this.store.snapshot;
 
-    // 編集モード／解答モードに関係なく「色変更」だけ行う
     state.mode = mode;
 
-    // ボタンの active 切り替え
     this.setActiveButton(buttonElement, "play-btn");
 
-    // UI 更新
-    this.updateUI();
+    this.eventBus.emitUIUpdate();
   }
 
   private setActiveButton(element: Element, groupClass: string): void {
@@ -352,7 +357,6 @@ export class ToolbarController {
     this.setDisabled(this.nextMoveBtn, !hasNextMove);
 
     this.updateProblemButtonState();
-    // 黒先ボタン / 解答開始ボタンのラベル・ツールチップを最新状態に
     this.updateAnswerButtonDisplay();
   }
 
@@ -402,25 +406,21 @@ export class ToolbarController {
       return;
     }
 
-    const prefs = this.getPreferences();
+    const prefs = this.preferences.state;
     const isSolve = this.store.snapshot.numberMode;
     const enableFullResetInSolve = prefs.solve.enableFullReset === "on";
 
-    // 他のボタンと同様に、常に表示したまま状態だけ切り替える
     this.clearBtn.style.display = "";
 
     if (!isSolve) {
-      // 編集モード中は常に有効
       this.clearBtn.disabled = false;
       this.clearBtn.title =
         "盤面の石と履歴をすべて消して新しい盤面にします（Undoはできません）";
     } else if (enableFullResetInSolve) {
-      // 解答モード中で、設定で許可されている場合
       this.clearBtn.disabled = false;
       this.clearBtn.title =
         "解答中の盤面と履歴をすべて消して最初からやり直します（Undoはできません）";
     } else {
-      // 解答モード中だが、設定で無効化されている場合（グレーアウト）
       this.clearBtn.disabled = true;
       this.clearBtn.title =
         "解答モード中の全消去はデフォルトで無効です（設定→「解答モードで全て消すボタンを有効にする」で変更できます）";

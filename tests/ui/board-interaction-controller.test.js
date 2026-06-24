@@ -1,4 +1,6 @@
 import { BoardInteractionController } from '../../dist/ui/controllers/board-interaction-controller.js';
+import { UIEventBus } from '../../dist/app/event-bus.js';
+import { PreferencesStore } from '../../dist/services/preferences-store.js';
 
 const jest = (globalThis.jest ?? createLocalJest());
 
@@ -132,6 +134,7 @@ describe('BoardInteractionController pointer handling', () => {
   let store;
   let uiState;
   let elements;
+  let eventBus;
   let disableEraseMode;
   let controller;
   let placeSpy;
@@ -141,14 +144,16 @@ describe('BoardInteractionController pointer handling', () => {
     store = createStore(state);
     uiState = createUIState();
     elements = createElements();
+    eventBus = new UIEventBus();
     disableEraseMode = jest.fn();
+    eventBus.onEraseModeDisable(disableEraseMode);
 
     controller = new BoardInteractionController(
       store,
       elements,
       uiState,
-      jest.fn(),
-      disableEraseMode
+      eventBus,
+      new PreferencesStore()
     );
 
     placeSpy = jest.spyOn(controller, 'placeAtEvent').mockImplementation(() => {});

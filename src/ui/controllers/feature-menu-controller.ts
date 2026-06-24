@@ -3,6 +3,7 @@ import { Renderer } from '../../renderer.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
 import { DropdownManager } from './dropdown-manager.js';
+import { UIEventBus } from '../../app/event-bus.js';
 
 export type UIUpdater = () => void;
 
@@ -16,7 +17,7 @@ export class FeatureMenuController {
     private readonly elements: UIElements,
     private readonly store: GameStore,
     private readonly sgfService: SGFService,
-    private readonly updateUI: UIUpdater
+    private readonly eventBus: UIEventBus
   ) {}
 
   initialize(): void {
@@ -206,7 +207,7 @@ export class FeatureMenuController {
 
   private setHandicap(stones: number | 'even'): void {
     this.store.setHandicap(stones);
-    this.updateUI();
+    this.eventBus.emitUIUpdate();
 
     if (stones === 'even') {
       this.renderer.showMessage('互先（黒番開始、コミ6.5目）に設定しました');
