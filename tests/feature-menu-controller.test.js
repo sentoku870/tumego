@@ -8,6 +8,7 @@ import { SGFService } from '../dist/services/sgf-service.js';
 import { SGFParser } from '../dist/sgf-parser.js';
 import { UIInteractionState } from '../dist/ui/state/ui-interaction-state.js';
 import { DropdownManager } from '../dist/ui/controllers/dropdown-manager.js';
+import { UIEventBus } from '../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>
@@ -91,7 +92,7 @@ const cleanupDOM = () => {
 };
 
 describe('FeatureMenuController', () => {
-  let store, state, renderer, sgfService, uiState, dropdownManager, controller;
+  let store, state, renderer, sgfService, uiState, dropdownManager, controller, eventBus;
 
   beforeEach(() => {
     cleanupDOM();
@@ -101,6 +102,7 @@ describe('FeatureMenuController', () => {
     state = createState();
     store = new GameStore(state, engine, history);
     const elements = createUIElements();
+    eventBus = new UIEventBus();
     renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
       solve: {
@@ -120,7 +122,7 @@ describe('FeatureMenuController', () => {
       elements,
       store,
       sgfService,
-      () => {}
+      eventBus
     );
   });
 

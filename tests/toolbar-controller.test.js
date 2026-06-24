@@ -5,6 +5,8 @@ import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
 import { Renderer } from '../dist/renderer.js';
+import { PreferencesStore } from '../dist/services/preferences-store.js';
+import { UIEventBus } from '../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>
@@ -52,7 +54,7 @@ const cleanupDOM = () => {
 };
 
 describe('ToolbarController', () => {
-  let store, state, renderer, boardCapture, controller, elements;
+  let store, state, renderer, boardCapture, controller, elements, eventBus, preferences;
 
   beforeEach(() => {
     cleanupDOM();
@@ -61,33 +63,17 @@ describe('ToolbarController', () => {
     state = createState();
     store = new GameStore(state, engine, history);
     elements = createUIElements();
-    renderer = new Renderer(store, elements, () => ({
-      edit: { rulesMode: 'standard' },
-      solve: {
-        showCapturedStones: 'on',
-        enableFullReset: 'on',
-        highlightLastMove: true,
-        showSolutionMoveNumbers: false
-      },
-      ui: { deviceProfile: 'auto' }
-    }));
+    eventBus = new UIEventBus();
+    preferences = new PreferencesStore();
+    renderer = new Renderer(store, elements, () => preferences.state);
     boardCapture = new BoardCaptureService(elements.svg, renderer);
     controller = new ToolbarController(
       store,
       renderer,
       boardCapture,
       elements,
-      () => {},
-      () => ({
-        edit: { rulesMode: 'standard' },
-        solve: {
-          showCapturedStones: 'on',
-          enableFullReset: 'on',
-          highlightLastMove: true,
-          showSolutionMoveNumbers: false
-        },
-        ui: { deviceProfile: 'auto' }
-      })
+      eventBus,
+      preferences
     );
   });
 

@@ -2,9 +2,9 @@ import { DropdownManager } from './dropdown-manager.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { Renderer } from '../../renderer.js';
 import { QRManager } from '../../qr-manager.js';
-import { UIUpdater } from './feature-menu-controller.js';
 import { GameInfo, SGFParseResult } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
+import { UIEventBus } from '../../app/event-bus.js';
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
@@ -15,10 +15,8 @@ export class FileMenuController {
     private readonly sgfService: SGFService,
     private readonly renderer: Renderer,
     private readonly qrManager: QRManager,
-    private readonly updateUI: UIUpdater,
-    private readonly onSgfApplied: SgfApplyCallback,
-    private readonly updateAnswerButtonDisplay: AnswerButtonUpdater,
-    private readonly store: GameStore
+    private readonly store: GameStore,
+    private readonly eventBus: UIEventBus
   ) {}
 
   syncHeaderEditor(): void {
@@ -167,7 +165,7 @@ export class FileMenuController {
       }
 
       this.store.updateGameInfo(patch);
-      this.updateUI();
+      this.eventBus.emitUIUpdate();
       this.renderer.showMessage('対局情報を更新しました');
       this.populateHeaderFields();
     });
@@ -182,10 +180,10 @@ export class FileMenuController {
   private applySgf(result: SGFParseResult): void {
     const applyResult = this.sgfService.apply(result);
     this.renderer.updateBoardSize();
-    this.updateUI();
+    this.eventBus.emitUIUpdate();
     this.populateHeaderFields();
-    this.onSgfApplied(applyResult.sgfText);
-    this.updateAnswerButtonDisplay();
+    this.eventBus.emitSgfApplied(applyResult.sgfText);
+    this.eventBus.emitAnswerButtonUpdate();
   }
 
   private populateHeaderFields(): void {

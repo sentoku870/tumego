@@ -9,6 +9,7 @@ import { SGFParser } from '../dist/sgf-parser.js';
 import { QRManager } from '../dist/qr-manager.js';
 import { UIInteractionState } from '../dist/ui/state/ui-interaction-state.js';
 import { DropdownManager } from '../dist/ui/controllers/dropdown-manager.js';
+import { UIEventBus } from '../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>
@@ -97,7 +98,7 @@ const cleanupDOM = () => {
 };
 
 describe('FileMenuController', () => {
-  let store, state, renderer, sgfService, qrManager, uiState, dropdownManager, controller;
+  let store, state, renderer, sgfService, qrManager, uiState, dropdownManager, controller, eventBus;
 
   beforeEach(() => {
     cleanupDOM();
@@ -107,6 +108,7 @@ describe('FileMenuController', () => {
     state = createState();
     store = new GameStore(state, engine, history);
     const elements = createUIElements();
+    eventBus = new UIEventBus();
     renderer = new Renderer(store, elements, () => ({
       edit: { rulesMode: 'standard' },
       solve: {
@@ -126,10 +128,8 @@ describe('FileMenuController', () => {
       sgfService,
       renderer,
       qrManager,
-      () => {},
-      () => {},
-      () => {},
-      store
+      store,
+      eventBus
     );
   });
 

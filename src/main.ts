@@ -1,6 +1,8 @@
 // ============ Main entry point ============
 import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
+import { compositionRoot } from './app/composition-root.js';
+import { createDebugApi } from './app/debug-api.js';
 
 // ============ Initialize global game state ============
 function createInitialState(): GameState {
@@ -107,14 +109,17 @@ function initializeApp(): void {
     const gameState = createInitialState();
     const uiElements = getUIElements();
 
+    // Build the app context via the composition root
+    const app = compositionRoot(gameState, uiElements);
+
     // Set up UI controller
-    const uiController = new UIController(gameState, uiElements);
+    const uiController = new UIController(gameState, uiElements, app);
 
     // Wire up SGF info tab behavior
     setupSgfInfoTabs();
 
-    // Expose controller for dialogs that rely on the global scope
-    (window as any).tumegoUIController = uiController;
+    // Expose a typed debug API for DevTools / external scripts
+    (window as Window & { tumego?: ReturnType<typeof createDebugApi> }).tumego = createDebugApi(app);
 
     // Finalize initialization
     uiController.initialize();

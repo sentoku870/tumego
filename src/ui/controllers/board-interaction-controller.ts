@@ -1,4 +1,4 @@
-import { UIElements, Position, DEFAULT_CONFIG, Preferences } from "../../types.js";
+import { UIElements, Position, DEFAULT_CONFIG } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
 import {
@@ -11,6 +11,8 @@ import {
   NormalizedPointerInput,
   PointerButtonKind,
 } from "./pointer-input.js";
+import { UIEventBus } from "../../app/event-bus.js";
+import { PreferencesStore } from "../../services/preferences-store.js";
 
 export type BoardUpdateCallback = () => void;
 export type EraseModeDisabler = () => void;
@@ -49,9 +51,8 @@ export class BoardInteractionController {
     private readonly store: GameStore,
     private readonly elements: UIElements,
     private readonly uiState: UIInteractionState,
-    private readonly onBoardUpdated: BoardUpdateCallback,
-    private readonly disableEraseMode: EraseModeDisabler,
-    private readonly getPreferences: () => Preferences
+    private readonly eventBus: UIEventBus,
+    private readonly preferences: PreferencesStore
   ) {}
 
   initialize(): void {
@@ -195,20 +196,20 @@ export class BoardInteractionController {
     if (state.numberMode) {
       const color = this.uiState.drag.dragColor ?? this.store.currentColor;
       if (this.store.tryMove(pos, color)) {
-        this.onBoardUpdated();
+        this.eventBus.emitUIUpdate();
       }
       return;
     }
 
     // === 編集モード（numberMode = false） ==========================
-    const rulesMode = this.getPreferences().edit.rulesMode;
+    const rulesMode = this.preferences.state.edit.rulesMode;
     const color = this.uiState.drag.dragColor ?? this.store.currentColor;
     const placed =
       rulesMode === "standard"
         ? this.store.placeWithRulesInEdit(pos, color)
         : this.store.directPlace(pos, color);
     if (placed) {
-      this.onBoardUpdated();
+      this.eventBus.emitUIUpdate();
     }
   }
 
@@ -218,7 +219,7 @@ export class BoardInteractionController {
     // === 解答モード：SGF編集としての削除 ==========================
     if (state.numberMode) {
       if (this.store.removeStone(pos)) {
-        this.onBoardUpdated();
+        this.eventBus.emitUIUpdate();
         return true;
       }
       return false;
@@ -226,7 +227,7 @@ export class BoardInteractionController {
 
     // === 編集モード：盤面直接消し ==========================
     if (this.store.directRemove(pos)) {
-      this.onBoardUpdated();
+      this.eventBus.emitUIUpdate();
       return true;
     }
 
@@ -301,7 +302,7 @@ export class BoardInteractionController {
     }
 
     if (decision.type === "disableEraseMode") {
-      this.disableEraseMode();
+      this.eventBus.emitEraseModeDisable();
       return;
     }
 
