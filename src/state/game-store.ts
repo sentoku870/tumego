@@ -141,7 +141,6 @@ export class GameStore {
       return false;
     }
 
-    this.state.history.push(this.cloneBoard());
     this.state.board = result.board;
     this.state.turn++;
 
@@ -208,7 +207,6 @@ export class GameStore {
       return false;
     }
 
-    this.state.history.push(this.cloneBoard());
     this.state.board = result.board;
     this.state.turn++;
     this.cache.invalidate();
@@ -273,10 +271,6 @@ export class GameStore {
   // ============================================================
   // 公開: モード遷移（ModeOperations への委譲）
   // ============================================================
-
-  startNumberMode(color: StoneColor): void {
-    this.modeOps.startNumberMode(color);
-  }
 
   setProblemDiagram(): void {
     this.modeOps.setProblemDiagram();

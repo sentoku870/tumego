@@ -113,41 +113,4 @@ describe('GameStore initialization', () => {
       expect(state.problemDiagramBlack).toEqual([]);
     });
   });
-
-  describe('startNumberMode', () => {
-    test('enables number mode', () => {
-      state.numberMode = false;
-      store.startNumberMode(1);
-      expect(state.numberMode).toBe(true);
-    });
-
-    test('sets startColor to specified color', () => {
-      store.startNumberMode(2);
-      expect(state.startColor).toBe(2);
-    });
-
-    test('resets sgfIndex to 0', () => {
-      state.sgfIndex = 5;
-      store.startNumberMode(1);
-      expect(state.sgfIndex).toBe(0);
-    });
-
-    test('resets numberStartIndex to 0', () => {
-      state.numberStartIndex = 3;
-      store.startNumberMode(1);
-      expect(state.numberStartIndex).toBe(0);
-    });
-
-    test('resets turn to 0', () => {
-      state.turn = 10;
-      store.startNumberMode(1);
-      expect(state.turn).toBe(0);
-    });
-
-    test('clears history', () => {
-      state.history = [createBoard(9)];
-      store.startNumberMode(1);
-      expect(state.history).toEqual([]);
-    });
-  });
 });

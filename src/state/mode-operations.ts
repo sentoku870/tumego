@@ -134,19 +134,6 @@ export class ModeOperations {
     this.resetToEmptyEditState({ preserveProblemDiagram: true });
   }
 
-  /** 番号付き解答記録モードを開始する */
-  startNumberMode(color: StoneColor): void {
-    this.state.numberMode = true;
-    this.state.startColor = color;
-
-    this.state.numberStartIndex = 0;
-    this.state.sgfIndex = 0;
-
-    this.state.turn = 0;
-    this.state.history = [];
-    this.cache.invalidate();
-  }
-
   /** 現 state に問題図が設定されているか */
   hasProblemDiagram(): boolean {
     return this.state.problemDiagramSet;

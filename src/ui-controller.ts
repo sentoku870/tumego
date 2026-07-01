@@ -2,6 +2,11 @@
 import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
 import { AppContext, compositionRoot } from './app/composition-root.js';
 
+/** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
+const PHONE_BREAKPOINT = 640;
+/** 自動プロファイル判定でタブレットと判定する window.innerWidth の上限 (px) */
+const TABLET_BREAKPOINT = 1024;
+
 export class UIController {
   constructor(
     private readonly state: GameState,
@@ -101,8 +106,8 @@ export class UIController {
     }
 
     const width = window.innerWidth;
-    if (width < 640) return 'phone';
-    if (width < 1024) return 'tablet';
+    if (width < PHONE_BREAKPOINT) return 'phone';
+    if (width < TABLET_BREAKPOINT) return 'tablet';
     return 'desktop';
   }
 

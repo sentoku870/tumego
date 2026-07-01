@@ -173,16 +173,4 @@ describe('ModeOperations', () => {
     });
   });
 
-  describe('startNumberMode', () => {
-    test('sets startColor and resets counters', () => {
-      state.turn = 10;
-      state.sgfIndex = 5;
-      modeOps.startNumberMode(2);
-      expect(state.numberMode).toBe(true);
-      expect(state.startColor).toBe(2);
-      expect(state.turn).toBe(0);
-      expect(state.sgfIndex).toBe(0);
-      expect(state.numberStartIndex).toBe(0);
-    });
-  });
 });

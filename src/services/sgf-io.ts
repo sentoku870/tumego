@@ -3,6 +3,7 @@
 // 内部で SGFParser を参照して SGF テキストの解析/出力を行う。
 import { SGFParser } from '../sgf-parser.js';
 import { SGFParseResult } from '../types.js';
+import { copyToClipboard } from '../utils/clipboard.js';
 
 export class SGFIO {
   constructor(private readonly parser: SGFParser) {}
@@ -45,47 +46,7 @@ export class SGFIO {
   }
 
   async copyToClipboard(sgfData: string): Promise<void> {
-    const canUseClipboardApi = typeof navigator !== 'undefined' &&
-                               navigator.clipboard &&
-                               typeof navigator.clipboard.writeText === 'function';
-
-    if (canUseClipboardApi) {
-      try {
-        await navigator.clipboard.writeText(sgfData);
-        return;
-      } catch (error) {
-        // フォールバックを試みる
-      }
-    }
-
-    if (this.copyToClipboardFallback(sgfData)) {
-      return;
-    }
-
-    throw new Error('クリップボードにコピーできませんでした');
-  }
-
-  private copyToClipboardFallback(text: string): boolean {
-    try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.setAttribute('readonly', '');
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.top = '0';
-      textArea.style.left = '0';
-
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      textArea.setSelectionRange(0, text.length);
-
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return successful;
-    } catch (error) {
-      return false;
-    }
+    await copyToClipboard(sgfData);
   }
 
   // ============ ファイル保存 ============

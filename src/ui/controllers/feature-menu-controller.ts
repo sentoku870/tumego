@@ -5,6 +5,7 @@ import { UIElements } from '../../types.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { Modal } from '../views/modal.js';
+import { copyToClipboard } from '../../utils/clipboard.js';
 
 export type UIUpdater = () => void;
 
@@ -87,14 +88,12 @@ export class FeatureMenuController {
 
       const spoilerText = `||${sequence}||`;
 
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(spoilerText);
-          this.renderer.showMessage('解答手順をクリップボードにコピーしました');
-          return;
-        } catch (error) {
-          // Fallback handled below
-        }
+      try {
+        await copyToClipboard(spoilerText);
+        this.renderer.showMessage('解答手順をクリップボードにコピーしました');
+        return;
+      } catch (error) {
+        // 失敗時は SGF テキスト欄にフォールバック
       }
 
       const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
