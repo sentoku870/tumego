@@ -76,13 +76,16 @@ export class SGFParser {
     const initialWhite: Position[] = [];
 
     const collectSetup = (property: string, target: Position[]): void => {
-      const pattern = new RegExp(`${property}(?:\\[[a-z]{2}\\])+`, 'gi');
-      const matches = rawText.match(pattern);
-      if (!matches) return;
-
-      matches.forEach(match => {
-        const coords = match.match(/\[([a-z]{2})\]/gi);
-        if (!coords) return;
+      // \b で SGF プロパティ識別子の境界を保証し、
+      // lookahead で「次のプロパティ識別子」「;」「)」「終端」のいずれかを
+      // 要求することで、AB[aa][bb]AW[cc] のような隣接プロパティで
+      // AW 側の座標を AB 側に巻き込まないようにする (B2 修正)。
+      const pattern = new RegExp(`\\b${property}((?:\\[[a-z]{2}\\])+)(?=[A-Z]\\w*\\[|;|\\)|$)`, 'gi');
+      const matches = rawText.matchAll(pattern);
+      for (const match of matches) {
+        const coordGroup = match[1] ?? '';
+        const coords = coordGroup.match(/\[([a-z]{2})\]/gi);
+        if (!coords) continue;
 
         coords.forEach(coord => {
           const clean = coord.slice(1, -1).toLowerCase();
@@ -93,7 +96,7 @@ export class SGFParser {
             target.push({ col, row });
           }
         });
-      });
+      }
     };
 
     collectSetup('AB', initialBlack);
