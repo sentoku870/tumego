@@ -48,7 +48,7 @@ describe('GameStore', () => {
   });
 
   test('applies moves through the engine and records history', () => {
-    const success = store.tryMove({ col: 1, row: 1 }, 1);
+    const success = store.tryMove({ col: 1, row: 1 });
     expect(success).toBe(true);
     expect(state.board[1][1]).toBe(1);
     expect(state.turn).toBe(1);
@@ -57,7 +57,7 @@ describe('GameStore', () => {
   });
 
   test('removes only the targeted stone in free edit mode', () => {
-    store.tryMove({ col: 1, row: 1 }, 1);
+    store.tryMove({ col: 1, row: 1 });
     const removed = store.removeStone({ col: 1, row: 1 });
 
     expect(removed).toBe(true);
@@ -67,10 +67,10 @@ describe('GameStore', () => {
   });
 
   test('free edit removal keeps later stones intact', () => {
-    store.tryMove({ col: 0, row: 0 }, 1);
-    store.tryMove({ col: 1, row: 0 }, 2);
-    store.tryMove({ col: 2, row: 0 }, 1);
-    store.tryMove({ col: 3, row: 0 }, 2);
+    store.tryMove({ col: 0, row: 0 });
+    store.tryMove({ col: 1, row: 0 });
+    store.tryMove({ col: 2, row: 0 });
+    store.tryMove({ col: 3, row: 0 });
 
     const removed = store.removeStone({ col: 2, row: 0 });
 

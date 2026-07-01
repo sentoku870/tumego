@@ -48,6 +48,10 @@ export class ModeOperations {
 
   /** 現在の盤面を問題図として固定する */
   setProblemDiagram(): void {
+    if (hasGameData(this.state)) {
+      this.saveToHistory("問題図確定");
+    }
+
     const blackPositions: Position[] = [];
     const whitePositions: Position[] = [];
 
@@ -80,8 +84,6 @@ export class ModeOperations {
     const baseBoard = this.cache.applyInitialSetup();
     this.state.board = baseBoard;
     this.cache.invalidate();
-
-    this.saveToHistory("問題図確定");
   }
 
   /** 問題図が設定済みの場合、問題図の状態に復元する */

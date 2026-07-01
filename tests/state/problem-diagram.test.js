@@ -92,12 +92,36 @@ describe('GameStore problem diagram', () => {
       expect(state.numberStartIndex).toBe(0);
     });
 
-    test('saves history with "問題図確定" label', () => {
+    test('saves history with "問題図確定" label only when game has data', () => {
       const saveCalls = [];
       history.save = (label, s) => saveCalls.push({ label, s });
+      // 空の盤面では保存されない
+      store.setProblemDiagram();
+      expect(saveCalls).toHaveLength(0);
+
+      // データがある場合は変更前にスナップショットが保存される
+      state.board[0][0] = 1;
+      state.board[1][1] = 2;
       store.setProblemDiagram();
       expect(saveCalls).toHaveLength(1);
       expect(saveCalls[0].label).toBe('問題図確定');
+    });
+
+    test('snapshot saves pre-mutation state so undo restores the original board', () => {
+      state.board[0][0] = 1;
+      state.board[1][1] = 1;
+      state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
+      state.sgfIndex = 1;
+
+      store.setProblemDiagram();
+
+      // Undo で変更前の状態に戻るはず
+      const restored = store.undo();
+      expect(restored).toBe(true);
+      expect(state.board[0][0]).toBe(1);
+      expect(state.board[1][1]).toBe(1);
+      expect(state.sgfMoves).toEqual([{ col: 0, row: 0, color: 1 }]);
+      expect(state.problemDiagramSet).toBe(false);
     });
 
     test('handles empty board', () => {

@@ -134,7 +134,7 @@ export class GameStore {
   // 公開: 着手・石操作
   // ============================================================
 
-  tryMove(pos: Position, color: StoneColor, record = true): boolean {
+  tryMove(pos: Position, record = true): boolean {
     const moveColor = this.currentColor;
     const result = this.engine.playMove(this.state, pos, moveColor);
     if (!result) {

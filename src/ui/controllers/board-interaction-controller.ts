@@ -195,8 +195,7 @@ export class BoardInteractionController {
 
     // === 解答モード（numberMode = true） ==========================
     if (state.numberMode) {
-      const color = this.uiState.drag.dragColor ?? this.store.currentColor;
-      if (this.store.tryMove(pos, color)) {
+      if (this.store.tryMove(pos)) {
         this.eventBus.emitUIUpdate();
       }
       return;
