@@ -1,8 +1,10 @@
 # 依存関係
 node_modules/
 
-# ビルド結果（任意 - distを含めるかは選択）
-dist/
+# ビルド結果 - docs/12-dist-handling.md に従い Git 管理対象（リリース時のみ更新）
+# 開発中に変更された dist/ を誤って commit しないための保険として
+# ローカルでは明示的に git add -f dist/ を行う運用ルールとする。
+# dist/
 
 # ログファイル
 *.log
