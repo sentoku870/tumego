@@ -43,27 +43,27 @@ describe('GameStore edge cases', () => {
   describe('tryMove edge cases', () => {
     test('rejects move on occupied position', () => {
       state.board[0][0] = 1;
-      const result = store.tryMove({ col: 0, row: 0 }, 2);
+      const result = store.tryMove({ col: 0, row: 0 });
       expect(result).toBe(false);
     });
 
     test('rejects move outside board (negative col)', () => {
-      const result = store.tryMove({ col: -1, row: 0 }, 1);
+      const result = store.tryMove({ col: -1, row: 0 });
       expect(result).toBe(false);
     });
 
     test('rejects move outside board (negative row)', () => {
-      const result = store.tryMove({ col: 0, row: -1 }, 1);
+      const result = store.tryMove({ col: 0, row: -1 });
       expect(result).toBe(false);
     });
 
     test('rejects move outside board (too large)', () => {
-      const result = store.tryMove({ col: 9, row: 0 }, 1);
+      const result = store.tryMove({ col: 9, row: 0 });
       expect(result).toBe(false);
     });
 
     test('accepts move on empty position', () => {
-      const result = store.tryMove({ col: 0, row: 0 }, 1);
+      const result = store.tryMove({ col: 0, row: 0 });
       expect(result).toBe(true);
       expect(state.board[0][0]).toBe(1);
     });

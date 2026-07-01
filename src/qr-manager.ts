@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG, GameState } from './types.js';
 import { SGFParser } from './sgf-parser.js';
 import { SGFShare } from './services/sgf-share.js';
 import { Modal } from './ui/views/modal.js';
+import { copyToClipboard as copyTextToClipboard } from './utils/clipboard.js';
 
 const SHARE_URL_LENGTH_LIMIT = 2000;
 
@@ -15,15 +16,42 @@ export class QRManager {
     private readonly sgfShare: SGFShare = new SGFShare(this.sgfParser)
   ) {}
 
+  // ============ ユーティリティ ============
+  /**
+   * 盤面状態に「共有すべき内容」が無いとみなせるかを判定する。
+   * - sgfMoves に着手が無く
+   * - 問題図もセットされておらず
+   * - 置石も無く
+   * - 盤上にも石が無い
+   * 場合に true を返す。
+   * 旧実装はエクスポート済み SGF の固定文字列と比較していたが、
+   * 13/19 路盤や KM 付きの場合に誤って「空ではない」と判定していたため修正。
+   */
+  private hasNoContent(state: GameState): boolean {
+    if (state.sgfMoves.length > 0) return false;
+    if (state.problemDiagramSet) return false;
+    if (state.handicapStones > 0) return false;
+
+    const board = state.board;
+    if (!Array.isArray(board)) return true;
+    for (const row of board) {
+      if (!Array.isArray(row)) continue;
+      for (const cell of row) {
+        if (cell !== 0) return false;
+      }
+    }
+    return true;
+  }
+
   // ============ QRコード作成 ============
   createSGFQRCode(state: GameState): void {
     try {
-      const sgfData = this.sgfParser.export(state);
-
-      if (!sgfData || sgfData.trim() === '' || sgfData === '(;GM[1]FF[4]SZ[9])') {
+      if (this.hasNoContent(state)) {
         alert('SGFデータがありません。まず石を配置してください。');
         return;
       }
+
+      const sgfData = this.sgfParser.export(state);
 
       this.showShareMethodSelection(sgfData);
     } catch (error) {
@@ -34,12 +62,12 @@ export class QRManager {
 
   async createDiscordShareLink(state: GameState): Promise<void> {
     try {
-      const sgfData = this.sgfParser.export(state);
-
-      if (!sgfData || sgfData.trim() === '' || sgfData === '(;GM[1]FF[4]SZ[9])') {
+      if (this.hasNoContent(state)) {
         alert('SGFデータがありません。まず石を配置してください。');
         return;
       }
+
+      const sgfData = this.sgfParser.export(state);
 
       const shareURL = this.sgfShare.createShareURL(sgfData);
 
@@ -63,9 +91,9 @@ export class QRManager {
       const markdownLink = `[${label}](${shareURL})`;
 
       try {
-        await navigator.clipboard.writeText(markdownLink);
+        await copyTextToClipboard(markdownLink);
       } catch (error) {
-        this.copyToClipboardFallback(markdownLink);
+        console.error('Discord共有リンクのクリップボード書き込みに失敗:', error);
       }
 
       alert(`Discord共有用のリンクをコピーしました！\n\n${markdownLink}`);
@@ -177,12 +205,10 @@ export class QRManager {
     const copyBtn = root.querySelector<HTMLButtonElement>('#qr-copy');
     copyBtn?.addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(data);
+        await copyTextToClipboard(data);
         alert('📋 データをクリップボードにコピーしました！');
       } catch (error) {
         console.error('コピー失敗:', error);
-        this.copyToClipboardFallback(data);
-        alert('📋 データをクリップボードにコピーしました！');
       }
     });
 
@@ -199,15 +225,6 @@ export class QRManager {
       maxWidth: '90%',
     });
     this.currentQrModal.open();
-  }
-
-  private copyToClipboardFallback(text: string): void {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
   }
 
   private buildDefaultDiscordLabel(state: GameState): string {

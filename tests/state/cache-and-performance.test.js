@@ -42,7 +42,7 @@ describe('GameStore cache and performance', () => {
 
   describe('cache invalidation', () => {
     test('tryMove updates board', () => {
-      const result = store.tryMove({ col: 0, row: 0 }, 1);
+      const result = store.tryMove({ col: 0, row: 0 });
       expect(result).toBe(true);
       expect(state.board[0][0]).toBe(1);
     });

@@ -134,14 +134,13 @@ export class GameStore {
   // 公開: 着手・石操作
   // ============================================================
 
-  tryMove(pos: Position, color: StoneColor, record = true): boolean {
+  tryMove(pos: Position, record = true): boolean {
     const moveColor = this.currentColor;
     const result = this.engine.playMove(this.state, pos, moveColor);
     if (!result) {
       return false;
     }
 
-    this.state.history.push(this.cloneBoard());
     this.state.board = result.board;
     this.state.turn++;
 
@@ -208,7 +207,6 @@ export class GameStore {
       return false;
     }
 
-    this.state.history.push(this.cloneBoard());
     this.state.board = result.board;
     this.state.turn++;
     this.cache.invalidate();
@@ -273,10 +271,6 @@ export class GameStore {
   // ============================================================
   // 公開: モード遷移（ModeOperations への委譲）
   // ============================================================
-
-  startNumberMode(color: StoneColor): void {
-    this.modeOps.startNumberMode(color);
-  }
 
   setProblemDiagram(): void {
     this.modeOps.setProblemDiagram();

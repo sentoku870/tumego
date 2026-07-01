@@ -48,6 +48,10 @@ export class ModeOperations {
 
   /** 現在の盤面を問題図として固定する */
   setProblemDiagram(): void {
+    if (hasGameData(this.state)) {
+      this.saveToHistory("問題図確定");
+    }
+
     const blackPositions: Position[] = [];
     const whitePositions: Position[] = [];
 
@@ -80,8 +84,6 @@ export class ModeOperations {
     const baseBoard = this.cache.applyInitialSetup();
     this.state.board = baseBoard;
     this.cache.invalidate();
-
-    this.saveToHistory("問題図確定");
   }
 
   /** 問題図が設定済みの場合、問題図の状態に復元する */
@@ -130,19 +132,6 @@ export class ModeOperations {
   /** 解答モードから空盤面の編集モードへ戻す */
   exitSolveModeToEmptyBoard(): void {
     this.resetToEmptyEditState({ preserveProblemDiagram: true });
-  }
-
-  /** 番号付き解答記録モードを開始する */
-  startNumberMode(color: StoneColor): void {
-    this.state.numberMode = true;
-    this.state.startColor = color;
-
-    this.state.numberStartIndex = 0;
-    this.state.sgfIndex = 0;
-
-    this.state.turn = 0;
-    this.state.history = [];
-    this.cache.invalidate();
   }
 
   /** 現 state に問題図が設定されているか */

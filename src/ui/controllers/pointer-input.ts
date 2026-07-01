@@ -62,6 +62,10 @@ function resolvePointerDevice(pointerType: string | undefined): PointerDevice {
 }
 
 function resolveColors(mode: PlayMode): { primary: StoneColor | null; secondary: StoneColor | null } {
+  // 注意: erase モード時はこの関数が返した colors は使われない。
+  // BoardInputStateMachine の pointerDownHandlers[erase:*] は
+  // color 引数を捨てて { type: 'startDrag', dragColor: null } を返すため、
+  // ここでは erase の判定をする必要がない。
   if (mode === 'alt') {
     return { primary: null, secondary: null };
   }

@@ -79,7 +79,7 @@ describe('Core consistency: GameStore state alignment', () => {
 
   test('Test2: playMove 1回での整合性', () => {
     const move = { col: 0, row: 0, color: 1 };
-    const success = store.tryMove(move, move.color);
+    const success = store.tryMove(move);
 
     expect(success).toBe(true);
     expect(state.sgfMoves).toHaveLength(1);
@@ -97,7 +97,7 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 0, row: 1, color: 1 }
     ];
 
-    moves.forEach((move) => store.tryMove(move, move.color));
+    moves.forEach((move) => store.tryMove(move));
 
     const undone = store.undo();
 
@@ -118,7 +118,7 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 2, row: 2, color: 1 }
     ];
 
-    moves.forEach((move) => store.tryMove(move, move.color));
+    moves.forEach((move) => store.tryMove(move));
 
     store.setMoveIndex(2);
     expect(state.sgfIndex).toBe(2);
@@ -173,7 +173,7 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 0, row: 1, color: 1 }
     ];
 
-    moves.forEach((move) => store.tryMove(move, move.color));
+    moves.forEach((move) => store.tryMove(move));
 
     const indexBefore = state.sgfIndex;
 
@@ -196,7 +196,7 @@ describe('Core consistency: GameStore state alignment', () => {
     state.numberMode = true;
     state.numberStartIndex = 0;
 
-    moves.forEach((move) => store.tryMove(move, move.color));
+    moves.forEach((move) => store.tryMove(move));
 
     const undone = store.undo();
 
@@ -215,7 +215,7 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 2, row: 2, color: 1 },
       { col: 3, row: 2, color: 2 }
     ];
-    solveMoves.forEach((move) => store.tryMove(move, move.color));
+    solveMoves.forEach((move) => store.tryMove(move));
 
     expect(state.numberMode).toBe(true);
     expect(state.sgfMoves).toHaveLength(solveMoves.length);
@@ -249,7 +249,7 @@ describe('Core consistency: GameStore state alignment', () => {
       { col: 3, row: 2, color: 2 },
       { col: 4, row: 4, color: 1 }
     ];
-    solveMoves.forEach((move) => store.tryMove(move, move.color));
+    solveMoves.forEach((move) => store.tryMove(move));
 
     expect(state.numberMode).toBe(true);
     expect(state.sgfMoves).toHaveLength(solveMoves.length);

@@ -139,7 +139,7 @@ describe('Extended Integration: SGF roundtrip coverage', () => {
     ];
 
     moveSequence.forEach(move => {
-      store.tryMove({ col: move.col, row: move.row }, move.color);
+      store.tryMove({ col: move.col, row: move.row });
     });
 
     history.save('after 5 moves', state);

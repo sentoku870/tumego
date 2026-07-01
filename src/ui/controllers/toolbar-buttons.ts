@@ -265,8 +265,11 @@ export class ToolbarButtons {
 
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
-      this.store.setMoveIndex(parseInt(target.value, 10));
-      this.eventBus.emitUIUpdate();
+      const value = parseInt(target.value, 10);
+      if (Number.isFinite(value)) {
+        this.store.setMoveIndex(value);
+        this.eventBus.emitUIUpdate();
+      }
     });
   }
 

@@ -86,8 +86,8 @@ describe('History snapshots and undo behavior', () => {
     store.setProblemDiagram();
 
     store.enterSolveMode();
-    store.tryMove({ col: 0, row: 1 }, 2);
-    store.tryMove({ col: 1, row: 1 }, 1);
+    store.tryMove({ col: 0, row: 1 });
+    store.tryMove({ col: 1, row: 1 });
 
     expect(state.numberMode).toBe(true);
     expect(store.undo()).toBe(true);
@@ -97,12 +97,12 @@ describe('History snapshots and undo behavior', () => {
   });
 
   test('step-back followed by a new move overwrites the move tail', () => {
-    store.tryMove({ col: 0, row: 0 }, 1);
-    store.tryMove({ col: 1, row: 0 }, 2);
-    store.tryMove({ col: 2, row: 0 }, 1);
+    store.tryMove({ col: 0, row: 0 });
+    store.tryMove({ col: 1, row: 0 });
+    store.tryMove({ col: 2, row: 0 });
 
     store.setMoveIndex(1);
-    store.tryMove({ col: 1, row: 1 }, 2);
+    store.tryMove({ col: 1, row: 1 });
 
     expect(state.sgfMoves).toEqual([
       { col: 0, row: 0, color: 1 },

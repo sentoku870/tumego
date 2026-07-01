@@ -98,6 +98,36 @@ describe('SGFParser', () => {
     expect(result.gameInfo.startColor).toBe(2);
   });
 
+  test('does not bleed AW coordinates into AB collection (B2 fix)', () => {
+    // 旧正規表現だと貪欲マッチで AB[aa][bb][cc] を 1 つの AB として拾い、
+    // 白の [cc] まで黒の初期石として取り込んでしまっていた。
+    const sgf = '(;GM[1]SZ[9]AB[aa][bb]AW[cc])';
+    const result = parser.parse(sgf);
+
+    expect(result.gameInfo.problemDiagramBlack).toEqual([
+      { col: 0, row: 0 },
+      { col: 1, row: 1 }
+    ]);
+    expect(result.gameInfo.problemDiagramWhite).toEqual([
+      { col: 2, row: 2 }
+    ]);
+  });
+
+  test('respects node boundaries for AB/AW setup', () => {
+    // 複数ノードにまたがる AB/AW プロパティが混ざらないこと
+    const sgf = '(;GM[1]SZ[9]AB[aa];AW[bb];AB[cc];AW[dd])';
+    const result = parser.parse(sgf);
+
+    expect(result.gameInfo.problemDiagramBlack).toEqual([
+      { col: 0, row: 0 },
+      { col: 2, row: 2 }
+    ]);
+    expect(result.gameInfo.problemDiagramWhite).toEqual([
+      { col: 1, row: 1 },
+      { col: 3, row: 3 }
+    ]);
+  });
+
   test('exports SGF with handicap stones and moves', () => {
     const state = createState({
       boardSize: 9,

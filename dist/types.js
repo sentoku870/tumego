@@ -1,0 +1,32 @@
+// ============ 基本型定義 ============
+// ============ 定数 ============
+export const DEFAULT_CONFIG = {
+    CELL_SIZE: 60,
+    MARGIN: 30,
+    STONE_RADIUS: 26,
+    STAR_RADIUS: 4,
+    MAX_BOARD_SIZE: 19,
+    MIN_BOARD_SIZE: 9,
+    DEFAULT_BOARD_SIZE: 9,
+    DEFAULT_KOMI: 6.5,
+    COORD_FONT_RATIO: 0.28,
+    MOVE_NUM_FONT_RATIO: 0.4,
+    COORD_LABEL_OFFSET_X: 20,
+    COORD_LABEL_OFFSET_Y: 15,
+    MOBILE_BREAKPOINT: 768,
+    MOBILE_HORIZONTAL_RESERVED: 250,
+    DESKTOP_HORIZONTAL_RESERVED: 350,
+    QR_DATA_SMALL: 800,
+    QR_DATA_MEDIUM: 1500,
+    QR_DATA_LARGE: 2500,
+    QR_IMAGE_SMALL: '300x300',
+    QR_IMAGE_MEDIUM: '400x400',
+    QR_IMAGE_LARGE: '500x500',
+    MOVE_NUM_BG_RADIUS_RATIO: 1.15,
+    MOVE_NUM_BORDER_MARGIN: 2,
+    MOVE_NUM_FONT_SCALE: 1.20,
+    MOVE_NUM_STROKE_RATIO: 0.22,
+    LAST_MOVE_HIGHLIGHT_OFFSET: 5,
+    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white'],
+};
+//# sourceMappingURL=types.js.map

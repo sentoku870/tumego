@@ -10,7 +10,6 @@ import {
 import {
   normalizePointerInput,
   NormalizedPointerInput,
-  PointerButtonKind,
 } from "./pointer-input.js";
 import { UIEventBus } from "../../app/event-bus.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
@@ -133,7 +132,6 @@ export class BoardInteractionController {
     this.focusBoard();
 
     const input = normalizePointerInput(event, this.state);
-    this.preventContextMenu(event, input.button);
 
     const handler = this.resolvePointerDownHandler(input);
     if (!handler) {
@@ -169,12 +167,16 @@ export class BoardInteractionController {
   }
 
   private handlePointerEnd(event: PointerEvent): void {
+    // pointercancel の場合も dragging フラグに関わらず capture を解放する
+    if (this.elements.svg.hasPointerCapture(event.pointerId)) {
+      this.elements.svg.releasePointerCapture(event.pointerId);
+    }
+
     if (!this.uiState.drag.dragging) {
       return;
     }
 
     this.uiState.resetDrag();
-    this.elements.svg.releasePointerCapture(event.pointerId);
   }
 
   private placeAtEvent(event: PointerEvent): void {
@@ -195,8 +197,7 @@ export class BoardInteractionController {
 
     // === 解答モード（numberMode = true） ==========================
     if (state.numberMode) {
-      const color = this.uiState.drag.dragColor ?? this.store.currentColor;
-      if (this.store.tryMove(pos, color)) {
+      if (this.store.tryMove(pos)) {
         this.eventBus.emitUIUpdate();
       }
       return;
@@ -267,15 +268,6 @@ export class BoardInteractionController {
   private focusBoard(): void {
     this.uiState.boardHasFocus = true;
     this.elements.boardWrapper.focus();
-  }
-
-  private preventContextMenu(
-    event: PointerEvent,
-    button: PointerButtonKind
-  ): void {
-    if (button === "secondary") {
-      event.preventDefault();
-    }
   }
 
   private resolvePointerDownHandler(
