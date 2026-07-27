@@ -37,22 +37,7 @@ export class ModeOperations {
         if (hasGameData(this.state)) {
             this.saveToHistory("問題図確定");
         }
-        const blackPositions = [];
-        const whitePositions = [];
-        for (let row = 0; row < this.state.boardSize; row++) {
-            for (let col = 0; col < this.state.boardSize; col++) {
-                const cell = this.state.board[row][col];
-                if (cell === 1) {
-                    blackPositions.push({ col, row });
-                }
-                else if (cell === 2) {
-                    whitePositions.push({ col, row });
-                }
-            }
-        }
-        this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
-        this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
-        this.state.problemDiagramSet = true;
+        this.captureBoardAsProblemDiagram();
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
         this.state.gameTree = null;
@@ -72,7 +57,11 @@ export class ModeOperations {
         if (!this.state.problemDiagramSet) {
             return;
         }
+        if (this.state.sgfMoves.length > 0) {
+            this.saveToHistory("問題図復元");
+        }
         this.state.sgfIndex = 0;
+        this.state.sgfMoves = [];
         const baseBoard = this.cache.applyInitialSetup();
         this.state.board = baseBoard;
         const counts = this.cache.resetCapturedCountsTimeline();
@@ -88,6 +77,9 @@ export class ModeOperations {
     /** 解答モードへ入る（問題図をベースにしたクリーンな盤面から開始） */
     enterSolveMode() {
         this.saveToHistory(`解答開始前（${this.state.sgfMoves.length}手）`);
+        if (!this.state.problemDiagramSet) {
+            this.captureBoardAsProblemDiagram();
+        }
         if (this.state.problemDiagramSet) {
             const baseBoard = this.cache.applyInitialSetup();
             this.state.board = baseBoard;
@@ -258,6 +250,29 @@ export class ModeOperations {
     }
     saveToHistory(label) {
         this.history.save(label, this.state);
+    }
+    /**
+     * 内部: 現在の盤面を問題図として state.problemDiagram* にキャプチャする。
+     * 履歴保存は行わない。setProblemDiagram と enterSolveMode の自動昇格から
+     * 重複して履歴を積むのを避けるために分離している。
+     */
+    captureBoardAsProblemDiagram() {
+        const blackPositions = [];
+        const whitePositions = [];
+        for (let row = 0; row < this.state.boardSize; row++) {
+            for (let col = 0; col < this.state.boardSize; col++) {
+                const cell = this.state.board[row][col];
+                if (cell === 1) {
+                    blackPositions.push({ col, row });
+                }
+                else if (cell === 2) {
+                    whitePositions.push({ col, row });
+                }
+            }
+        }
+        this.state.problemDiagramBlack = blackPositions.map((pos) => ({ ...pos }));
+        this.state.problemDiagramWhite = whitePositions.map((pos) => ({ ...pos }));
+        this.state.problemDiagramSet = true;
     }
 }
 //# sourceMappingURL=mode-operations.js.map

@@ -4,6 +4,7 @@
 import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
+import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
 import { PreferencesStore } from '../../services/preferences-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
@@ -18,6 +19,7 @@ export class ToolbarController {
     private readonly store: GameStore,
     private readonly renderer: Renderer,
     private readonly boardCapture: BoardCaptureService,
+    private readonly sgfService: SGFService,
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus,
     private readonly preferences: PreferencesStore
@@ -26,6 +28,7 @@ export class ToolbarController {
       store,
       renderer,
       boardCapture,
+      sgfService,
       elements,
       eventBus
     );

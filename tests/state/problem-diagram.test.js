@@ -190,6 +190,53 @@ describe('GameStore problem diagram', () => {
       // sgfIndex 0 -> turn 0
       expect(state.turn).toBe(0);
     });
+
+    test('clears sgfMoves so 1手進む does not replay moves (Issue 1 fix)', () => {
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.problemDiagramWhite = [];
+      state.sgfMoves = [
+        { col: 0, row: 1, color: 1 },
+        { col: 1, row: 1, color: 2 }
+      ];
+      state.sgfIndex = 2;
+      store.restoreProblemDiagram();
+      expect(state.sgfMoves).toEqual([]);
+      expect(state.sgfIndex).toBe(0);
+    });
+
+    test('saves history with "問題図復元" label when sgfMoves was non-empty', () => {
+      const saveCalls = [];
+      history.save = (label, s) => saveCalls.push({ label, s });
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.sgfMoves = [{ col: 0, row: 1, color: 1 }];
+      store.restoreProblemDiagram();
+      expect(saveCalls).toHaveLength(1);
+      expect(saveCalls[0].label).toBe('問題図復元');
+    });
+
+    test('does not save history when sgfMoves is empty', () => {
+      const saveCalls = [];
+      history.save = (label, s) => saveCalls.push({ label, s });
+      state.problemDiagramSet = true;
+      state.sgfMoves = [];
+      store.restoreProblemDiagram();
+      expect(saveCalls).toHaveLength(0);
+    });
+
+    test('consecutive restores after moves do not accumulate duplicate history', () => {
+      const saveCalls = [];
+      history.save = (label, s) => saveCalls.push({ label, s });
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.sgfMoves = [{ col: 0, row: 1, color: 1 }];
+      store.restoreProblemDiagram();
+      expect(saveCalls).toHaveLength(1);
+      // 復元後は sgfMoves が空になるので、以降の復元では履歴を積まない
+      store.restoreProblemDiagram();
+      expect(saveCalls).toHaveLength(1);
+    });
   });
 
   describe('hasProblemDiagram', () => {

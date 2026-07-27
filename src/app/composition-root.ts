@@ -63,6 +63,7 @@ export function compositionRoot(
     store,
     renderer,
     boardCapture,
+    sgfService,
     elements,
     eventBus,
     preferences

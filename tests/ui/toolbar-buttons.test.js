@@ -1,6 +1,10 @@
 import { ToolbarButtons } from '../../dist/ui/controllers/toolbar-buttons.js';
 import { Renderer } from '../../dist/renderer/renderer.js';
 import { BoardCaptureService } from '../../dist/services/board-capture-service.js';
+import { SGFService } from '../../dist/services/sgf-service.js';
+import { SGFParser } from '../../dist/sgf-parser.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
 import { GameStore } from '../../dist/state/game-store.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
@@ -71,7 +75,9 @@ describe('ToolbarButtons', () => {
     }));
     eventBus = new UIEventBus();
     const boardCapture = new BoardCaptureService(elements.svg, renderer);
-    buttons = new ToolbarButtons(store, renderer, boardCapture, elements, eventBus);
+    const sgfParser = new SGFParser();
+    const sgfService = new SGFService(sgfParser, store, new SGFIO(sgfParser), new SGFShare(sgfParser));
+    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus);
   });
 
   afterEach(() => {
@@ -147,6 +153,28 @@ describe('ToolbarButtons', () => {
       let threw = false;
       try { buttons.dispose(); } catch (e) { threw = true; }
       expect(threw).toBe(false);
+    });
+  });
+
+  describe('問題図ボタン (SGF テキスト欄更新)', () => {
+    test('問題図確定時に sgf-text の textarea が現在状態で更新される (Issue 5 fix)', () => {
+      const sgfTextarea = document.createElement('textarea');
+      sgfTextarea.id = 'sgf-text';
+      document.body.appendChild(sgfTextarea);
+
+      const problemBtn = document.createElement('button');
+      problemBtn.id = 'btn-problem';
+      document.body.appendChild(problemBtn);
+
+      state.board[0][0] = 1;
+      state.board[1][1] = 2;
+      buttons.bindAll();
+
+      problemBtn.click();
+
+      // sgfService.export() の結果が textarea に反映される
+      expect(sgfTextarea.value).toContain('AB[aa]');
+      expect(sgfTextarea.value).toContain('AW[bb]');
     });
   });
 });

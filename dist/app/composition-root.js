@@ -32,7 +32,7 @@ export function compositionRoot(state, elements) {
     const sgfShare = new SGFShare(sgfParser);
     const qrManager = new QRManager(sgfParser, sgfShare);
     const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
-    const toolbar = new ToolbarController(store, renderer, boardCapture, elements, eventBus, preferences);
+    const toolbar = new ToolbarController(store, renderer, boardCapture, sgfService, elements, eventBus, preferences);
     const board = new BoardInteractionController(store, elements, uiState, eventBus, preferences);
     const feature = new FeatureMenuController(dropdownManager, renderer, elements, store, sgfService, eventBus);
     const file = new FileMenuController(dropdownManager, sgfService, renderer, qrManager, store, eventBus);
