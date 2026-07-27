@@ -4,6 +4,7 @@
 import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
+import { SGFService } from '../../services/sgf-service.js';
 import { UIElements, PlayMode } from '../../types.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
@@ -27,6 +28,7 @@ export class ToolbarButtons {
     private readonly store: GameStore,
     private readonly renderer: Renderer,
     private readonly boardCapture: BoardCaptureService,
+    private readonly sgfService: SGFService,
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus
   ) {}
@@ -249,6 +251,7 @@ export class ToolbarButtons {
       if (!state.numberMode) {
         this.store.setProblemDiagram();
         this.store.setAnswerMode('black');
+        this.refreshSgfTextarea();
         this.eventBus.emitUIUpdate();
         this.renderer.showMessage('問題図を確定しました');
       } else {
@@ -291,6 +294,13 @@ export class ToolbarButtons {
     this.setActiveButton(buttonElement, 'play-btn');
 
     this.eventBus.emitUIUpdate();
+  }
+
+  private refreshSgfTextarea(): void {
+    const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+    if (sgfTextarea) {
+      sgfTextarea.value = this.sgfService.export();
+    }
   }
 
   private setActiveButton(element: Element, groupClass: string): void {

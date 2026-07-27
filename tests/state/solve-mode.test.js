@@ -104,6 +104,44 @@ describe('GameStore solve mode', () => {
       expect(state.sgfMoves).toEqual([]);
       expect(state.sgfIndex).toBe(0);
     });
+
+    test('auto-captures current board as problem diagram when not set (Judgment 1 = A)', () => {
+      state.problemDiagramSet = false;
+      state.board[0][0] = 1;
+      state.board[1][1] = 2;
+      state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
+      state.sgfIndex = 1;
+      store.enterSolveMode();
+      // 現在の盤面が自動的に問題図として確定される
+      expect(state.problemDiagramSet).toBe(true);
+      expect(state.problemDiagramBlack).toEqual([{ col: 0, row: 0 }]);
+      expect(state.problemDiagramWhite).toEqual([{ col: 1, row: 1 }]);
+      expect(state.board[0][0]).toBe(1);
+      expect(state.board[1][1]).toBe(2);
+      // sgfMoves はクリーンに
+      expect(state.sgfMoves).toEqual([]);
+      expect(state.sgfIndex).toBe(0);
+    });
+
+    test('does not save duplicate "問題図確定" history when auto-promoting', () => {
+      const saveCalls = [];
+      history.save = (label, s) => saveCalls.push({ label, s });
+      state.problemDiagramSet = false;
+      state.board[0][0] = 1;
+      store.enterSolveMode();
+      // 履歴には "解答開始前" のみ記録される（"問題図確定" は記録されない）
+      const labels = saveCalls.map((c) => c.label);
+      expect(labels).toEqual([`解答開始前（0手）`]);
+    });
+
+    test('auto-promotion also works on empty board (Judgment 3 = B)', () => {
+      state.problemDiagramSet = false;
+      store.enterSolveMode();
+      expect(state.problemDiagramSet).toBe(true);
+      expect(state.problemDiagramBlack).toEqual([]);
+      expect(state.problemDiagramWhite).toEqual([]);
+      expect(state.numberMode).toBe(true);
+    });
   });
 
   describe('exitSolveModeToEmptyBoard', () => {

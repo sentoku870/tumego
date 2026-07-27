@@ -5,6 +5,10 @@ import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
 import { Renderer } from '../dist/renderer/renderer.js';
 import { PreferencesStore } from '../dist/services/preferences-store.js';
+import { SGFService } from '../dist/services/sgf-service.js';
+import { SGFParser } from '../dist/sgf-parser.js';
+import { SGFIO } from '../dist/services/sgf-io.js';
+import { SGFShare } from '../dist/services/sgf-share.js';
 import { UIEventBus } from '../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
@@ -53,7 +57,7 @@ const cleanupDOM = () => {
 };
 
 describe('ToolbarController', () => {
-  let store, state, renderer, boardCapture, controller, elements, eventBus, preferences;
+  let store, state, renderer, boardCapture, sgfService, controller, elements, eventBus, preferences;
 
   beforeEach(() => {
     cleanupDOM();
@@ -66,10 +70,12 @@ describe('ToolbarController', () => {
     preferences = new PreferencesStore();
     renderer = new Renderer(store, elements, () => preferences.state);
     boardCapture = new BoardCaptureService(elements.svg, renderer);
+    sgfService = new SGFService(new SGFParser(), store, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
     controller = new ToolbarController(
       store,
       renderer,
       boardCapture,
+      sgfService,
       elements,
       eventBus,
       preferences

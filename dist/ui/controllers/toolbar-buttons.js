@@ -1,9 +1,10 @@
 import { HistoryView } from '../views/history-view.js';
 export class ToolbarButtons {
-    constructor(store, renderer, boardCapture, elements, eventBus) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
+        this.sgfService = sgfService;
         this.elements = elements;
         this.eventBus = eventBus;
         this.clearBtn = null;
@@ -221,6 +222,7 @@ export class ToolbarButtons {
             if (!state.numberMode) {
                 this.store.setProblemDiagram();
                 this.store.setAnswerMode('black');
+                this.refreshSgfTextarea();
                 this.eventBus.emitUIUpdate();
                 this.renderer.showMessage('問題図を確定しました');
             }
@@ -258,6 +260,12 @@ export class ToolbarButtons {
         this.store.setMode(mode);
         this.setActiveButton(buttonElement, 'play-btn');
         this.eventBus.emitUIUpdate();
+    }
+    refreshSgfTextarea() {
+        const sgfTextarea = document.getElementById('sgf-text');
+        if (sgfTextarea) {
+            sgfTextarea.value = this.sgfService.export();
+        }
     }
     setActiveButton(element, groupClass) {
         document
