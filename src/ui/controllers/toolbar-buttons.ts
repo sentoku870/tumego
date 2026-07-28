@@ -182,6 +182,13 @@ export class ToolbarButtons {
     this.exitSolveBtn = this.exitSolveBtn ?? (document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null);
     this.markerBtn = this.markerBtn ?? (document.getElementById('btn-marker') as HTMLButtonElement | null);
     this.markerDropdown = this.markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
+    this.studyToolbar = this.studyToolbar ?? (document.getElementById('study-toolbar'));
+    this.studyModeBtn = this.studyModeBtn ?? (document.getElementById('btn-study-mode') as HTMLButtonElement | null);
+    this.studyParentBtn = this.studyParentBtn ?? (document.getElementById('btn-study-parent') as HTMLButtonElement | null);
+    this.studyCycleBtn = this.studyCycleBtn ?? (document.getElementById('btn-study-cycle') as HTMLButtonElement | null);
+    this.studyBranchBtn = this.studyBranchBtn ?? (document.getElementById('btn-study-branch') as HTMLButtonElement | null);
+    this.studyPromoteBtn = this.studyPromoteBtn ?? (document.getElementById('btn-study-promote') as HTMLButtonElement | null);
+    this.studyDeleteBtn = this.studyDeleteBtn ?? (document.getElementById('btn-study-delete') as HTMLButtonElement | null);
     this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
     this.markerLetterBtn = this.markerLetterBtn ?? (document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {

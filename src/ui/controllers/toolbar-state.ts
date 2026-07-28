@@ -144,6 +144,7 @@ export class ToolbarState {
 
     this.updateProblemButtonState();
     this.updateAnswerButtonDisplay();
+    this.updateStudyModeVisibility();
   }
 
   updateFullResetVisibility(): void {

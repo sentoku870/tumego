@@ -149,7 +149,7 @@ export class ToolbarButtons {
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -163,8 +163,15 @@ export class ToolbarButtons {
         this.exitSolveBtn = (_l = this.exitSolveBtn) !== null && _l !== void 0 ? _l : document.getElementById('btn-exit-solve-edit');
         this.markerBtn = (_m = this.markerBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker');
         this.markerDropdown = (_o = this.markerDropdown) !== null && _o !== void 0 ? _o : document.getElementById('marker-dropdown');
-        this.markerClearBtn = (_p = this.markerClearBtn) !== null && _p !== void 0 ? _p : document.getElementById('btn-marker-clear');
-        this.markerLetterBtn = (_q = this.markerLetterBtn) !== null && _q !== void 0 ? _q : document.getElementById('btn-marker-select-LB');
+        this.studyToolbar = (_p = this.studyToolbar) !== null && _p !== void 0 ? _p : (document.getElementById('study-toolbar'));
+        this.studyModeBtn = (_q = this.studyModeBtn) !== null && _q !== void 0 ? _q : document.getElementById('btn-study-mode');
+        this.studyParentBtn = (_r = this.studyParentBtn) !== null && _r !== void 0 ? _r : document.getElementById('btn-study-parent');
+        this.studyCycleBtn = (_s = this.studyCycleBtn) !== null && _s !== void 0 ? _s : document.getElementById('btn-study-cycle');
+        this.studyBranchBtn = (_t = this.studyBranchBtn) !== null && _t !== void 0 ? _t : document.getElementById('btn-study-branch');
+        this.studyPromoteBtn = (_u = this.studyPromoteBtn) !== null && _u !== void 0 ? _u : document.getElementById('btn-study-promote');
+        this.studyDeleteBtn = (_v = this.studyDeleteBtn) !== null && _v !== void 0 ? _v : document.getElementById('btn-study-delete');
+        this.markerClearBtn = (_w = this.markerClearBtn) !== null && _w !== void 0 ? _w : document.getElementById('btn-marker-clear');
+        this.markerLetterBtn = (_x = this.markerLetterBtn) !== null && _x !== void 0 ? _x : document.getElementById('btn-marker-select-LB');
         for (const kind of MARKER_KINDS) {
             if (kind === 'LB')
                 continue; // LB は単一の cycling ボタン

@@ -122,6 +122,7 @@ export class ToolbarState {
         this.setDisabled(this.buttons.markerClearBtn, !state.markers || state.markers.length === 0);
         this.updateProblemButtonState();
         this.updateAnswerButtonDisplay();
+        this.updateStudyModeVisibility();
     }
     updateFullResetVisibility() {
         if (!this.buttons.clearBtn) {
