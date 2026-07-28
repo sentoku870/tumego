@@ -27,9 +27,11 @@ export class ToolbarState {
     const state = this.store.snapshot;
     const isStudy = state.studyMode;
 
+    // 検討ツールバー（操作系）は studyMode 中のみ表示
     if (this.buttons.studyToolbar) {
       this.buttons.studyToolbar.style.display = isStudy ? '' : 'none';
     }
+    // トグルボタンは常時表示。ON 時は色変え＋ラベル変更
     if (this.buttons.studyModeBtn) {
       this.buttons.studyModeBtn.textContent = isStudy ? '🔍 検討ON' : '🔍 検討';
       this.buttons.studyModeBtn.classList.toggle('active', isStudy);

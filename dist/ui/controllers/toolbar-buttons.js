@@ -66,7 +66,7 @@ export class ToolbarButtons {
         this.studyPromoteBtn = document.getElementById('btn-study-promote');
         this.studyDeleteBtn = document.getElementById('btn-study-delete');
         if (this.studyModeBtn) {
-            this.studyModeBtn.title = '検討モードを開始／終了します（編集・解答とは別の第3の状態）';
+            this.studyModeBtn.title = '検討モードをON／OFFします（編集・解答に並ぶ第3の状態。分岐図の読み書き・別解の追加ができる）';
         }
         (_a = this.studyModeBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             const state = this.store.snapshot;
@@ -76,7 +76,7 @@ export class ToolbarButtons {
             }
             else {
                 this.store.enterStudyMode();
-                this.renderer.showMessage('検討モード開始：＋別解ボタンで別解を追加できます');
+                this.renderer.showMessage('🔍 検討モード開始：盤面クリックで別解を追加。⬆親／🔄切替／＋別解／⭐主昇格／✕削除が下に出ます');
             }
             this.eventBus.emitUIUpdate();
             this.eventBus.emitAnswerButtonUpdate();

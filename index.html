@@ -62,14 +62,15 @@
           <button class="ctrl-btn play-btn" id="btn-white" title="編集モードで白石を配置します">白配置</button>
           <button class="ctrl-btn" id="btn-prev-move" title="棋譜・解答手順を1手だけさかのぼります">1手戻る</button>
           <button class="ctrl-btn" id="btn-next-move" title="棋譜・解答手順を1手だけ進めます">1手進む</button>
+          <!-- 検討モード トグル（常時表示。編集・解答・view のいずれからも開始できる） -->
+          <button class="ctrl-btn study-btn" id="btn-study-mode" title="検討モードをON／OFFします（編集・解答に並ぶ第3の状態。分岐図の読み書き・別解の追加ができる）">🔍 検討</button>
         </div>
 
-        <!-- 検討モード用ツールバー（studyMode 中のみ表示） -->
+        <!-- 検討モード用 行（studyMode 中のみ表示）。主／副分岐の切替や別解追加など -->
         <div class="sgf-row" id="study-toolbar" style="display:none;">
-          <button class="ctrl-btn study-btn" id="btn-study-mode" title="検討モードを開始／終了します（編集・解答とは別の第3の状態）">🔍 検討</button>
           <button class="ctrl-btn study-nav-btn" id="btn-study-parent" title="親ノードへ移動します">⬆ 親</button>
           <button class="ctrl-btn study-nav-btn" id="btn-study-cycle" title="主／副分岐を切替えます（兄弟間循環）">🔄 切替</button>
-          <button class="ctrl-btn study-branch-btn" id="btn-study-branch" title="現在のノードから別解として着手します">＋ 別解</button>
+          <button class="ctrl-btn study-branch-btn" id="btn-study-branch" title="現在のノードから別解として着手します（盤面をクリック）">＋ 別解</button>
           <button class="ctrl-btn study-branch-btn" id="btn-study-promote" title="現在の副分岐を主分岐に昇格します">⭐ 主昇格</button>
           <button class="ctrl-btn study-branch-btn" id="btn-study-delete" title="現在の副分岐を削除します">✕ 削除</button>
         </div>
