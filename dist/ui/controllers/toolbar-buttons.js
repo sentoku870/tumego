@@ -39,8 +39,7 @@ export class ToolbarButtons {
         this.studyParentBtn = null;
         this.studyCycleBtn = null;
         this.studyBranchBtn = null;
-        this.studyPromoteBtn = null;
-        this.studyDeleteBtn = null;
+        this.studyMainBtn = null;
         this.unsubscribeFromEventBus = null;
         this.unsubscribeMarkerDocument = null;
     }
@@ -57,26 +56,25 @@ export class ToolbarButtons {
         });
     }
     bindStudyModeButtons() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e;
         this.studyToolbar = document.getElementById('study-toolbar');
         this.studyModeBtn = document.getElementById('btn-study-mode');
         this.studyParentBtn = document.getElementById('btn-study-parent');
         this.studyCycleBtn = document.getElementById('btn-study-cycle');
         this.studyBranchBtn = document.getElementById('btn-study-branch');
-        this.studyPromoteBtn = document.getElementById('btn-study-promote');
-        this.studyDeleteBtn = document.getElementById('btn-study-delete');
+        this.studyMainBtn = document.getElementById('btn-study-main');
         if (this.studyModeBtn) {
-            this.studyModeBtn.title = '検討モードをON／OFFします（編集・解答に並ぶ第3の状態。分岐図の読み書き・別解の追加ができる）';
+            this.studyModeBtn.title = '検討モードをON／OFFします。押した瞬間に副分岐へ自動遷移／主分化へ戻る動作';
         }
         (_a = this.studyModeBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             const state = this.store.snapshot;
             if (state.studyMode) {
                 this.store.exitStudyMode();
-                this.renderer.showMessage('検討モードを終了しました');
+                this.renderer.showMessage('検討モードを終了し主分化へ戻りました');
             }
             else {
                 this.store.enterStudyMode();
-                this.renderer.showMessage('🔍 検討モード開始：盤面クリックで別解を追加。⬆親／🔄切替／＋別解／⭐主昇格／✕削除が下に出ます');
+                this.renderer.showMessage('🔍 検討モード開始：副分岐へ自動遷移。⬆親／🔄切替／＋別解／🏠主に戻るが下に出ます');
             }
             this.eventBus.emitUIUpdate();
             this.eventBus.emitAnswerButtonUpdate();
@@ -105,36 +103,23 @@ export class ToolbarButtons {
         (_d = this.studyBranchBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
             if (!this.store.snapshot.studyMode)
                 return;
-            // 別解は現在の currentColor で着手する
-            // 実際には盤面クリックで tryMoveAsStudyStep が呼ばれるので、
-            // ここでは「次の着手は別解として追加される」フラグを立てる代わりに
-            // ユーザーへのヒントを出すだけに留める
             this.renderer.showMessage('盤面をクリックして別解を追加してください');
         });
-        if (this.studyPromoteBtn) {
-            this.studyPromoteBtn.title = '現在の副分岐を主分岐に昇格します';
+        if (this.studyMainBtn) {
+            this.studyMainBtn.title = '現在の副分岐を削除して主分化に戻ります。押した瞬間に現在の副分岐は破棄されるのでご注意ください';
         }
-        (_e = this.studyPromoteBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+        (_e = this.studyMainBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
             if (!this.store.snapshot.studyMode)
                 return;
-            this.store.promoteCurrentToMain();
-            this.renderer.showMessage('現在のノードを主分岐に昇格しました');
-            this.eventBus.emitUIUpdate();
-        });
-        if (this.studyDeleteBtn) {
-            this.studyDeleteBtn.title = '現在の副分岐を削除します';
-        }
-        (_f = this.studyDeleteBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
-            if (!this.store.snapshot.studyMode)
-                return;
-            const ok = this.store.deleteCurrentVariation();
-            if (ok) {
-                this.renderer.showMessage('副分岐を削除しました');
-                this.eventBus.emitUIUpdate();
+            const onVariation = this.store.isOnVariation();
+            this.store.returnToMain();
+            if (onVariation) {
+                this.renderer.showMessage('副分岐を破棄して主分化に戻りました');
             }
             else {
-                this.renderer.showMessage('主分岐は削除できません');
+                this.renderer.showMessage('主分化に戻りました');
             }
+            this.eventBus.emitUIUpdate();
         });
     }
     dispose() {
@@ -149,7 +134,7 @@ export class ToolbarButtons {
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -168,10 +153,9 @@ export class ToolbarButtons {
         this.studyParentBtn = (_r = this.studyParentBtn) !== null && _r !== void 0 ? _r : document.getElementById('btn-study-parent');
         this.studyCycleBtn = (_s = this.studyCycleBtn) !== null && _s !== void 0 ? _s : document.getElementById('btn-study-cycle');
         this.studyBranchBtn = (_t = this.studyBranchBtn) !== null && _t !== void 0 ? _t : document.getElementById('btn-study-branch');
-        this.studyPromoteBtn = (_u = this.studyPromoteBtn) !== null && _u !== void 0 ? _u : document.getElementById('btn-study-promote');
-        this.studyDeleteBtn = (_v = this.studyDeleteBtn) !== null && _v !== void 0 ? _v : document.getElementById('btn-study-delete');
-        this.markerClearBtn = (_w = this.markerClearBtn) !== null && _w !== void 0 ? _w : document.getElementById('btn-marker-clear');
-        this.markerLetterBtn = (_x = this.markerLetterBtn) !== null && _x !== void 0 ? _x : document.getElementById('btn-marker-select-LB');
+        this.studyMainBtn = (_u = this.studyMainBtn) !== null && _u !== void 0 ? _u : document.getElementById('btn-study-main');
+        this.markerClearBtn = (_v = this.markerClearBtn) !== null && _v !== void 0 ? _v : document.getElementById('btn-marker-clear');
+        this.markerLetterBtn = (_w = this.markerLetterBtn) !== null && _w !== void 0 ? _w : document.getElementById('btn-marker-select-LB');
         for (const kind of MARKER_KINDS) {
             if (kind === 'LB')
                 continue; // LB は単一の cycling ボタン

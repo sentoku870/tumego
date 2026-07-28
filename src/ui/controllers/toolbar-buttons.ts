@@ -43,8 +43,7 @@ export class ToolbarButtons {
   public studyParentBtn: HTMLButtonElement | null = null;
   public studyCycleBtn: HTMLButtonElement | null = null;
   public studyBranchBtn: HTMLButtonElement | null = null;
-  public studyPromoteBtn: HTMLButtonElement | null = null;
-  public studyDeleteBtn: HTMLButtonElement | null = null;
+  public studyMainBtn: HTMLButtonElement | null = null;
 
   private unsubscribeFromEventBus: (() => void) | null = null;
   private unsubscribeMarkerDocument: (() => void) | null = null;
@@ -80,21 +79,20 @@ export class ToolbarButtons {
     this.studyParentBtn = document.getElementById('btn-study-parent') as HTMLButtonElement | null;
     this.studyCycleBtn = document.getElementById('btn-study-cycle') as HTMLButtonElement | null;
     this.studyBranchBtn = document.getElementById('btn-study-branch') as HTMLButtonElement | null;
-    this.studyPromoteBtn = document.getElementById('btn-study-promote') as HTMLButtonElement | null;
-    this.studyDeleteBtn = document.getElementById('btn-study-delete') as HTMLButtonElement | null;
+    this.studyMainBtn = document.getElementById('btn-study-main') as HTMLButtonElement | null;
 
     if (this.studyModeBtn) {
-      this.studyModeBtn.title = '検討モードをON／OFFします（編集・解答に並ぶ第3の状態。分岐図の読み書き・別解の追加ができる）';
+      this.studyModeBtn.title = '検討モードをON／OFFします。押した瞬間に副分岐へ自動遷移／主分化へ戻る動作';
     }
     this.studyModeBtn?.addEventListener('click', () => {
       const state = this.store.snapshot;
       if (state.studyMode) {
         this.store.exitStudyMode();
-        this.renderer.showMessage('検討モードを終了しました');
+        this.renderer.showMessage('検討モードを終了し主分化へ戻りました');
       } else {
         this.store.enterStudyMode();
         this.renderer.showMessage(
-          '🔍 検討モード開始：盤面クリックで別解を追加。⬆親／🔄切替／＋別解／⭐主昇格／✕削除が下に出ます'
+          '🔍 検討モード開始：副分岐へ自動遷移。⬆親／🔄切替／＋別解／🏠主に戻るが下に出ます'
         );
       }
       this.eventBus.emitUIUpdate();
@@ -124,35 +122,22 @@ export class ToolbarButtons {
     }
     this.studyBranchBtn?.addEventListener('click', () => {
       if (!this.store.snapshot.studyMode) return;
-      // 別解は現在の currentColor で着手する
-      // 実際には盤面クリックで tryMoveAsStudyStep が呼ばれるので、
-      // ここでは「次の着手は別解として追加される」フラグを立てる代わりに
-      // ユーザーへのヒントを出すだけに留める
       this.renderer.showMessage('盤面をクリックして別解を追加してください');
     });
 
-    if (this.studyPromoteBtn) {
-      this.studyPromoteBtn.title = '現在の副分岐を主分岐に昇格します';
+    if (this.studyMainBtn) {
+      this.studyMainBtn.title = '現在の副分岐を削除して主分化に戻ります。押した瞬間に現在の副分岐は破棄されるのでご注意ください';
     }
-    this.studyPromoteBtn?.addEventListener('click', () => {
+    this.studyMainBtn?.addEventListener('click', () => {
       if (!this.store.snapshot.studyMode) return;
-      this.store.promoteCurrentToMain();
-      this.renderer.showMessage('現在のノードを主分岐に昇格しました');
-      this.eventBus.emitUIUpdate();
-    });
-
-    if (this.studyDeleteBtn) {
-      this.studyDeleteBtn.title = '現在の副分岐を削除します';
-    }
-    this.studyDeleteBtn?.addEventListener('click', () => {
-      if (!this.store.snapshot.studyMode) return;
-      const ok = this.store.deleteCurrentVariation();
-      if (ok) {
-        this.renderer.showMessage('副分岐を削除しました');
-        this.eventBus.emitUIUpdate();
+      const onVariation = this.store.isOnVariation();
+      this.store.returnToMain();
+      if (onVariation) {
+        this.renderer.showMessage('副分岐を破棄して主分化に戻りました');
       } else {
-        this.renderer.showMessage('主分岐は削除できません');
+        this.renderer.showMessage('主分化に戻りました');
       }
+      this.eventBus.emitUIUpdate();
     });
   }
 
@@ -187,8 +172,7 @@ export class ToolbarButtons {
     this.studyParentBtn = this.studyParentBtn ?? (document.getElementById('btn-study-parent') as HTMLButtonElement | null);
     this.studyCycleBtn = this.studyCycleBtn ?? (document.getElementById('btn-study-cycle') as HTMLButtonElement | null);
     this.studyBranchBtn = this.studyBranchBtn ?? (document.getElementById('btn-study-branch') as HTMLButtonElement | null);
-    this.studyPromoteBtn = this.studyPromoteBtn ?? (document.getElementById('btn-study-promote') as HTMLButtonElement | null);
-    this.studyDeleteBtn = this.studyDeleteBtn ?? (document.getElementById('btn-study-delete') as HTMLButtonElement | null);
+    this.studyMainBtn = this.studyMainBtn ?? (document.getElementById('btn-study-main') as HTMLButtonElement | null);
     this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
     this.markerLetterBtn = this.markerLetterBtn ?? (document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {

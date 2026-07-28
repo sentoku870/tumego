@@ -333,6 +333,20 @@ export class GameStore {
     this.modeOps.exitStudyMode();
   }
 
+  /** 主分岐へスナップ（検討モード中でも外でも） */
+  snapToMain(): void {
+    this.modeOps.snapToMain();
+    this.cache.invalidate();
+  }
+
+  /**
+   * 「🏠 主に戻る」ボタン用。現在の副分岐を削除して主分岐へスナップする。
+   */
+  returnToMain(): void {
+    this.modeOps.returnToMain();
+    this.cache.invalidate();
+  }
+
   /**
    * 現在の着手木の構造。
    */
@@ -349,7 +363,7 @@ export class GameStore {
 
   /**
    * currentNode を起点に、move を着手として追加する。
-   * studyMode=true かつ currentNode に既存の子がある場合は副分岐として追加する。
+   * 検討モード中は常に副分岐（isMainLine=false）として扱う。
    * 戻り値: 着手成功で true
    */
   tryMoveAsStudyStep(pos: Position, currentColor: StoneColor): boolean {
@@ -364,11 +378,12 @@ export class GameStore {
     this.state.board = result.board;
     this.state.turn++;
 
+    // 検討モード中は常に副分岐として追加
     const newNode = this.modeOps.appendMoveToCurrentNode({
       col: pos.col,
       row: pos.row,
       color: currentColor,
-    });
+    }, true);
     this.state.currentNodeId = newNode.id;
     this.modeOps.syncProjections();
 

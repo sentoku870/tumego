@@ -113,6 +113,10 @@ export class ModeOperations {
     /**
      * 検討モードに入る。現在の着手木を保持したまま、編集系操作（分岐着手・兄弟切替・削除）が
      * 可能になる。studyMode=true の間、numberMode は false。
+     *
+     * 動作:
+     * - 現在のノードの兄弟のうち、主分岐でないもの（副分岐）があれば、最初の副分岐へ自動遷移する
+     * - 副分岐がない場合は現在のノードに留まる
      */
     enterStudyMode() {
         if (this.state.studyMode)
@@ -121,13 +125,59 @@ export class ModeOperations {
         this.state.studyMode = true;
         this.state.numberMode = false;
         this.state.eraseMode = false;
+        // 副分岐を探す: 現在のノード以降の兄弟のうち、isMainLine=false な最初のもの
+        const current = this.findNodeById(this.state.currentNodeId);
+        if (current && current.parent) {
+            const siblings = current.parent.children;
+            const idx = siblings.findIndex(n => n.id === current.id);
+            const variation = siblings.slice(idx + 1).find(n => !n.isMainLine);
+            if (variation) {
+                this.state.currentNodeId = variation.id;
+                this.syncProjections();
+            }
+        }
     }
-    /** 検討モードを抜ける */
+    /** 検討モードを抜ける。主分岐（children[0] の連鎖）へスナップする。 */
     exitStudyMode() {
         if (!this.state.studyMode)
             return;
         this.saveToHistory(`検討モード終了（${this.state.sgfMoves.length}手）`);
         this.state.studyMode = false;
+        this.snapToMain();
+    }
+    /**
+     * 主分岐（children[0] の連鎖）へスナップする。検討モードのまま主分岐へ戻りたい時に使う。
+     * ゲーム木の最大の主ライン（root → children[0] → children[0] → ...）の末端へ移動する。
+     * 主分岐の継続がない（isMainLine=false な子しかない）ノードに到達したら、そこで停止する。
+     */
+    snapToMain() {
+        let node = this.state.sgfTree;
+        while (node.children.length > 0) {
+            const mainChild = node.children.find(c => c.isMainLine);
+            if (!mainChild)
+                break;
+            node = mainChild;
+        }
+        this.state.currentNodeId = node.id;
+        this.syncProjections();
+    }
+    /**
+     * 「🏠 主に戻る」ボタン用。現在の副分岐を削除して主分岐へスナップする。
+     * - 現在のノードが副分岐（parent.children の 1番目以降）にある場合、それを削除する
+     * - 削除後、主分岐末端へスナップする
+     * - 副分岐にいない場合は主分岐へスナップするだけ（何も削除しない）
+     */
+    returnToMain() {
+        const current = this.findNodeById(this.state.currentNodeId);
+        if (current && current.parent) {
+            const siblings = current.parent.children;
+            const idx = siblings.findIndex((n) => n.id === current.id);
+            if (idx > 0) {
+                // 副分岐なので削除（サブツリーごと破棄）
+                siblings.splice(idx, 1);
+            }
+        }
+        this.snapToMain();
     }
     /**
      * 指定ノードIDの SGFNode を取得する（ユーティリティ）
@@ -148,10 +198,12 @@ export class ModeOperations {
         return null;
     }
     /**
-     * currentNode に move を追加する。既存の子がある場合は副分岐として追加する。
+     * currentNode に move を追加する。
+     * forceAsVariation=true の場合は常に副分岐（isMainLine=false）として扱う。
+     * forceAsVariation=false の場合は、既存の子がないときのみ主分岐の継続として扱う。
      * 戻り値: 追加された新しいノード
      */
-    appendMoveToCurrentNode(move) {
+    appendMoveToCurrentNode(move, forceAsVariation = false) {
         const currentNode = this.findNodeById(this.state.currentNodeId);
         if (!currentNode) {
             throw new Error(`currentNode not found: ${this.state.currentNodeId}`);
@@ -161,7 +213,7 @@ export class ModeOperations {
             id: newId,
             parent: currentNode,
             children: [],
-            isMainLine: currentNode.children.length === 0,
+            isMainLine: !forceAsVariation && currentNode.children.length === 0,
             move: { ...move },
         };
         currentNode.children.push(newNode);

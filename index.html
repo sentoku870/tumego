@@ -66,13 +66,12 @@
           <button class="ctrl-btn study-btn" id="btn-study-mode" title="検討モードをON／OFFします（編集・解答に並ぶ第3の状態。分岐図の読み書き・別解の追加ができる）">🔍 検討</button>
         </div>
 
-        <!-- 検討モード用 行（studyMode 中のみ表示）。主／副分岐の切替や別解追加など -->
+        <!-- 検討モード用 行（studyMode 中のみ表示）。3ボタンでシンプルに -->
         <div class="sgf-row" id="study-toolbar" style="display:none;">
           <button class="ctrl-btn study-nav-btn" id="btn-study-parent" title="親ノードへ移動します">⬆ 親</button>
           <button class="ctrl-btn study-nav-btn" id="btn-study-cycle" title="主／副分岐を切替えます（兄弟間循環）">🔄 切替</button>
-          <button class="ctrl-btn study-branch-btn" id="btn-study-branch" title="現在のノードから別解として着手します（盤面をクリック）">＋ 別解</button>
-          <button class="ctrl-btn study-branch-btn" id="btn-study-promote" title="現在の副分岐を主分岐に昇格します">⭐ 主昇格</button>
-          <button class="ctrl-btn study-branch-btn" id="btn-study-delete" title="現在の副分岐を削除します">✕ 削除</button>
+          <button class="ctrl-btn study-branch-btn" id="btn-study-branch" title="現在のノードから別解として着手します。盤面をクリックしてください">＋ 別解</button>
+          <button class="ctrl-btn study-nav-btn" id="btn-study-main" title="現在の副分岐を削除して主分岐に戻ります。押した瞬間に現在の副分岐は破棄されるのでご注意ください">🏠 主に戻る</button>
         </div>
 
         <div class="sgf-row">

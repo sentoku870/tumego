@@ -30,13 +30,9 @@ export class ToolbarState {
         if (this.buttons.studyCycleBtn) {
             this.buttons.studyCycleBtn.disabled = !this.store.hasVariations();
         }
-        if (this.buttons.studyDeleteBtn) {
-            this.buttons.studyDeleteBtn.disabled =
-                this.store.isAtRoot() || !this.store.isOnVariation();
-        }
-        if (this.buttons.studyPromoteBtn) {
-            this.buttons.studyPromoteBtn.disabled =
-                this.store.isAtRoot() || !this.store.isOnVariation();
+        if (this.buttons.studyMainBtn) {
+            // 副分岐がいる時だけ意味がある（主分岐末端にいる時は無効）
+            this.buttons.studyMainBtn.disabled = !this.store.isOnVariation();
         }
     }
     disableEraseMode() {
