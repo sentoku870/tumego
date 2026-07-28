@@ -62,9 +62,7 @@ const setupAllDOM = () => {
    'btn-marker', 'btn-marker-clear', 'btn-marker-close',
    'btn-marker-select-CR', 'btn-marker-select-TR',
    'btn-marker-select-SQ', 'btn-marker-select-MA',
-   'btn-marker-select-LB-A', 'btn-marker-select-LB-B',
-   'btn-marker-select-LB-C', 'btn-marker-select-LB-D',
-   'btn-marker-select-LB-E'].forEach((id) => {
+   'btn-marker-select-LB'].forEach((id) => {
     const el = document.createElement('button');
     el.id = id;
     document.body.appendChild(el);

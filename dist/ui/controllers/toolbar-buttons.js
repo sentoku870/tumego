@@ -7,7 +7,7 @@ const MARKER_GLYPHS = {
     MA: '×',
     LB: 'A',
 };
-const MARKER_LETTERS = ['A', 'B', 'C', 'D', 'E'];
+const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'];
 export class ToolbarButtons {
     constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager) {
         this.store = store;
@@ -31,7 +31,7 @@ export class ToolbarButtons {
         this.markerBtn = null;
         this.markerDropdown = null;
         this.markerPaletteBtns = {};
-        this.markerLetterBtns = {};
+        this.markerLetterBtn = null;
         this.markerClearBtn = null;
         this.unsubscribeFromEventBus = null;
         this.unsubscribeMarkerDocument = null;
@@ -59,7 +59,7 @@ export class ToolbarButtons {
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -74,17 +74,13 @@ export class ToolbarButtons {
         this.markerBtn = (_m = this.markerBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker');
         this.markerDropdown = (_o = this.markerDropdown) !== null && _o !== void 0 ? _o : document.getElementById('marker-dropdown');
         this.markerClearBtn = (_p = this.markerClearBtn) !== null && _p !== void 0 ? _p : document.getElementById('btn-marker-clear');
+        this.markerLetterBtn = (_q = this.markerLetterBtn) !== null && _q !== void 0 ? _q : document.getElementById('btn-marker-select-LB');
         for (const kind of MARKER_KINDS) {
             if (kind === 'LB')
-                continue; // LB はレターごとに取得
+                continue; // LB は単一の cycling ボタン
             if (this.markerPaletteBtns[kind])
                 continue;
             this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`);
-        }
-        for (const letter of MARKER_LETTERS) {
-            if (this.markerLetterBtns[letter])
-                continue;
-            this.markerLetterBtns[letter] = document.getElementById(`btn-marker-select-LB-${letter}`);
         }
     }
     dispatchDisableEraseMode() {
@@ -337,14 +333,16 @@ export class ToolbarButtons {
                 this.handlePaletteItemSelect(kind, null);
             });
         }
-        // ラベル A〜E を選んだとき: LB + 該当文字をアクティブに
-        for (const letter of MARKER_LETTERS) {
-            const item = document.getElementById(`btn-marker-select-LB-${letter}`);
-            item === null || item === void 0 ? void 0 : item.addEventListener('click', () => {
-                this.dispatchDisableEraseMode();
-                this.handlePaletteItemSelect('LB', letter);
-            });
-        }
+        // ラベル (単一 cycling ボタン): 押すごとに A→B→C→D→E→A
+        const letterBtn = document.getElementById('btn-marker-select-LB');
+        letterBtn === null || letterBtn === void 0 ? void 0 : letterBtn.addEventListener('click', () => {
+            this.dispatchDisableEraseMode();
+            const state = this.store.snapshot;
+            const currentLabel = (state.activeMarkerKind === 'LB' ? state.activeMarkerLabel : null);
+            const idx = currentLabel ? MARKER_LETTER_SEQUENCE.indexOf(currentLabel) : -1;
+            const next = MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
+            this.handlePaletteItemSelect('LB', next);
+        });
         const clearBtn = document.getElementById('btn-marker-clear');
         clearBtn === null || clearBtn === void 0 ? void 0 : clearBtn.addEventListener('click', () => {
             this.store.clearMarkers();
@@ -397,11 +395,12 @@ export class ToolbarButtons {
                 continue;
             btn.classList.toggle('active', active === kind);
         }
-        for (const letter of MARKER_LETTERS) {
-            const btn = this.markerLetterBtns[letter];
-            if (!btn)
-                continue;
-            btn.classList.toggle('active', active === 'LB' && activeLabel === letter);
+        if (this.markerLetterBtn) {
+            this.markerLetterBtn.classList.toggle('active', active === 'LB');
+            const letterText = activeLabel !== null && activeLabel !== void 0 ? activeLabel : 'A';
+            if (this.markerLetterBtn.textContent !== letterText) {
+                this.markerLetterBtn.textContent = letterText;
+            }
         }
     }
     /**

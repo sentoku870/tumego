@@ -266,11 +266,9 @@ describe('ToolbarButtons', () => {
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
-        const b = document.createElement('button');
-        b.id = `btn-marker-select-LB-${letter}`;
-        dropdown.appendChild(b);
-      });
+      const letterBtn = document.createElement('button');
+      letterBtn.id = 'btn-marker-select-LB';
+      dropdown.appendChild(letterBtn);
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
       // 1) Activate marker mode by selecting a kind
@@ -293,11 +291,9 @@ describe('ToolbarButtons', () => {
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
-        const b = document.createElement('button');
-        b.id = `btn-marker-select-LB-${letter}`;
-        dropdown.appendChild(b);
-      });
+      const letterBtn = document.createElement('button');
+      letterBtn.id = 'btn-marker-select-LB';
+      dropdown.appendChild(letterBtn);
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
       trigger.click();
@@ -315,11 +311,9 @@ describe('ToolbarButtons', () => {
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
-        const b = document.createElement('button');
-        b.id = `btn-marker-select-LB-${letter}`;
-        dropdown.appendChild(b);
-      });
+      const letterBtn = document.createElement('button');
+      letterBtn.id = 'btn-marker-select-LB';
+      dropdown.appendChild(letterBtn);
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
       trigger.click();
@@ -338,11 +332,9 @@ describe('ToolbarButtons', () => {
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
-        const b = document.createElement('button');
-        b.id = `btn-marker-select-LB-${letter}`;
-        dropdown.appendChild(b);
-      });
+      const letterBtn = document.createElement('button');
+      letterBtn.id = 'btn-marker-select-LB';
+      dropdown.appendChild(letterBtn);
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
       trigger.click();
@@ -355,25 +347,39 @@ describe('ToolbarButtons', () => {
       expect(dropdown.classList.contains('show')).toBe(false);
     });
 
-    test('letter palette item sets activeMarkerKind=LB with the selected label', () => {
+    test('letter cycling button activates LB and advances A→B→C…on each press', () => {
       setupMarkerDOM();
       const dropdown = document.getElementById('marker-dropdown');
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
-        const b = document.createElement('button');
-        b.id = `btn-marker-select-LB-${letter}`;
-        dropdown.appendChild(b);
-      });
+      // 単一の cycling ボタン
+      const letterBtn = document.createElement('button');
+      letterBtn.id = 'btn-marker-select-LB';
+      dropdown.appendChild(letterBtn);
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
       trigger.click();
-      const letterC = document.getElementById('btn-marker-select-LB-C');
-      letterC.click();
+      const lbBtn = document.getElementById('btn-marker-select-LB');
+      // 1回目: LB + A
+      lbBtn.click();
       expect(state.activeMarkerKind).toBe('LB');
+      expect(state.activeMarkerLabel).toBe('A');
+      // 2回目: B に進む
+      lbBtn.click();
+      expect(state.activeMarkerLabel).toBe('B');
+      // 3回目: C に進む
+      lbBtn.click();
       expect(state.activeMarkerLabel).toBe('C');
-      expect(state.markerMode).toBe(true);
+      // 4回目: D に進む
+      lbBtn.click();
+      expect(state.activeMarkerLabel).toBe('D');
+      // 5回目: E に進む
+      lbBtn.click();
+      expect(state.activeMarkerLabel).toBe('E');
+      // 6回目: A に戻る（サイクル）
+      lbBtn.click();
+      expect(state.activeMarkerLabel).toBe('A');
       // パレットは開いたまま
       expect(dropdown.classList.contains('show')).toBe(true);
     });

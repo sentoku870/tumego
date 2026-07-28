@@ -18,7 +18,8 @@ const MARKER_GLYPHS: Record<MarkerKind, string> = {
   MA: '×',
   LB: 'A',
 };
-const MARKER_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
+const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'] as const;
+type MarkerLetter = (typeof MARKER_LETTER_SEQUENCE)[number];
 
 export class ToolbarButtons {
   public clearBtn: HTMLButtonElement | null = null;
@@ -35,7 +36,7 @@ export class ToolbarButtons {
   public markerBtn: HTMLButtonElement | null = null;
   public markerDropdown: HTMLElement | null = null;
   public markerPaletteBtns: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
-  public markerLetterBtns: Partial<Record<string, HTMLButtonElement | null>> = {};
+  public markerLetterBtn: HTMLButtonElement | null = null;
   public markerClearBtn: HTMLButtonElement | null = null;
 
   private unsubscribeFromEventBus: (() => void) | null = null;
@@ -92,14 +93,11 @@ export class ToolbarButtons {
     this.markerBtn = this.markerBtn ?? (document.getElementById('btn-marker') as HTMLButtonElement | null);
     this.markerDropdown = this.markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
     this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
+    this.markerLetterBtn = this.markerLetterBtn ?? (document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {
-      if (kind === 'LB') continue; // LB はレターごとに取得
+      if (kind === 'LB') continue; // LB は単一の cycling ボタン
       if (this.markerPaletteBtns[kind]) continue;
       this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
-    }
-    for (const letter of MARKER_LETTERS) {
-      if (this.markerLetterBtns[letter]) continue;
-      this.markerLetterBtns[letter] = document.getElementById(`btn-marker-select-LB-${letter}`) as HTMLButtonElement | null;
     }
   }
 
@@ -365,14 +363,16 @@ export class ToolbarButtons {
         this.handlePaletteItemSelect(kind, null);
       });
     }
-    // ラベル A〜E を選んだとき: LB + 該当文字をアクティブに
-    for (const letter of MARKER_LETTERS) {
-      const item = document.getElementById(`btn-marker-select-LB-${letter}`) as HTMLButtonElement | null;
-      item?.addEventListener('click', () => {
-        this.dispatchDisableEraseMode();
-        this.handlePaletteItemSelect('LB', letter);
-      });
-    }
+    // ラベル (単一 cycling ボタン): 押すごとに A→B→C→D→E→A
+    const letterBtn = document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null;
+    letterBtn?.addEventListener('click', () => {
+      this.dispatchDisableEraseMode();
+      const state = this.store.snapshot;
+      const currentLabel = (state.activeMarkerKind === 'LB' ? state.activeMarkerLabel : null) as MarkerLetter | null;
+      const idx = currentLabel ? MARKER_LETTER_SEQUENCE.indexOf(currentLabel) : -1;
+      const next = MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
+      this.handlePaletteItemSelect('LB', next);
+    });
     const clearBtn = document.getElementById('btn-marker-clear') as HTMLButtonElement | null;
     clearBtn?.addEventListener('click', () => {
       this.store.clearMarkers();
@@ -424,10 +424,12 @@ export class ToolbarButtons {
       if (!btn) continue;
       btn.classList.toggle('active', active === kind);
     }
-    for (const letter of MARKER_LETTERS) {
-      const btn = this.markerLetterBtns[letter];
-      if (!btn) continue;
-      btn.classList.toggle('active', active === 'LB' && activeLabel === letter);
+    if (this.markerLetterBtn) {
+      this.markerLetterBtn.classList.toggle('active', active === 'LB');
+      const letterText = activeLabel ?? 'A';
+      if (this.markerLetterBtn.textContent !== letterText) {
+        this.markerLetterBtn.textContent = letterText;
+      }
     }
   }
 

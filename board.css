@@ -99,16 +99,26 @@ svg.rotated .marker {
   border-color: var(--accent);
 }
 
-.menu-dropdown.marker-dropdown .marker-palette-letter {
-  min-width: 38px;
-  padding: 6px 8px;
-  font-size: 14px;
-}
-
 .menu-dropdown.marker-dropdown .marker-palette-action {
   grid-column: 1 / -1;
   font-size: 13px;
   font-weight: 500;
+}
+
+/* ===== マーカーメニュー: トリガーは自然幅、パレットは2列 ===== */
+.menu-container.marker-menu {
+  width: auto;
+  height: auto;
+}
+
+.menu-container.marker-menu > .ctrl-btn {
+  width: auto;
+  height: auto;
+}
+
+.menu-dropdown.marker-dropdown.show {
+  width: max-content;
+  max-width: 90vw;
 }
 
 /* ===== 情報表示 ===== */
