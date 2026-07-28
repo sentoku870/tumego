@@ -64,7 +64,9 @@ svg.rotated .marker {
 }
 
 /* ===== マーカー選択パレット ===== */
-.menu-dropdown.marker-dropdown {
+/* 既定は基底 .menu-dropdown の display: none を継承し、
+   .show が付与されたときだけグリッドで展開表示する。*/
+.menu-dropdown.marker-dropdown.show {
   display: grid;
   grid-template-columns: repeat(2, auto);
   gap: 4px;

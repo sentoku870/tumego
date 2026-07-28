@@ -220,6 +220,43 @@ describe('Renderer', () => {
       expect(content.includes('marker-cr')).toBe(false);
       expect(content.includes('marker-tr')).toBe(false);
     });
+
+    test('markers use inline stroke style so they survive SVG clone for board capture', () => {
+      // --accent を document.documentElement に設定（実際のテーマに合わせる）
+      document.documentElement.style.setProperty('--accent', '#ff8800');
+      state.markers = [
+        { pos: { col: 2, row: 2 }, kind: 'CR' },
+        { pos: { col: 3, row: 3 }, kind: 'TR' },
+        { pos: { col: 4, row: 4 }, kind: 'SQ' },
+        { pos: { col: 5, row: 5 }, kind: 'MA' },
+      ];
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, showMarkers: true } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      // SVG を clone して文字列化（board-capture-service と同じ処理）
+      const cloned = elements.svg.cloneNode(true);
+      const xml = new XMLSerializer().serializeToString(cloned);
+      // 各マーカーに --accent の解決値（インライン stroke）が含まれている
+      expect(xml).toContain('stroke: #ff8800');
+      // fill="none" もインラインで残っている（CR/TR/SQ）
+      expect(xml).toContain('fill: none');
+      // 後片付け
+      document.documentElement.style.removeProperty('--accent');
+    });
+
+    test('last-move highlight uses inline stroke style for board capture', () => {
+      document.documentElement.style.setProperty('--accent', '#00aaff');
+      state.sgfMoves = [{ col: 4, row: 4, color: 1 }];
+      state.sgfIndex = 1;
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, highlightLastMove: true } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      const cloned = elements.svg.cloneNode(true);
+      const xml = new XMLSerializer().serializeToString(cloned);
+      expect(xml).toContain('stroke: #00aaff');
+      expect(xml).toContain('fill: none');
+      document.documentElement.style.removeProperty('--accent');
+    });
   });
 
   describe('updateInfo()', () => {

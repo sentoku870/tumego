@@ -214,17 +214,29 @@ export class Renderer {
         });
     }
     drawLastMoveHighlight(highlight) {
+        // --accent を解決してインライン stroke として設定する（盤面保存の
+        // cloneNode(true) → SVG→PNG 変換で CSS クラスが効かないため）
+        const rootStyle = getComputedStyle(document.documentElement);
+        const accent = (rootStyle.getPropertyValue('--accent') || '#d9534f').trim();
         this.elements.svg.appendChild(this.createSVGElement('circle', {
             cx: highlight.cx.toString(),
             cy: highlight.cy.toString(),
             r: highlight.radius.toString(),
-            class: 'last-move-highlight'
+            class: 'last-move-highlight',
+            style: `fill: none; stroke: ${accent};`,
         }));
     }
     drawMarkers(markers) {
         if (!markers || markers.length === 0)
             return;
         const stroke = DEFAULT_CONFIG.MARKER_STROKE_WIDTH.toString();
+        // --accent を解決してインライン stroke として設定する。
+        // こうすると盤面保存時の cloneNode(true) → SVG→PNG 変換でも
+        // 外部 CSS に頼らずマーカー色が残る。
+        const rootStyle = getComputedStyle(document.documentElement);
+        const accent = (rootStyle.getPropertyValue('--accent') || '#d9534f').trim();
+        const markerStyle = `stroke: ${accent}; fill: none;`;
+        const maStyle = `stroke: ${accent};`;
         markers.forEach((m) => {
             const cx = m.cx.toString();
             const cy = m.cy.toString();
@@ -234,7 +246,7 @@ export class Renderer {
                     this.elements.svg.appendChild(this.createSVGElement('circle', {
                         cx, cy, r,
                         class: 'marker marker-cr',
-                        fill: 'none',
+                        style: markerStyle,
                         'stroke-width': stroke,
                     }));
                     break;
@@ -248,7 +260,7 @@ export class Renderer {
                     this.elements.svg.appendChild(this.createSVGElement('polygon', {
                         points,
                         class: 'marker marker-tr',
-                        fill: 'none',
+                        style: markerStyle,
                         'stroke-width': stroke,
                     }));
                     break;
@@ -262,7 +274,7 @@ export class Renderer {
                         x, y, width: size, height: size,
                         rx: '2', ry: '2',
                         class: 'marker marker-sq',
-                        fill: 'none',
+                        style: markerStyle,
                         'stroke-width': stroke,
                     }));
                     break;
@@ -276,6 +288,7 @@ export class Renderer {
                         x2: (m.cx + d).toString(),
                         y2: (m.cy + d).toString(),
                         class: 'marker marker-ma',
+                        style: maStyle,
                         'stroke-width': stroke,
                     }));
                     this.elements.svg.appendChild(this.createSVGElement('line', {
@@ -284,6 +297,7 @@ export class Renderer {
                         x2: (m.cx + d).toString(),
                         y2: (m.cy - d).toString(),
                         class: 'marker marker-ma',
+                        style: maStyle,
                         'stroke-width': stroke,
                     }));
                     break;
