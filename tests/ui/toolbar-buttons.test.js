@@ -273,5 +273,35 @@ describe('ToolbarButtons', () => {
       expect(state.activeMarkerKind).toBe(null);
       expect(dropdown.classList.contains('show')).toBe(false);
     });
+
+    test('closeMarkerPalette closes the dropdown without disabling marker mode', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      const dropdown = document.getElementById('marker-dropdown');
+      // Activate marker mode (palette closes on selection)
+      trigger.click();
+      document.getElementById('btn-marker-select-TR').click();
+      expect(state.markerMode).toBe(true);
+      expect(state.activeMarkerKind).toBe('TR');
+      // Simulate the palette being open (e.g., via external code or a test)
+      dropdown.classList.add('show');
+      // closeMarkerPalette should hide the palette but keep markerMode on
+      buttons.closeMarkerPalette();
+      expect(dropdown.classList.contains('show')).toBe(false);
+      expect(state.markerMode).toBe(true);
+      expect(state.activeMarkerKind).toBe('TR');
+    });
+
+    test('closeMarkerPalette is a no-op when palette is already closed', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const dropdown = document.getElementById('marker-dropdown');
+      expect(dropdown.classList.contains('show')).toBe(false);
+      // Should not throw
+      let threw = false;
+      try { buttons.closeMarkerPalette(); } catch (e) { threw = true; }
+      expect(threw).toBe(false);
+    });
   });
 });

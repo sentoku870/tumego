@@ -72,4 +72,8 @@ export class ToolbarController {
   updateFullResetVisibility(): void {
     this.state.updateFullResetVisibility();
   }
+
+  closeMarkerPalette(): void {
+    this.buttons.closeMarkerPalette();
+  }
 }

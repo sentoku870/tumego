@@ -3,12 +3,13 @@ import { isValidPosition } from "../../state/board-utils.js";
 import { BoardInputStateMachine, } from "./board-input-state-machine.js";
 import { normalizePointerInput, } from "./pointer-input.js";
 export class BoardInteractionController {
-    constructor(store, elements, uiState, eventBus, preferences) {
+    constructor(store, elements, uiState, eventBus, preferences, onBoardInteraction) {
         this.store = store;
         this.elements = elements;
         this.uiState = uiState;
         this.eventBus = eventBus;
         this.preferences = preferences;
+        this.onBoardInteraction = onBoardInteraction;
         this.inputStateMachine = new BoardInputStateMachine();
         this.pointerDownHandlers = {
             "erase:primary:*": ({ stateMachine }) => stateMachine.onErasePrimaryDown(),
@@ -82,7 +83,10 @@ export class BoardInteractionController {
         });
     }
     handlePointerDown(event) {
+        var _a;
         this.focusBoard();
+        // 盤面クリック時はマーカーパレットを閉じる（マーカー選択状態は維持）
+        (_a = this.onBoardInteraction) === null || _a === void 0 ? void 0 : _a.call(this);
         const input = normalizePointerInput(event, this.state);
         const handler = this.resolvePointerDownHandler(input);
         if (!handler) {

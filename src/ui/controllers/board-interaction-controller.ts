@@ -58,7 +58,8 @@ export class BoardInteractionController {
     private readonly elements: UIElements,
     private readonly uiState: UIInteractionState,
     private readonly eventBus: UIEventBus,
-    private readonly preferences: PreferencesStore
+    private readonly preferences: PreferencesStore,
+    private readonly onBoardInteraction?: () => void
   ) {}
 
   initialize(): void {
@@ -136,6 +137,9 @@ export class BoardInteractionController {
 
   private handlePointerDown(event: PointerEvent): void {
     this.focusBoard();
+
+    // 盤面クリック時はマーカーパレットを閉じる（マーカー選択状態は維持）
+    this.onBoardInteraction?.();
 
     const input = normalizePointerInput(event, this.state);
 

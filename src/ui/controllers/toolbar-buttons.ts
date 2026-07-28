@@ -392,6 +392,17 @@ export class ToolbarButtons {
     }
   }
 
+  /**
+   * 盤面クリック時など、外部要因でマーカーパレットを閉じたいときに呼ぶ。
+   * マーカー選択状態（markerMode）は維持したまま、パレットだけを閉じる。
+   */
+  public closeMarkerPalette(): void {
+    this.ensureButtonRefs();
+    if (this.markerDropdown && this.markerDropdown.classList.contains('show')) {
+      this.dropdownManager.hide(this.markerDropdown);
+    }
+  }
+
   private setMode(mode: PlayMode, buttonElement: Element): void {
     this.dispatchDisableEraseMode();
     this.store.setMode(mode);

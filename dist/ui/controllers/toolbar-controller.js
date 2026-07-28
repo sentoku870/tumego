@@ -35,5 +35,8 @@ export class ToolbarController {
     updateFullResetVisibility() {
         this.state.updateFullResetVisibility();
     }
+    closeMarkerPalette() {
+        this.buttons.closeMarkerPalette();
+    }
 }
 //# sourceMappingURL=toolbar-controller.js.map

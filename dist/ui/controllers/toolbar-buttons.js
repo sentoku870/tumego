@@ -361,6 +361,16 @@ export class ToolbarButtons {
             btn.classList.toggle('active', active === kind);
         }
     }
+    /**
+     * 盤面クリック時など、外部要因でマーカーパレットを閉じたいときに呼ぶ。
+     * マーカー選択状態（markerMode）は維持したまま、パレットだけを閉じる。
+     */
+    closeMarkerPalette() {
+        this.ensureButtonRefs();
+        if (this.markerDropdown && this.markerDropdown.classList.contains('show')) {
+            this.dropdownManager.hide(this.markerDropdown);
+        }
+    }
     setMode(mode, buttonElement) {
         this.dispatchDisableEraseMode();
         this.store.setMode(mode);
