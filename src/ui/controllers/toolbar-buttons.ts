@@ -37,6 +37,15 @@ export class ToolbarButtons {
   public markerLetterBtn: HTMLButtonElement | null = null;
   public markerClearBtn: HTMLButtonElement | null = null;
 
+  // 検討モード用
+  public studyToolbar: HTMLElement | null = null;
+  public studyModeBtn: HTMLButtonElement | null = null;
+  public studyParentBtn: HTMLButtonElement | null = null;
+  public studyCycleBtn: HTMLButtonElement | null = null;
+  public studyBranchBtn: HTMLButtonElement | null = null;
+  public studyPromoteBtn: HTMLButtonElement | null = null;
+  public studyDeleteBtn: HTMLButtonElement | null = null;
+
   private unsubscribeFromEventBus: (() => void) | null = null;
   private unsubscribeMarkerDocument: (() => void) | null = null;
 
@@ -58,9 +67,90 @@ export class ToolbarButtons {
     this.bindGameButtons();
     this.bindBoardSaveButton();
     this.bindMarkerMenu();
+    this.bindStudyModeButtons();
 
     this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
       this.dispatchDisableEraseMode();
+    });
+  }
+
+  private bindStudyModeButtons(): void {
+    this.studyToolbar = document.getElementById('study-toolbar');
+    this.studyModeBtn = document.getElementById('btn-study-mode') as HTMLButtonElement | null;
+    this.studyParentBtn = document.getElementById('btn-study-parent') as HTMLButtonElement | null;
+    this.studyCycleBtn = document.getElementById('btn-study-cycle') as HTMLButtonElement | null;
+    this.studyBranchBtn = document.getElementById('btn-study-branch') as HTMLButtonElement | null;
+    this.studyPromoteBtn = document.getElementById('btn-study-promote') as HTMLButtonElement | null;
+    this.studyDeleteBtn = document.getElementById('btn-study-delete') as HTMLButtonElement | null;
+
+    if (this.studyModeBtn) {
+      this.studyModeBtn.title = '検討モードを開始／終了します（編集・解答とは別の第3の状態）';
+    }
+    this.studyModeBtn?.addEventListener('click', () => {
+      const state = this.store.snapshot;
+      if (state.studyMode) {
+        this.store.exitStudyMode();
+        this.renderer.showMessage('検討モードを終了しました');
+      } else {
+        this.store.enterStudyMode();
+        this.renderer.showMessage('検討モード開始：＋別解ボタンで別解を追加できます');
+      }
+      this.eventBus.emitUIUpdate();
+      this.eventBus.emitAnswerButtonUpdate();
+    });
+
+    if (this.studyParentBtn) {
+      this.studyParentBtn.title = '親ノードへ移動します';
+    }
+    this.studyParentBtn?.addEventListener('click', () => {
+      if (!this.store.snapshot.studyMode) return;
+      this.store.navigateParent();
+      this.eventBus.emitUIUpdate();
+    });
+
+    if (this.studyCycleBtn) {
+      this.studyCycleBtn.title = '主／副分岐を切替えます（兄弟間循環）';
+    }
+    this.studyCycleBtn?.addEventListener('click', () => {
+      if (!this.store.snapshot.studyMode) return;
+      this.store.cycleSibling();
+      this.eventBus.emitUIUpdate();
+    });
+
+    if (this.studyBranchBtn) {
+      this.studyBranchBtn.title = '現在のノードから別解として着手します';
+    }
+    this.studyBranchBtn?.addEventListener('click', () => {
+      if (!this.store.snapshot.studyMode) return;
+      // 別解は現在の currentColor で着手する
+      // 実際には盤面クリックで tryMoveAsStudyStep が呼ばれるので、
+      // ここでは「次の着手は別解として追加される」フラグを立てる代わりに
+      // ユーザーへのヒントを出すだけに留める
+      this.renderer.showMessage('盤面をクリックして別解を追加してください');
+    });
+
+    if (this.studyPromoteBtn) {
+      this.studyPromoteBtn.title = '現在の副分岐を主分岐に昇格します';
+    }
+    this.studyPromoteBtn?.addEventListener('click', () => {
+      if (!this.store.snapshot.studyMode) return;
+      this.store.promoteCurrentToMain();
+      this.renderer.showMessage('現在のノードを主分岐に昇格しました');
+      this.eventBus.emitUIUpdate();
+    });
+
+    if (this.studyDeleteBtn) {
+      this.studyDeleteBtn.title = '現在の副分岐を削除します';
+    }
+    this.studyDeleteBtn?.addEventListener('click', () => {
+      if (!this.store.snapshot.studyMode) return;
+      const ok = this.store.deleteCurrentVariation();
+      if (ok) {
+        this.renderer.showMessage('副分岐を削除しました');
+        this.eventBus.emitUIUpdate();
+      } else {
+        this.renderer.showMessage('主分岐は削除できません');
+      }
     });
   }
 

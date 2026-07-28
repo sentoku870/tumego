@@ -96,13 +96,30 @@ export class RendererViewModelBuilder {
     const state = this.store.snapshot;
     const colorText = { 1: '黒', 2: '白' } as const;
 
-    const modeText = state.numberMode
-      ? '解答モード'
-      : ({ black: '黒配置', white: '白配置', alt: '自由配置' } as const)[state.mode];
+    const modeText = state.studyMode
+      ? '検討モード'
+      : state.numberMode
+        ? '解答モード'
+        : ({ black: '黒配置', white: '白配置', alt: '自由配置' } as const)[state.mode];
+
+    // 分岐数を計算（currentNode の兄弟数 - 1 が副分岐の数）
+    let branchInfo = '';
+    if (state.studyMode) {
+      const current = this.store.getCurrentNode();
+      if (current && current.parent) {
+        const variationCount = current.parent.children.length - 1;
+        if (variationCount > 0) {
+          branchInfo = `　副${variationCount}`;
+        }
+        if (current.children.length > 1) {
+          branchInfo += `　先分岐${current.children.length - 1}`;
+        }
+      }
+    }
 
     const moveInfo = state.sgfMoves.length > 0
-      ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}`
-      : '　手数: 0';
+      ? `　手数: ${state.sgfIndex}/${state.sgfMoves.length}${branchInfo}`
+      : `　手数: 0${branchInfo}`;
 
     const komiText = `　コミ: ${state.komi}目`;
 

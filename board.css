@@ -101,6 +101,37 @@ svg.rotated .marker {
   border-color: var(--accent);
 }
 
+/* ===== 検討モード用ボタン ===== */
+.ctrl-btn.study-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.ctrl-btn.study-branch-btn,
+.ctrl-btn.study-nav-btn {
+  background: #fff5e6;
+  border-color: #d99c4a;
+  color: #8a5a2b;
+}
+
+.ctrl-btn.study-branch-btn:hover:not(:disabled),
+.ctrl-btn.study-nav-btn:hover:not(:disabled) {
+  background: #ffe7c2;
+}
+
+.ctrl-btn.study-branch-btn:disabled,
+.ctrl-btn.study-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#study-toolbar {
+  border-top: 2px dashed #d99c4a;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
 .menu-dropdown.marker-dropdown .marker-palette-action {
   grid-column: 1 / -1;
   font-size: 13px;

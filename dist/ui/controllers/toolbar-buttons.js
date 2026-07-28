@@ -33,6 +33,14 @@ export class ToolbarButtons {
         this.markerPaletteBtns = {};
         this.markerLetterBtn = null;
         this.markerClearBtn = null;
+        // 検討モード用
+        this.studyToolbar = null;
+        this.studyModeBtn = null;
+        this.studyParentBtn = null;
+        this.studyCycleBtn = null;
+        this.studyBranchBtn = null;
+        this.studyPromoteBtn = null;
+        this.studyDeleteBtn = null;
         this.unsubscribeFromEventBus = null;
         this.unsubscribeMarkerDocument = null;
     }
@@ -43,8 +51,90 @@ export class ToolbarButtons {
         this.bindGameButtons();
         this.bindBoardSaveButton();
         this.bindMarkerMenu();
+        this.bindStudyModeButtons();
         this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
             this.dispatchDisableEraseMode();
+        });
+    }
+    bindStudyModeButtons() {
+        var _a, _b, _c, _d, _e, _f;
+        this.studyToolbar = document.getElementById('study-toolbar');
+        this.studyModeBtn = document.getElementById('btn-study-mode');
+        this.studyParentBtn = document.getElementById('btn-study-parent');
+        this.studyCycleBtn = document.getElementById('btn-study-cycle');
+        this.studyBranchBtn = document.getElementById('btn-study-branch');
+        this.studyPromoteBtn = document.getElementById('btn-study-promote');
+        this.studyDeleteBtn = document.getElementById('btn-study-delete');
+        if (this.studyModeBtn) {
+            this.studyModeBtn.title = '検討モードを開始／終了します（編集・解答とは別の第3の状態）';
+        }
+        (_a = this.studyModeBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+            const state = this.store.snapshot;
+            if (state.studyMode) {
+                this.store.exitStudyMode();
+                this.renderer.showMessage('検討モードを終了しました');
+            }
+            else {
+                this.store.enterStudyMode();
+                this.renderer.showMessage('検討モード開始：＋別解ボタンで別解を追加できます');
+            }
+            this.eventBus.emitUIUpdate();
+            this.eventBus.emitAnswerButtonUpdate();
+        });
+        if (this.studyParentBtn) {
+            this.studyParentBtn.title = '親ノードへ移動します';
+        }
+        (_b = this.studyParentBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+            if (!this.store.snapshot.studyMode)
+                return;
+            this.store.navigateParent();
+            this.eventBus.emitUIUpdate();
+        });
+        if (this.studyCycleBtn) {
+            this.studyCycleBtn.title = '主／副分岐を切替えます（兄弟間循環）';
+        }
+        (_c = this.studyCycleBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
+            if (!this.store.snapshot.studyMode)
+                return;
+            this.store.cycleSibling();
+            this.eventBus.emitUIUpdate();
+        });
+        if (this.studyBranchBtn) {
+            this.studyBranchBtn.title = '現在のノードから別解として着手します';
+        }
+        (_d = this.studyBranchBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+            if (!this.store.snapshot.studyMode)
+                return;
+            // 別解は現在の currentColor で着手する
+            // 実際には盤面クリックで tryMoveAsStudyStep が呼ばれるので、
+            // ここでは「次の着手は別解として追加される」フラグを立てる代わりに
+            // ユーザーへのヒントを出すだけに留める
+            this.renderer.showMessage('盤面をクリックして別解を追加してください');
+        });
+        if (this.studyPromoteBtn) {
+            this.studyPromoteBtn.title = '現在の副分岐を主分岐に昇格します';
+        }
+        (_e = this.studyPromoteBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            if (!this.store.snapshot.studyMode)
+                return;
+            this.store.promoteCurrentToMain();
+            this.renderer.showMessage('現在のノードを主分岐に昇格しました');
+            this.eventBus.emitUIUpdate();
+        });
+        if (this.studyDeleteBtn) {
+            this.studyDeleteBtn.title = '現在の副分岐を削除します';
+        }
+        (_f = this.studyDeleteBtn) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+            if (!this.store.snapshot.studyMode)
+                return;
+            const ok = this.store.deleteCurrentVariation();
+            if (ok) {
+                this.renderer.showMessage('副分岐を削除しました');
+                this.eventBus.emitUIUpdate();
+            }
+            else {
+                this.renderer.showMessage('主分岐は削除できません');
+            }
         });
     }
     dispose() {

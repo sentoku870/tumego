@@ -9,6 +9,33 @@ export class ToolbarState {
     updateAll() {
         this.updateFullResetVisibility();
         this.updateToolbarState();
+        this.updateStudyModeVisibility();
+    }
+    updateStudyModeVisibility() {
+        this.buttons.ensureButtonRefs();
+        const state = this.store.snapshot;
+        const isStudy = state.studyMode;
+        if (this.buttons.studyToolbar) {
+            this.buttons.studyToolbar.style.display = isStudy ? '' : 'none';
+        }
+        if (this.buttons.studyModeBtn) {
+            this.buttons.studyModeBtn.textContent = isStudy ? '🔍 検討ON' : '🔍 検討';
+            this.buttons.studyModeBtn.classList.toggle('active', isStudy);
+        }
+        if (this.buttons.studyParentBtn) {
+            this.buttons.studyParentBtn.disabled = this.store.isAtRoot();
+        }
+        if (this.buttons.studyCycleBtn) {
+            this.buttons.studyCycleBtn.disabled = !this.store.hasVariations();
+        }
+        if (this.buttons.studyDeleteBtn) {
+            this.buttons.studyDeleteBtn.disabled =
+                this.store.isAtRoot() || !this.store.isOnVariation();
+        }
+        if (this.buttons.studyPromoteBtn) {
+            this.buttons.studyPromoteBtn.disabled =
+                this.store.isAtRoot() || !this.store.isOnVariation();
+        }
     }
     disableEraseMode() {
         var _a;

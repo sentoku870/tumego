@@ -210,6 +210,15 @@ export class BoardInteractionController {
   private handlePlaceStone(pos: Position): void {
     const state = this.state;
 
+    // === 検討モード（studyMode = true） ==========================
+    if (state.studyMode) {
+      const color = this.uiState.drag.dragColor ?? this.store.currentColor;
+      if (this.store.tryMoveAsStudyStep(pos, color)) {
+        this.eventBus.emitUIUpdate();
+      }
+      return;
+    }
+
     // === 解答モード（numberMode = true） ==========================
     if (state.numberMode) {
       if (this.store.tryMove(pos)) {

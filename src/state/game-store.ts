@@ -320,6 +320,127 @@ export class GameStore {
   }
 
   // ============================================================
+  // 公開: 検討モード (study mode) API
+  // ============================================================
+
+  /** 検討モードに入る */
+  enterStudyMode(): void {
+    this.modeOps.enterStudyMode();
+  }
+
+  /** 検討モードを抜ける */
+  exitStudyMode(): void {
+    this.modeOps.exitStudyMode();
+  }
+
+  /**
+   * 現在の着手木の構造。
+   */
+  getSgfTree(): import("../types.js").SGFNode {
+    return this.state.sgfTree;
+  }
+
+  /**
+   * 現在の SGFNode を取得する。
+   */
+  getCurrentNode(): import("../types.js").SGFNode | null {
+    return this.modeOps.findNodeById(this.state.currentNodeId);
+  }
+
+  /**
+   * currentNode を起点に、move を着手として追加する。
+   * studyMode=true かつ currentNode に既存の子がある場合は副分岐として追加する。
+   * 戻り値: 着手成功で true
+   */
+  tryMoveAsStudyStep(pos: Position, currentColor: StoneColor): boolean {
+    if (!this.state.studyMode) {
+      // 検討モードでない場合は通常の tryMove を使う
+      this.tryMove(pos, true);
+      return true;
+    }
+
+    const result = this.engine.playMove(this.state, pos, currentColor);
+    if (!result) return false;
+    this.state.board = result.board;
+    this.state.turn++;
+
+    const newNode = this.modeOps.appendMoveToCurrentNode({
+      col: pos.col,
+      row: pos.row,
+      color: currentColor,
+    });
+    this.state.currentNodeId = newNode.id;
+    this.modeOps.syncProjections();
+
+    // キャッシュを invalidate して再構築
+    this.cache.invalidate();
+    return true;
+  }
+
+  /** currentNode の主分岐の子に移動 */
+  navigateToMainChild(): void {
+    this.modeOps.navigateToMainChild();
+    this.cache.invalidate();
+  }
+
+  /** currentNode の副分岐の子に移動 */
+  navigateToVariationSibling(): void {
+    this.modeOps.navigateToVariationSibling();
+    this.cache.invalidate();
+  }
+
+  /** currentNode の親ノードに戻る */
+  navigateParent(): void {
+    this.modeOps.navigateParent();
+    this.cache.invalidate();
+  }
+
+  /** 兄弟間で循環（主→副→主...） */
+  cycleSibling(): void {
+    this.modeOps.cycleSibling();
+    this.cache.invalidate();
+  }
+
+  /** 副分岐を削除 */
+  deleteCurrentVariation(): boolean {
+    const ok = this.modeOps.deleteCurrentVariation();
+    if (ok) this.cache.invalidate();
+    return ok;
+  }
+
+  /** 現在のノードを主分岐に昇格 */
+  promoteCurrentToMain(): void {
+    this.modeOps.promoteCurrentToMain();
+    this.cache.invalidate();
+  }
+
+  /** 現在のノードがルートかどうか */
+  isAtRoot(): boolean {
+    return this.state.currentNodeId === "root";
+  }
+
+  /** 現在のノードに主以外の兄弟がいるか */
+  hasVariations(): boolean {
+    const current = this.getCurrentNode();
+    if (!current || !current.parent) return false;
+    return current.parent.children.length > 1;
+  }
+
+  /** 現在のノードが副分岐か */
+  isOnVariation(): boolean {
+    const current = this.getCurrentNode();
+    if (!current || !current.parent) return false;
+    return current.parent.children.findIndex((n) => n.id === current.id) > 0;
+  }
+
+  /** 現在のノードに副分岐があるか */
+  hasVariationChildren(): boolean {
+    const current = this.getCurrentNode();
+    if (!current) return false;
+    return current.children.length > 1;
+  }
+
+  // ============================================================
   // 公開: 単純な状態書込 setter
   // ============================================================
 

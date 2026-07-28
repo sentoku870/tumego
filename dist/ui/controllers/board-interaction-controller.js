@@ -141,8 +141,16 @@ export class BoardInteractionController {
         }
     }
     handlePlaceStone(pos) {
-        var _a;
+        var _a, _b;
         const state = this.state;
+        // === 検討モード（studyMode = true） ==========================
+        if (state.studyMode) {
+            const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
+            if (this.store.tryMoveAsStudyStep(pos, color)) {
+                this.eventBus.emitUIUpdate();
+            }
+            return;
+        }
         // === 解答モード（numberMode = true） ==========================
         if (state.numberMode) {
             if (this.store.tryMove(pos)) {
@@ -152,7 +160,7 @@ export class BoardInteractionController {
         }
         // === 編集モード（numberMode = false） ==========================
         const rulesMode = this.preferences.state.edit.rulesMode;
-        const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
+        const color = (_b = this.uiState.drag.dragColor) !== null && _b !== void 0 ? _b : this.store.currentColor;
         const placed = rulesMode === "standard"
             ? this.store.placeWithRulesInEdit(pos, color)
             : this.store.directPlace(pos, color);
