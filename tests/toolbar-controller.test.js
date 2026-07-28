@@ -244,7 +244,7 @@ describe('ToolbarController', () => {
       expect(isEdit).toBe(true);
     });
 
-    test('shows "解答開始" when not in number mode', () => {
+    test('shows "SGF配置" when not in number mode', () => {
       const answerBtn = document.createElement('button');
       answerBtn.id = 'btn-answer';
       document.body.appendChild(answerBtn);
@@ -253,7 +253,7 @@ describe('ToolbarController', () => {
       document.body.appendChild(exitSolveBtn);
       state.numberMode = false;
       controller.updateAnswerButtonDisplay();
-      const isAnswer = exitSolveBtn.textContent.includes('解答');
+      const isAnswer = exitSolveBtn.textContent.includes('SGF');
       expect(isAnswer).toBe(true);
     });
   });

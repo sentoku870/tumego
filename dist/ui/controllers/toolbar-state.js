@@ -47,8 +47,8 @@ export class ToolbarState {
                 this.buttons.exitSolveBtn.title = '解答を終了して編集モードに戻ります';
             }
             else {
-                this.buttons.exitSolveBtn.textContent = '解答開始';
-                this.buttons.exitSolveBtn.title = '問題図から解答モードを開始します';
+                this.buttons.exitSolveBtn.textContent = 'SGF配置';
+                this.buttons.exitSolveBtn.title = '問題図から解答モード（SGF配置）を開始します';
             }
             this.buttons.exitSolveBtn.style.display = '';
         }
@@ -75,6 +75,16 @@ export class ToolbarState {
         if (this.buttons.exitSolveBtn) {
             this.buttons.exitSolveBtn.disabled = false;
         }
+        // 編集モード用と解答モード用の 2 ボタン群を排他的に切替
+        // 編集モード(isSolve=false): 黒配置・白配置 を表示、1手戻る・1手進む を非表示
+        // 解答モード(isSolve=true) : 1手戻る・1手進む を表示、黒配置・白配置 を非表示
+        const editGroupVisible = !isSolve;
+        this.setVisible(this.buttons.blackBtn, editGroupVisible);
+        this.setVisible(this.buttons.whiteBtn, editGroupVisible);
+        this.setVisible(this.buttons.prevMoveBtn, !editGroupVisible);
+        this.setVisible(this.buttons.nextMoveBtn, !editGroupVisible);
+        // 非表示側の disabled は状態判定上意味を持たないが、
+        // 内部ロジック (sgfIndex 範囲) は解答モード時にのみ活きるので常に評価しておく
         const hasPrevMove = state.sgfIndex > 0;
         const hasNextMove = state.sgfIndex < state.sgfMoves.length;
         this.setDisabled(this.buttons.prevMoveBtn, !hasPrevMove);
@@ -116,6 +126,12 @@ export class ToolbarState {
             return;
         }
         button.disabled = disabled;
+    }
+    setVisible(button, visible) {
+        if (!button) {
+            return;
+        }
+        button.style.display = visible ? '' : 'none';
     }
     updateProblemButtonState() {
         if (!this.buttons.problemBtn) {

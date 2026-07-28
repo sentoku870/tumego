@@ -191,7 +191,7 @@ describe('RendererViewModelBuilder', () => {
       const builder = new RendererViewModelBuilder(store, noPrefs);
       const info = builder.buildInfoModel();
       expect(info.infoText).toContain('9路');
-      expect(info.infoText).toContain('モード:交互配置');
+      expect(info.infoText).toContain('モード:自由配置');
     });
 
     test('shows 解答モード when numberMode is on', () => {
