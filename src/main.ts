@@ -1,5 +1,5 @@
 // ============ Main entry point ============
-import { GameState, UIElements, DEFAULT_CONFIG } from './types.js';
+import { GameState, SGFNode, UIElements, DEFAULT_CONFIG } from './types.js';
 import { UIController } from './ui-controller.js';
 import { compositionRoot } from './app/composition-root.js';
 import { createDebugApi } from './app/debug-api.js';
@@ -7,6 +7,12 @@ import { createEmptyBoard, createInitialCapturedCounts } from './state/board-uti
 
 // ============ Initialize global game state ============
 function createInitialState(): GameState {
+  const root: SGFNode = {
+    id: 'root',
+    parent: null,
+    children: [],
+    isMainLine: true,
+  };
   return {
     boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
     board: createEmptyBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE),
@@ -26,7 +32,9 @@ function createInitialState(): GameState {
     problemDiagramSet: false,
     problemDiagramBlack: [],
     problemDiagramWhite: [],
-    gameTree: null,
+    sgfTree: root,
+    currentNodeId: 'root',
+    studyMode: false,
     sgfLoadedFromExternal: false,
     gameInfo: {
       title: '',

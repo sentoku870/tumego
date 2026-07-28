@@ -42,20 +42,18 @@ export interface Move {
 }
 
 // ============ SGFノードとゲームツリー ============
+// SGF のノード。ルート（move なし、子を持つ）と着手ノード（move あり）の両方を表現する。
+// children[0] を主分岐、そのほかを副分岐として扱う。
 export interface SGFNode {
+  /** ノード一意ID（"root" または "parentId-N" 形式） */
   id: string;
+  parent: SGFNode | null;
+  children: SGFNode[];
   move?: Move;
   comment?: string;
   label?: string;
-  mainLine?: boolean;
-  parent?: SGFNode;
-  children: SGFNode[];
-}
-
-export interface GameTree {
-  rootNode: SGFNode;
-  currentNode: SGFNode;
-  currentPath: SGFNode[];
+  /** 親から見て first child か（主分岐判定） */
+  isMainLine: boolean;
 }
 
 // ============ 設定定数 ============
@@ -104,6 +102,8 @@ export interface GameConfig {
   readonly MARKER_STROKE_WIDTH: number;
   /** 盤面保存時にコピー対象とする CSS 変数名 */
   readonly BOARD_CAPTURE_CSS_VARS: readonly string[];
+  /** 検討モードでの最大着手深さ（キャッシュ爆発防止） */
+  readonly MAX_NODE_DEPTH: number;
 }
 
 // ============ ゲーム状態 ============
@@ -126,7 +126,12 @@ export interface GameState {
   problemDiagramSet: boolean;
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
-  gameTree: GameTree | null;
+  /** 着手木の一次ソース（ルートを含む） */
+  sgfTree: SGFNode;
+  /** 現在表示中のノードID（ルートまたは着手ノード） */
+  currentNodeId: string;
+  /** 検討モード中か（編集・解答と並ぶ第3の状態） */
+  studyMode: boolean;
   sgfLoadedFromExternal: boolean;
   gameInfo: SGFGameInfo;
   capturedCounts: CapturedCounts;
@@ -180,6 +185,9 @@ export type HistorySnapshotState = Pick<
   | "markers"
   | "rootMarkers"
   | "nodeMarkers"
+  | "sgfTree"
+  | "currentNodeId"
+  | "studyMode"
 >;
 
 export interface HistorySnapshot {
@@ -226,12 +234,14 @@ export interface GameInfo {
 
 // ============ SGF関連 ============
 export interface SGFParseResult {
-  moves: Move[];
-  gameInfo: SGFGameInfo;
+  /** SGF木のルート（着手を持たない起点ノード） */
+  rootNode: SGFNode;
+  /** 解析したSGFテキスト（読み込んだままの形） */
   rawSGF?: string;
-  /** ルートノード（問題図レベル）のマーカー */
+  gameInfo: SGFGameInfo;
+  /** ルートノード（問題図レベル）のマーカー（rootNode.properties からも取得可能） */
   rootMarkers?: BoardMarker[];
-  /** 各着手ノードに紐づくマーカー。sgfMoves と並行配列 */
+  /** 各着手ノードに紐づくマーカー（主ラインの深さ基準の配列） */
   nodeMarkers?: BoardMarker[][];
 }
 
@@ -389,4 +399,5 @@ export const DEFAULT_CONFIG: GameConfig = {
   MARKER_RADIUS: 22,
   MARKER_STROKE_WIDTH: 3,
   BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
+  MAX_NODE_DEPTH: 200,
 } as const;

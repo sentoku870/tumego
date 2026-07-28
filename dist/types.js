@@ -41,5 +41,6 @@ export const DEFAULT_CONFIG = {
     MARKER_RADIUS: 22,
     MARKER_STROKE_WIDTH: 3,
     BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
+    MAX_NODE_DEPTH: 200,
 };
 //# sourceMappingURL=types.js.map

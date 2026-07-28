@@ -6,6 +6,12 @@ import { createDebugApi } from './app/debug-api.js';
 import { createEmptyBoard, createInitialCapturedCounts } from './state/board-utils.js';
 // ============ Initialize global game state ============
 function createInitialState() {
+    const root = {
+        id: 'root',
+        parent: null,
+        children: [],
+        isMainLine: true,
+    };
     return {
         boardSize: DEFAULT_CONFIG.DEFAULT_BOARD_SIZE,
         board: createEmptyBoard(DEFAULT_CONFIG.DEFAULT_BOARD_SIZE),
@@ -25,7 +31,9 @@ function createInitialState() {
         problemDiagramSet: false,
         problemDiagramBlack: [],
         problemDiagramWhite: [],
-        gameTree: null,
+        sgfTree: root,
+        currentNodeId: 'root',
+        studyMode: false,
         sgfLoadedFromExternal: false,
         gameInfo: {
             title: '',

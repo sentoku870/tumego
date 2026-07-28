@@ -56,7 +56,9 @@ export class ModeOperations {
 
     this.state.handicapPositions = [];
     this.state.handicapStones = 0;
-    this.state.gameTree = null;
+    this.state.sgfTree = this.createEmptyRoot();
+    this.state.currentNodeId = 'root';
+    this.state.studyMode = false;
     this.state.sgfLoadedFromExternal = false;
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
@@ -171,7 +173,9 @@ export class ModeOperations {
     this.state.numberMode = false;
     this.state.numberStartIndex = 0;
     this.state.handicapStones = 0;
-    this.state.gameTree = null;
+    this.state.sgfTree = this.createEmptyRoot();
+    this.state.currentNodeId = 'root';
+    this.state.studyMode = false;
     this.state.sgfLoadedFromExternal = true;
     this.state.handicapPositions = [];
     this.state.problemDiagramSet = false;
@@ -300,7 +304,9 @@ export class ModeOperations {
     this.state.problemDiagramSet = false;
     this.state.problemDiagramBlack = [];
     this.state.problemDiagramWhite = [];
-    this.state.gameTree = null;
+    this.state.sgfTree = this.createEmptyRoot();
+    this.state.currentNodeId = 'root';
+    this.state.studyMode = false;
     this.state.sgfLoadedFromExternal = false;
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     this.state.gameInfo = {
@@ -313,6 +319,16 @@ export class ModeOperations {
   private cloneMarkers(markers: import("../types.js").BoardMarker[] | undefined): import("../types.js").BoardMarker[] {
     if (!markers) return [];
     return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+  }
+
+  /** ルートのみの空SGFツリーを生成する（子を持たない初期状態） */
+  private createEmptyRoot(): import("../types.js").SGFNode {
+    return {
+      id: 'root',
+      parent: null,
+      children: [],
+      isMainLine: true,
+    };
   }
 
   private hasGameData(): boolean {
