@@ -282,10 +282,22 @@ export class ToolbarButtons {
     bindMarkerMenu() {
         const btn = document.getElementById('btn-marker');
         const dropdown = document.getElementById('marker-dropdown');
+        if (btn) {
+            btn.title = 'マーカー（○△□×）を選択・配置します／選択中は再度クリックで解除';
+        }
         btn === null || btn === void 0 ? void 0 : btn.addEventListener('click', (event) => {
             event.stopPropagation();
-            if (!dropdown)
+            if (!btn || !dropdown)
                 return;
+            const state = this.store.snapshot;
+            if (state.markerMode) {
+                // マーカーモードを解除 → 石配置に戻れる
+                this.store.setMarkerMode(null);
+                this.dropdownManager.hide(dropdown);
+                this.setActiveMarkerButton();
+                this.eventBus.emitUIUpdate();
+                return;
+            }
             const isOpen = dropdown.classList.contains('show');
             if (isOpen) {
                 this.dropdownManager.hide(dropdown);

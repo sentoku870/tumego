@@ -255,5 +255,23 @@ describe('ToolbarButtons', () => {
       expect(state.markers).toEqual([]);
       expect(dropdown.classList.contains('show')).toBe(false);
     });
+
+    test('clicking the trigger while markerMode is on disables marker mode and closes the dropdown', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      const dropdown = document.getElementById('marker-dropdown');
+      // 1) Activate marker mode by selecting a kind
+      trigger.click();
+      document.getElementById('btn-marker-select-CR').click();
+      expect(state.markerMode).toBe(true);
+      expect(state.activeMarkerKind).toBe('CR');
+      expect(dropdown.classList.contains('show')).toBe(false);
+      // 2) Clicking the trigger again should turn off marker mode
+      trigger.click();
+      expect(state.markerMode).toBe(false);
+      expect(state.activeMarkerKind).toBe(null);
+      expect(dropdown.classList.contains('show')).toBe(false);
+    });
   });
 });
