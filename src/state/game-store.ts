@@ -14,6 +14,7 @@ import {
   GameState,
   MarkerKind,
   Move,
+  nextMarkerLetter,
   PlayMode,
   Position,
   SGFGameInfo,
@@ -438,6 +439,10 @@ export class GameStore {
     if (label !== undefined) marker.label = label;
     this.state.markers.push(marker);
     this.persistMarkersToCurrentNode();
+    // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
+    if (kind === 'LB' && label) {
+      this.state.activeMarkerLabel = nextMarkerLetter(label);
+    }
     return true;
   }
 

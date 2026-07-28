@@ -1,3 +1,4 @@
+import { MARKER_LETTER_SEQUENCE } from '../../types.js';
 import { HistoryView } from '../views/history-view.js';
 const MARKER_KINDS = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 const MARKER_GLYPHS = {
@@ -5,9 +6,8 @@ const MARKER_GLYPHS = {
     TR: '△',
     SQ: '□',
     MA: '×',
-    LB: 'A',
+    LB: '文字',
 };
-const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'];
 export class ToolbarButtons {
     constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager) {
         this.store = store;
@@ -333,15 +333,24 @@ export class ToolbarButtons {
                 this.handlePaletteItemSelect(kind, null);
             });
         }
-        // ラベル (単一 cycling ボタン): 押すごとに A→B→C→D→E→A
+        // 文字マーカー: アクティブでないとき A から開始。アクティブのとき再クリックで OFF。
+        // 配置時の自動進行は GameStore.addMarkerAt で行う。
         const letterBtn = document.getElementById('btn-marker-select-LB');
         letterBtn === null || letterBtn === void 0 ? void 0 : letterBtn.addEventListener('click', () => {
+            var _a;
             this.dispatchDisableEraseMode();
             const state = this.store.snapshot;
-            const currentLabel = (state.activeMarkerKind === 'LB' ? state.activeMarkerLabel : null);
-            const idx = currentLabel ? MARKER_LETTER_SEQUENCE.indexOf(currentLabel) : -1;
-            const next = MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
-            this.handlePaletteItemSelect('LB', next);
+            if (state.markerMode && state.activeMarkerKind === 'LB') {
+                // 同じものを再クリック → トグル OFF
+                this.store.setMarkerMode(null);
+            }
+            else {
+                // 現在の activeMarkerLabel から開始（未設定なら A）
+                const startLabel = (_a = state.activeMarkerLabel) !== null && _a !== void 0 ? _a : MARKER_LETTER_SEQUENCE[0];
+                this.store.setMarkerMode('LB', startLabel);
+            }
+            this.setActiveMarkerButton();
+            this.eventBus.emitUIUpdate();
         });
         const clearBtn = document.getElementById('btn-marker-clear');
         clearBtn === null || clearBtn === void 0 ? void 0 : clearBtn.addEventListener('click', () => {
@@ -397,10 +406,6 @@ export class ToolbarButtons {
         }
         if (this.markerLetterBtn) {
             this.markerLetterBtn.classList.toggle('active', active === 'LB');
-            const letterText = activeLabel !== null && activeLabel !== void 0 ? activeLabel : 'A';
-            if (this.markerLetterBtn.textContent !== letterText) {
-                this.markerLetterBtn.textContent = letterText;
-            }
         }
     }
     /**

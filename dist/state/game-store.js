@@ -4,7 +4,7 @@
 // 内部の modeOps / cache / handicap / monitor は private であり、
 // 外部コード（services, controllers）は GameStore の公開メソッド経由でのみ
 // 状態書込を行う。直接アクセスが必要な操作は本クラスにラッパーを追加すること。
-import { DEFAULT_CONFIG, } from "../types.js";
+import { DEFAULT_CONFIG, nextMarkerLetter, } from "../types.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
 import { HandicapSetter } from "./handicap-setter.js";
 import { ModeOperations } from "./mode-operations.js";
@@ -351,6 +351,10 @@ export class GameStore {
             marker.label = label;
         this.state.markers.push(marker);
         this.persistMarkersToCurrentNode();
+        // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
+        if (kind === 'LB' && label) {
+            this.state.activeMarkerLabel = nextMarkerLetter(label);
+        }
         return true;
     }
     removeMarkerAt(pos, kind, label) {

@@ -72,6 +72,8 @@ svg.rotated .marker {
   gap: 4px;
   padding: 8px;
   min-width: 0;
+  width: max-content;
+  max-width: 90vw;
 }
 
 .menu-dropdown.marker-dropdown button {
@@ -105,20 +107,15 @@ svg.rotated .marker {
   font-weight: 500;
 }
 
-/* ===== マーカーメニュー: トリガーは自然幅、パレットは2列 ===== */
+/* ===== マーカーメニュー: トリガーは自然幅（セル内で1frにストレッチしない） ===== */
 .menu-container.marker-menu {
   width: auto;
-  height: auto;
+  min-width: 0;
 }
 
 .menu-container.marker-menu > .ctrl-btn {
-  width: auto;
-  height: auto;
-}
-
-.menu-dropdown.marker-dropdown.show {
-  width: max-content;
-  max-width: 90vw;
+  width: 100%;
+  height: 100%;
 }
 
 /* ===== 情報表示 ===== */

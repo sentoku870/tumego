@@ -5,7 +5,7 @@ import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
 import { SGFService } from '../../services/sgf-service.js';
-import { UIElements, PlayMode, MarkerKind } from '../../types.js';
+import { UIElements, PlayMode, MarkerKind, MARKER_LETTER_SEQUENCE } from '../../types.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
 import { DropdownManager } from './dropdown-manager.js';
@@ -16,10 +16,8 @@ const MARKER_GLYPHS: Record<MarkerKind, string> = {
   TR: '△',
   SQ: '□',
   MA: '×',
-  LB: 'A',
+  LB: '文字',
 };
-const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'] as const;
-type MarkerLetter = (typeof MARKER_LETTER_SEQUENCE)[number];
 
 export class ToolbarButtons {
   public clearBtn: HTMLButtonElement | null = null;
@@ -363,15 +361,22 @@ export class ToolbarButtons {
         this.handlePaletteItemSelect(kind, null);
       });
     }
-    // ラベル (単一 cycling ボタン): 押すごとに A→B→C→D→E→A
+    // 文字マーカー: アクティブでないとき A から開始。アクティブのとき再クリックで OFF。
+    // 配置時の自動進行は GameStore.addMarkerAt で行う。
     const letterBtn = document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null;
     letterBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
       const state = this.store.snapshot;
-      const currentLabel = (state.activeMarkerKind === 'LB' ? state.activeMarkerLabel : null) as MarkerLetter | null;
-      const idx = currentLabel ? MARKER_LETTER_SEQUENCE.indexOf(currentLabel) : -1;
-      const next = MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
-      this.handlePaletteItemSelect('LB', next);
+      if (state.markerMode && state.activeMarkerKind === 'LB') {
+        // 同じものを再クリック → トグル OFF
+        this.store.setMarkerMode(null);
+      } else {
+        // 現在の activeMarkerLabel から開始（未設定なら A）
+        const startLabel = state.activeMarkerLabel ?? MARKER_LETTER_SEQUENCE[0];
+        this.store.setMarkerMode('LB', startLabel);
+      }
+      this.setActiveMarkerButton();
+      this.eventBus.emitUIUpdate();
     });
     const clearBtn = document.getElementById('btn-marker-clear') as HTMLButtonElement | null;
     clearBtn?.addEventListener('click', () => {
@@ -426,10 +431,6 @@ export class ToolbarButtons {
     }
     if (this.markerLetterBtn) {
       this.markerLetterBtn.classList.toggle('active', active === 'LB');
-      const letterText = activeLabel ?? 'A';
-      if (this.markerLetterBtn.textContent !== letterText) {
-        this.markerLetterBtn.textContent = letterText;
-      }
     }
   }
 

@@ -347,13 +347,12 @@ describe('ToolbarButtons', () => {
       expect(dropdown.classList.contains('show')).toBe(false);
     });
 
-    test('letter cycling button activates LB and advances A→B→C…on each press', () => {
+    test('letter button activates LB starting from A; clicking again toggles off', () => {
       setupMarkerDOM();
       const dropdown = document.getElementById('marker-dropdown');
       const closeBtn = document.createElement('button');
       closeBtn.id = 'btn-marker-close';
       dropdown.appendChild(closeBtn);
-      // 単一の cycling ボタン
       const letterBtn = document.createElement('button');
       letterBtn.id = 'btn-marker-select-LB';
       dropdown.appendChild(letterBtn);
@@ -361,27 +360,15 @@ describe('ToolbarButtons', () => {
       const trigger = document.getElementById('btn-marker');
       trigger.click();
       const lbBtn = document.getElementById('btn-marker-select-LB');
-      // 1回目: LB + A
+      // 1回目: LB + A でアクティブ化
       lbBtn.click();
       expect(state.activeMarkerKind).toBe('LB');
       expect(state.activeMarkerLabel).toBe('A');
-      // 2回目: B に進む
+      expect(state.markerMode).toBe(true);
+      // 2回目: トグル OFF（再クリックで解除）
       lbBtn.click();
-      expect(state.activeMarkerLabel).toBe('B');
-      // 3回目: C に進む
-      lbBtn.click();
-      expect(state.activeMarkerLabel).toBe('C');
-      // 4回目: D に進む
-      lbBtn.click();
-      expect(state.activeMarkerLabel).toBe('D');
-      // 5回目: E に進む
-      lbBtn.click();
-      expect(state.activeMarkerLabel).toBe('E');
-      // 6回目: A に戻る（サイクル）
-      lbBtn.click();
-      expect(state.activeMarkerLabel).toBe('A');
-      // パレットは開いたまま
-      expect(dropdown.classList.contains('show')).toBe(true);
+      expect(state.markerMode).toBe(false);
+      expect(state.activeMarkerKind).toBe(null);
     });
 
     test('closeMarkerPalette closes the dropdown without disabling marker mode', () => {

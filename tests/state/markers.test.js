@@ -241,4 +241,45 @@ describe('GameStore markers', () => {
       expect(state.nodeMarkers).toEqual([]);
     });
   });
+
+  describe('LB auto-advance (配置時に次の文字へ)', () => {
+    test('LB 配置ごとに activeMarkerLabel が A→B→C→D→E→A と進む', () => {
+      store.setMarkerMode('LB', 'A');
+      store.addMarker({ col: 0, row: 0 }, 'LB', 'A');
+      expect(state.activeMarkerLabel).toBe('B');
+      store.addMarker({ col: 1, row: 1 }, 'LB', 'B');
+      expect(state.activeMarkerLabel).toBe('C');
+      store.addMarker({ col: 2, row: 2 }, 'LB', 'C');
+      expect(state.activeMarkerLabel).toBe('D');
+      store.addMarker({ col: 3, row: 3 }, 'LB', 'D');
+      expect(state.activeMarkerLabel).toBe('E');
+      store.addMarker({ col: 4, row: 4 }, 'LB', 'E');
+      expect(state.activeMarkerLabel).toBe('A');
+    });
+
+    test('CR/TR/SQ/MA 配置では activeMarkerLabel は変化しない', () => {
+      store.setMarkerMode('CR');
+      store.addMarker({ col: 0, row: 0 }, 'CR');
+      expect(state.activeMarkerLabel).toBe(null);
+      store.addMarker({ col: 1, row: 1 }, 'TR');
+      expect(state.activeMarkerLabel).toBe(null);
+    });
+
+    test('toggleMarker で LB 配置した場合も自動進行する', () => {
+      store.setMarkerMode('LB', 'A');
+      // toggleMarker はアクティブ種別の現在ラベルを使う
+      store.toggleMarker({ col: 0, row: 0 });
+      expect(state.markers).toEqual([{ pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' }]);
+      expect(state.activeMarkerLabel).toBe('B');
+      // 次の配置は B で行われる
+      state.activeMarkerKind = 'LB';
+      state.activeMarkerLabel = 'B';
+      store.toggleMarker({ col: 1, row: 1 });
+      expect(state.markers).toEqual([
+        { pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' },
+        { pos: { col: 1, row: 1 }, kind: 'LB', label: 'B' },
+      ]);
+      expect(state.activeMarkerLabel).toBe('C');
+    });
+  });
 });
