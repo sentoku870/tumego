@@ -36,12 +36,17 @@
           <button class="ctrl-btn" id="btn-exit-solve-edit" style="display:none;">編集に戻る</button>
           <button class="ctrl-btn answer-btn" id="btn-answer" title="解答モードの先手色を切り替えます">🔥 黒先</button>
         </div>
-        <div class="toolbar-row marker-row" id="marker-row" role="group" aria-label="盤面マーカー">
-          <button class="ctrl-btn marker-btn" id="btn-marker-CR" data-marker-kind="CR" title="○マーカー（タップで配置／再タップで消去）">○</button>
-          <button class="ctrl-btn marker-btn" id="btn-marker-TR" data-marker-kind="TR" title="△マーカー（タップで配置／再タップで消去）">△</button>
-          <button class="ctrl-btn marker-btn" id="btn-marker-SQ" data-marker-kind="SQ" title="□マーカー（タップで配置／再タップで消去）">□</button>
-          <button class="ctrl-btn marker-btn" id="btn-marker-MA" data-marker-kind="MA" title="×マーカー（タップで配置／再タップで消去）">×</button>
-          <button class="ctrl-btn" id="btn-marker-clear" title="表示中のマーカーを全消去">マーカー消去</button>
+        <div class="toolbar-row marker-row" id="marker-row">
+          <div class="menu-container marker-menu">
+            <button class="ctrl-btn" id="btn-marker" title="マーカー（○△□×）を選択・配置します">🔘 マーカー</button>
+            <div class="menu-dropdown marker-dropdown" id="marker-dropdown" role="menu" aria-label="マーカー選択">
+              <button id="btn-marker-select-CR" data-marker-kind="CR" class="marker-palette-item" role="menuitem">○</button>
+              <button id="btn-marker-select-TR" data-marker-kind="TR" class="marker-palette-item" role="menuitem">△</button>
+              <button id="btn-marker-select-SQ" data-marker-kind="SQ" class="marker-palette-item" role="menuitem">□</button>
+              <button id="btn-marker-select-MA" data-marker-kind="MA" class="marker-palette-item" role="menuitem">×</button>
+              <button id="btn-marker-clear" role="menuitem">マーカー消去</button>
+            </div>
+          </div>
         </div>
       </div>
 

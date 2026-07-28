@@ -58,12 +58,16 @@ const setupAllDOM = () => {
    'btn-file', 'btn-feature', 'btn-file-select', 'btn-file-load', 'btn-file-copy',
    'btn-file-save', 'btn-file-qr', 'btn-file-discord', 'btn-feature-layout',
    'btn-feature-rotate', 'btn-feature-handicap', 'feature-copy-answer-sequence',
-   'btn-save-board', 'settings-toggle', 'btn-header-apply', 'btn-header-reset'].forEach((id) => {
+   'btn-save-board', 'settings-toggle', 'btn-header-apply', 'btn-header-reset',
+   'btn-marker', 'btn-marker-clear',
+   'btn-marker-select-CR', 'btn-marker-select-TR',
+   'btn-marker-select-SQ', 'btn-marker-select-MA'].forEach((id) => {
     const el = document.createElement('button');
     el.id = id;
     document.body.appendChild(el);
   });
-  ['file-dropdown', 'feature-dropdown', 'settings-panel', 'sgf-input', 'sgf-text'].forEach((id) => {
+  ['file-dropdown', 'feature-dropdown', 'settings-panel', 'sgf-input', 'sgf-text',
+   'marker-dropdown'].forEach((id) => {
     const el = document.createElement('div');
     el.id = id;
     document.body.appendChild(el);

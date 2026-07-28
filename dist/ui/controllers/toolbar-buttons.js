@@ -1,13 +1,20 @@
 import { HistoryView } from '../views/history-view.js';
 const MARKER_KINDS = ['CR', 'TR', 'SQ', 'MA'];
+const MARKER_GLYPHS = {
+    CR: '○',
+    TR: '△',
+    SQ: '□',
+    MA: '×',
+};
 export class ToolbarButtons {
-    constructor(store, renderer, boardCapture, sgfService, elements, eventBus) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
         this.sgfService = sgfService;
         this.elements = elements;
         this.eventBus = eventBus;
+        this.dropdownManager = dropdownManager;
         this.clearBtn = null;
         this.problemBtn = null;
         this.answerBtn = null;
@@ -19,9 +26,12 @@ export class ToolbarButtons {
         this.altBtn = null;
         this.undoBtn = null;
         this.exitSolveBtn = null;
-        this.markerBtnRefs = {};
+        this.markerBtn = null;
+        this.markerDropdown = null;
+        this.markerPaletteBtns = {};
         this.markerClearBtn = null;
         this.unsubscribeFromEventBus = null;
+        this.unsubscribeMarkerDocument = null;
     }
     bindAll() {
         this.store.resetInteractionModes();
@@ -29,22 +39,24 @@ export class ToolbarButtons {
         this.bindBasicButtons();
         this.bindGameButtons();
         this.bindBoardSaveButton();
-        this.bindMarkerButtons();
+        this.bindMarkerMenu();
         this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
             this.dispatchDisableEraseMode();
         });
     }
     dispose() {
-        var _a;
+        var _a, _b;
         (_a = this.unsubscribeFromEventBus) === null || _a === void 0 ? void 0 : _a.call(this);
         this.unsubscribeFromEventBus = null;
+        (_b = this.unsubscribeMarkerDocument) === null || _b === void 0 ? void 0 : _b.call(this);
+        this.unsubscribeMarkerDocument = null;
     }
     triggerButton(selector) {
         const button = document.querySelector(selector);
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -56,11 +68,13 @@ export class ToolbarButtons {
         this.altBtn = (_j = this.altBtn) !== null && _j !== void 0 ? _j : document.getElementById('btn-alt');
         this.undoBtn = (_k = this.undoBtn) !== null && _k !== void 0 ? _k : document.getElementById('btn-undo');
         this.exitSolveBtn = (_l = this.exitSolveBtn) !== null && _l !== void 0 ? _l : document.getElementById('btn-exit-solve-edit');
-        this.markerClearBtn = (_m = this.markerClearBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker-clear');
+        this.markerBtn = (_m = this.markerBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker');
+        this.markerDropdown = (_o = this.markerDropdown) !== null && _o !== void 0 ? _o : document.getElementById('marker-dropdown');
+        this.markerClearBtn = (_p = this.markerClearBtn) !== null && _p !== void 0 ? _p : document.getElementById('btn-marker-clear');
         for (const kind of MARKER_KINDS) {
-            if (this.markerBtnRefs[kind])
+            if (this.markerPaletteBtns[kind])
                 continue;
-            this.markerBtnRefs[kind] = document.getElementById(`btn-marker-${kind}`);
+            this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`);
         }
     }
     dispatchDisableEraseMode() {
@@ -265,18 +279,48 @@ export class ToolbarButtons {
             });
         });
     }
-    bindMarkerButtons() {
+    bindMarkerMenu() {
+        const btn = document.getElementById('btn-marker');
+        const dropdown = document.getElementById('marker-dropdown');
+        btn === null || btn === void 0 ? void 0 : btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!dropdown)
+                return;
+            const isOpen = dropdown.classList.contains('show');
+            if (isOpen) {
+                this.dropdownManager.hide(dropdown);
+            }
+            else {
+                this.dispatchDisableEraseMode();
+                this.dropdownManager.open(btn, dropdown);
+            }
+        });
+        dropdown === null || dropdown === void 0 ? void 0 : dropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+        if (btn && !this.unsubscribeMarkerDocument) {
+            const documentHandler = (event) => {
+                if (!dropdown)
+                    return;
+                if (!dropdown.classList.contains('show'))
+                    return;
+                const target = event.target;
+                if (target && (dropdown.contains(target) || btn.contains(target))) {
+                    return;
+                }
+                this.dropdownManager.hide(dropdown);
+            };
+            document.addEventListener('click', documentHandler);
+            this.unsubscribeMarkerDocument = () => {
+                document.removeEventListener('click', documentHandler);
+            };
+        }
         for (const kind of MARKER_KINDS) {
-            const btn = document.getElementById(`btn-marker-${kind}`);
-            btn === null || btn === void 0 ? void 0 : btn.addEventListener('click', () => {
-                const current = this.store.snapshot.activeMarkerKind;
-                if (current === kind) {
-                    this.store.setMarkerMode(null);
-                }
-                else {
-                    this.dispatchDisableEraseMode();
-                    this.store.setMarkerMode(kind);
-                }
+            const item = document.getElementById(`btn-marker-select-${kind}`);
+            item === null || item === void 0 ? void 0 : item.addEventListener('click', () => {
+                this.dispatchDisableEraseMode();
+                this.store.setMarkerMode(kind);
+                this.dropdownManager.hide(dropdown);
                 this.setActiveMarkerButton();
                 this.eventBus.emitUIUpdate();
             });
@@ -284,14 +328,22 @@ export class ToolbarButtons {
         const clearBtn = document.getElementById('btn-marker-clear');
         clearBtn === null || clearBtn === void 0 ? void 0 : clearBtn.addEventListener('click', () => {
             this.store.clearMarkers();
+            this.dropdownManager.hide(dropdown);
             this.eventBus.emitUIUpdate();
         });
     }
     setActiveMarkerButton() {
         this.ensureButtonRefs();
         const active = this.store.snapshot.activeMarkerKind;
+        if (this.markerBtn) {
+            this.markerBtn.classList.toggle('active', active !== null);
+            const label = active ? `🔘 マーカー (${MARKER_GLYPHS[active]})` : '🔘 マーカー';
+            if (this.markerBtn.textContent !== label) {
+                this.markerBtn.textContent = label;
+            }
+        }
         for (const kind of MARKER_KINDS) {
-            const btn = this.markerBtnRefs[kind];
+            const btn = this.markerPaletteBtns[kind];
             if (!btn)
                 continue;
             btn.classList.toggle('active', active === kind);

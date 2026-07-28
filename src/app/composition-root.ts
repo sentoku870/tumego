@@ -66,7 +66,8 @@ export function compositionRoot(
     sgfService,
     elements,
     eventBus,
-    preferences
+    preferences,
+    dropdownManager
   );
   const board = new BoardInteractionController(
     store,

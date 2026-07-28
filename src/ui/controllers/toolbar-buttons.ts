@@ -8,8 +8,15 @@ import { SGFService } from '../../services/sgf-service.js';
 import { UIElements, PlayMode, MarkerKind } from '../../types.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
+import { DropdownManager } from './dropdown-manager.js';
 
 const MARKER_KINDS: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA'];
+const MARKER_GLYPHS: Record<MarkerKind, string> = {
+  CR: '○',
+  TR: '△',
+  SQ: '□',
+  MA: '×',
+};
 
 export class ToolbarButtons {
   public clearBtn: HTMLButtonElement | null = null;
@@ -23,10 +30,13 @@ export class ToolbarButtons {
   public altBtn: HTMLButtonElement | null = null;
   public undoBtn: HTMLButtonElement | null = null;
   public exitSolveBtn: HTMLButtonElement | null = null;
-  public markerBtnRefs: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
+  public markerBtn: HTMLButtonElement | null = null;
+  public markerDropdown: HTMLElement | null = null;
+  public markerPaletteBtns: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
   public markerClearBtn: HTMLButtonElement | null = null;
 
   private unsubscribeFromEventBus: (() => void) | null = null;
+  private unsubscribeMarkerDocument: (() => void) | null = null;
 
   constructor(
     private readonly store: GameStore,
@@ -34,7 +44,8 @@ export class ToolbarButtons {
     private readonly boardCapture: BoardCaptureService,
     private readonly sgfService: SGFService,
     private readonly elements: UIElements,
-    private readonly eventBus: UIEventBus
+    private readonly eventBus: UIEventBus,
+    private readonly dropdownManager: DropdownManager
   ) {}
 
   bindAll(): void {
@@ -44,7 +55,7 @@ export class ToolbarButtons {
     this.bindBasicButtons();
     this.bindGameButtons();
     this.bindBoardSaveButton();
-    this.bindMarkerButtons();
+    this.bindMarkerMenu();
 
     this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
       this.dispatchDisableEraseMode();
@@ -54,6 +65,8 @@ export class ToolbarButtons {
   dispose(): void {
     this.unsubscribeFromEventBus?.();
     this.unsubscribeFromEventBus = null;
+    this.unsubscribeMarkerDocument?.();
+    this.unsubscribeMarkerDocument = null;
   }
 
   triggerButton(selector: string): void {
@@ -73,10 +86,12 @@ export class ToolbarButtons {
     this.altBtn = this.altBtn ?? (document.getElementById('btn-alt') as HTMLButtonElement | null);
     this.undoBtn = this.undoBtn ?? (document.getElementById('btn-undo') as HTMLButtonElement | null);
     this.exitSolveBtn = this.exitSolveBtn ?? (document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null);
+    this.markerBtn = this.markerBtn ?? (document.getElementById('btn-marker') as HTMLButtonElement | null);
+    this.markerDropdown = this.markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
     this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {
-      if (this.markerBtnRefs[kind]) continue;
-      this.markerBtnRefs[kind] = document.getElementById(`btn-marker-${kind}`) as HTMLButtonElement | null;
+      if (this.markerPaletteBtns[kind]) continue;
+      this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
     }
   }
 
@@ -297,17 +312,45 @@ export class ToolbarButtons {
     });
   }
 
-  private bindMarkerButtons(): void {
-    for (const kind of MARKER_KINDS) {
-      const btn = document.getElementById(`btn-marker-${kind}`) as HTMLButtonElement | null;
-      btn?.addEventListener('click', () => {
-        const current = this.store.snapshot.activeMarkerKind;
-        if (current === kind) {
-          this.store.setMarkerMode(null);
-        } else {
-          this.dispatchDisableEraseMode();
-          this.store.setMarkerMode(kind);
+  private bindMarkerMenu(): void {
+    const btn = document.getElementById('btn-marker') as HTMLButtonElement | null;
+    const dropdown = document.getElementById('marker-dropdown') as HTMLElement | null;
+    btn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (!dropdown) return;
+      const isOpen = dropdown.classList.contains('show');
+      if (isOpen) {
+        this.dropdownManager.hide(dropdown);
+      } else {
+        this.dispatchDisableEraseMode();
+        this.dropdownManager.open(btn, dropdown);
+      }
+    });
+    dropdown?.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+    if (btn && !this.unsubscribeMarkerDocument) {
+      const documentHandler = (event: MouseEvent) => {
+        if (!dropdown) return;
+        if (!dropdown.classList.contains('show')) return;
+        const target = event.target as Node | null;
+        if (target && (dropdown.contains(target) || btn.contains(target))) {
+          return;
         }
+        this.dropdownManager.hide(dropdown);
+      };
+      document.addEventListener('click', documentHandler);
+      this.unsubscribeMarkerDocument = () => {
+        document.removeEventListener('click', documentHandler);
+      };
+    }
+
+    for (const kind of MARKER_KINDS) {
+      const item = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
+      item?.addEventListener('click', () => {
+        this.dispatchDisableEraseMode();
+        this.store.setMarkerMode(kind);
+        this.dropdownManager.hide(dropdown);
         this.setActiveMarkerButton();
         this.eventBus.emitUIUpdate();
       });
@@ -315,6 +358,7 @@ export class ToolbarButtons {
     const clearBtn = document.getElementById('btn-marker-clear') as HTMLButtonElement | null;
     clearBtn?.addEventListener('click', () => {
       this.store.clearMarkers();
+      this.dropdownManager.hide(dropdown);
       this.eventBus.emitUIUpdate();
     });
   }
@@ -322,8 +366,15 @@ export class ToolbarButtons {
   public setActiveMarkerButton(): void {
     this.ensureButtonRefs();
     const active = this.store.snapshot.activeMarkerKind;
+    if (this.markerBtn) {
+      this.markerBtn.classList.toggle('active', active !== null);
+      const label = active ? `🔘 マーカー (${MARKER_GLYPHS[active]})` : '🔘 マーカー';
+      if (this.markerBtn.textContent !== label) {
+        this.markerBtn.textContent = label;
+      }
+    }
     for (const kind of MARKER_KINDS) {
-      const btn = this.markerBtnRefs[kind];
+      const btn = this.markerPaletteBtns[kind];
       if (!btn) continue;
       btn.classList.toggle('active', active === kind);
     }

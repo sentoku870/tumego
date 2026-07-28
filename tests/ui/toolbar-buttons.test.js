@@ -10,6 +10,8 @@ import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
 import { UIEventBus } from '../../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
+import { DropdownManager } from '../../dist/ui/controllers/dropdown-manager.js';
+import { UIInteractionState } from '../../dist/ui/state/ui-interaction-state.js';
 
 const createBoard = (size) =>
   Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
@@ -77,7 +79,9 @@ describe('ToolbarButtons', () => {
     const boardCapture = new BoardCaptureService(elements.svg, renderer);
     const sgfParser = new SGFParser();
     const sgfService = new SGFService(sgfParser, store, new SGFIO(sgfParser), new SGFShare(sgfParser));
-    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus);
+    const uiState = new UIInteractionState();
+    const dropdownManager = new DropdownManager(uiState);
+    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager);
   });
 
   afterEach(() => {
@@ -175,6 +179,81 @@ describe('ToolbarButtons', () => {
       // sgfService.export() の結果が textarea に反映される
       expect(sgfTextarea.value).toContain('AB[aa]');
       expect(sgfTextarea.value).toContain('AW[bb]');
+    });
+  });
+
+  describe('マーカー統合ボタン (palette)', () => {
+    const setupMarkerDOM = () => {
+      const trigger = document.createElement('button');
+      trigger.id = 'btn-marker';
+      document.body.appendChild(trigger);
+      const dropdown = document.createElement('div');
+      dropdown.id = 'marker-dropdown';
+      document.body.appendChild(dropdown);
+      ['CR', 'TR', 'SQ', 'MA'].forEach((kind) => {
+        const btn = document.createElement('button');
+        btn.id = `btn-marker-select-${kind}`;
+        document.body.appendChild(btn);
+      });
+      const clear = document.createElement('button');
+      clear.id = 'btn-marker-clear';
+      document.body.appendChild(clear);
+    };
+
+    test('trigger button toggles the marker dropdown', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      const dropdown = document.getElementById('marker-dropdown');
+      expect(dropdown.classList.contains('show')).toBe(false);
+      trigger.click();
+      expect(dropdown.classList.contains('show')).toBe(true);
+      trigger.click();
+      expect(dropdown.classList.contains('show')).toBe(false);
+    });
+
+    test('palette item sets activeMarkerKind and closes the dropdown', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      const dropdown = document.getElementById('marker-dropdown');
+      trigger.click();
+      expect(dropdown.classList.contains('show')).toBe(true);
+      const trItem = document.getElementById('btn-marker-select-TR');
+      trItem.click();
+      expect(state.activeMarkerKind).toBe('TR');
+      expect(state.markerMode).toBe(true);
+      expect(dropdown.classList.contains('show')).toBe(false);
+    });
+
+    test('setActiveMarkerButton updates trigger label and palette active class', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      const crItem = document.getElementById('btn-marker-select-CR');
+      state.activeMarkerKind = 'CR';
+      buttons.setActiveMarkerButton();
+      expect(trigger.classList.contains('active')).toBe(true);
+      expect(trigger.textContent).toContain('○');
+      expect(crItem.classList.contains('active')).toBe(true);
+      state.activeMarkerKind = null;
+      buttons.setActiveMarkerButton();
+      expect(trigger.classList.contains('active')).toBe(false);
+    });
+
+    test('palette clear button invokes store.clearMarkers and closes the dropdown', () => {
+      setupMarkerDOM();
+      buttons.bindAll();
+      state.markers = [
+        { pos: { col: 0, row: 0 }, kind: 'CR' },
+        { pos: { col: 1, row: 1 }, kind: 'TR' },
+      ];
+      const trigger = document.getElementById('btn-marker');
+      const dropdown = document.getElementById('marker-dropdown');
+      trigger.click();
+      document.getElementById('btn-marker-clear').click();
+      expect(state.markers).toEqual([]);
+      expect(dropdown.classList.contains('show')).toBe(false);
     });
   });
 });
