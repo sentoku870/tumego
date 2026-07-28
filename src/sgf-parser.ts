@@ -71,8 +71,15 @@ export class SGFParser {
     };
 
     const tokens = this.tokenize(inner);
-    const parentStack: SGFNode[] = [];
-    let currentParent: SGFNode = root;
+    // SGF 標準の解釈:
+    // - Variations は main sequence 内の最後のノードの「位置」で分岐する
+    // - Variation 内の `;` は variation 開始時点の lastMainSequenceNode.parent の子になる
+    //   (すなわち、lastMainSequenceNode の兄弟)
+    // - `;` 後の parentForNewNode は新しいノード自身になる（chain）
+    const lastMainStack: SGFNode[] = []; // variation 開始時の lastMainSequenceNode を保存
+    let lastMainSequenceNode: SGFNode = root; // 現在の main sequence の最後のノード
+    let parentForNewNode: SGFNode = root; // 次の `;` の親
+    let inVariation: boolean = false; // 現在 variation 内か
     let currentNode: SGFNode = root;
     let nodeCounter = 0;
 
@@ -83,20 +90,29 @@ export class SGFParser {
 
     for (const token of tokens) {
       if (token.kind === "open") {
-        parentStack.push(currentParent);
+        // Variation 開始: 現在の main sequence の状態を保存し、
+        // parentForNewNode を lastMainSequenceNode.parent に設定する
+        lastMainStack.push(lastMainSequenceNode);
+        parentForNewNode = lastMainSequenceNode.parent ?? root;
+        inVariation = true;
       } else if (token.kind === "close") {
-        const popped = parentStack.pop();
-        currentParent = popped ?? root;
-        currentNode = currentParent;
+        // Variation 終了: 保存した状態を復元
+        const popped = lastMainStack.pop();
+        lastMainSequenceNode = popped ?? root;
+        // parentForNewNode は通常 lastMainSequenceNode（次の `;` で chain するため）
+        parentForNewNode = lastMainSequenceNode;
+        inVariation = lastMainStack.length > 0;
+        currentNode = lastMainSequenceNode;
       } else if (token.kind === "semicolon") {
         const node: SGFNode = {
           id: newNodeId(),
-          parent: currentParent,
+          parent: parentForNewNode,
           children: [],
-          isMainLine: currentParent.children.length === 0,
+          isMainLine: !inVariation && parentForNewNode.children.length === 0,
         };
-        currentParent.children.push(node);
-        currentParent = node;
+        parentForNewNode.children.push(node);
+        parentForNewNode = node;
+        lastMainSequenceNode = node;
         currentNode = node;
       } else if (token.kind === "property") {
         this.applyProperty(currentNode, token.ident, token.values, gameInfo, root);
@@ -298,13 +314,15 @@ export class SGFParser {
     mainIndex: number,
     state: import("./types.js").GameState
   ): string {
-    let out = ";";
+    let out = "";
     if (node.move) {
+      out += ";";
       const color = node.move.color === 1 ? "B" : "W";
       const coord = `${this.toCoord(node.move.col)}${this.toCoord(node.move.row)}`;
       out += `${color}[${coord}]`;
-    } else {
-      out = "";
+    } else if (node.id !== "root") {
+      // move なしノード（セットアップ等）も ; 付きで出力する
+      out += ";";
     }
 
     out += this.lookupNodeMarkers(node, mainIndex, state);
@@ -323,8 +341,8 @@ export class SGFParser {
       const sibling = node.children[i];
       if (!sibling) continue;
       out += "(";
-      // 副分岐は独立した SGF ノードとして。先頭の ; は不要なので取り除く
-      out += this.exportSubtree(sibling, mainIndex, state).replace(/^;/, "");
+      // 副分岐は独立した SGF ノードとして。先頭の ; はそのまま残す
+      out += this.exportSubtree(sibling, mainIndex, state);
       out += ")";
     }
 
