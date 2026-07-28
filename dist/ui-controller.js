@@ -1,6 +1,17 @@
 // ============ UI制御エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
 import { compositionRoot } from './app/composition-root.js';
+function countMainLineMoves(root) {
+    var _a, _b;
+    let count = 0;
+    let node = (_a = root.children[0]) !== null && _a !== void 0 ? _a : null;
+    while (node) {
+        if (node.move)
+            count++;
+        node = (_b = node.children[0]) !== null && _b !== void 0 ? _b : null;
+    }
+    return count;
+}
 /** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
 const PHONE_BREAKPOINT = 640;
 /** 自動プロファイル判定でタブレットと判定する window.innerWidth の上限 (px) */
@@ -48,7 +59,8 @@ export class UIController {
             eventBus.emitSgfApplied(applyResult.sgfText);
             eventBus.emitAnswerButtonUpdate();
             controllers.file.syncHeaderEditor();
-            renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
+            const moveCount = countMainLineMoves(urlResult.rootNode);
+            renderer.showMessage(`URL からSGF読み込み完了 (${moveCount}手)`);
         }
         const sizeBtn = document.querySelector('.size-btn[data-size="9"]');
         const altBtn = document.getElementById('btn-alt');

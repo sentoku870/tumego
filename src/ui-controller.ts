@@ -1,6 +1,16 @@
 // ============ UI制御エンジン ============
-import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
+import { GameState, SGFNode, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
 import { AppContext, compositionRoot } from './app/composition-root.js';
+
+function countMainLineMoves(root: SGFNode): number {
+  let count = 0;
+  let node: SGFNode | null = root.children[0] ?? null;
+  while (node) {
+    if (node.move) count++;
+    node = node.children[0] ?? null;
+  }
+  return count;
+}
 
 /** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
 const PHONE_BREAKPOINT = 640;
@@ -65,7 +75,8 @@ export class UIController {
       eventBus.emitSgfApplied(applyResult.sgfText);
       eventBus.emitAnswerButtonUpdate();
       controllers.file.syncHeaderEditor();
-      renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
+      const moveCount = countMainLineMoves(urlResult.rootNode);
+      renderer.showMessage(`URL からSGF読み込み完了 (${moveCount}手)`);
     }
 
     const sizeBtn = document.querySelector('.size-btn[data-size="9"]');

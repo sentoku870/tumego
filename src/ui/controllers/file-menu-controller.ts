@@ -2,9 +2,19 @@ import { DropdownManager } from './dropdown-manager.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { QRManager } from '../../qr-manager.js';
-import { GameInfo, SGFParseResult } from '../../types.js';
+import { GameInfo, SGFNode, SGFParseResult } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
+
+function countMainLineMoves(root: SGFNode): number {
+  let count = 0;
+  let node: SGFNode | null = root.children[0] ?? null;
+  while (node) {
+    if (node.move) count++;
+    node = node.children[0] ?? null;
+  }
+  return count;
+}
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
@@ -79,7 +89,7 @@ export class FileMenuController {
       try {
         const result = await this.sgfService.loadFromFile(file);
         this.applySgf(result);
-        this.renderer.showMessage(`SGF読み込み完了 (${result.moves.length}手)`);
+        this.renderer.showMessage(`SGF読み込み完了 (${countMainLineMoves(result.rootNode)}手)`);
       } catch (error) {
         console.error('SGF読み込み失敗', error);
         this.renderer.showMessage('SGF読み込みに失敗しました');
@@ -91,7 +101,7 @@ export class FileMenuController {
       try {
         const result = await this.sgfService.loadFromClipboard();
         this.applySgf(result);
-        this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
+        this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${countMainLineMoves(result.rootNode)}手)`);
       } catch (error) {
         const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
         if (sgfTextarea?.value.trim()) {

@@ -1,3 +1,14 @@
+function countMainLineMoves(root) {
+    var _a, _b;
+    let count = 0;
+    let node = (_a = root.children[0]) !== null && _a !== void 0 ? _a : null;
+    while (node) {
+        if (node.move)
+            count++;
+        node = (_b = node.children[0]) !== null && _b !== void 0 ? _b : null;
+    }
+    return count;
+}
 export function createDebugApi(app) {
     return {
         loadSGF(text) {
@@ -8,7 +19,8 @@ export function createDebugApi(app) {
             app.eventBus.emitAnswerButtonUpdate();
             app.eventBus.emitSgfApplied(result.sgfText);
             app.controllers.file.syncHeaderEditor();
-            app.renderer.showMessage(`SGF読み込み完了 (${parsed.moves.length}手)`);
+            const moveCount = countMainLineMoves(parsed.rootNode);
+            app.renderer.showMessage(`SGF読み込み完了 (${moveCount}手)`);
         },
         exportSGF() {
             return app.sgfService.export();

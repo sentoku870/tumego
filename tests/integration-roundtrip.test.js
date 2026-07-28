@@ -42,7 +42,9 @@ const createState = (size = 9) => {
     problemDiagramSet: true,
     problemDiagramBlack: [{ col: 3, row: 3 }],
     problemDiagramWhite: [{ col: 4, row: 4 }],
-    gameTree: null,
+      sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
     sgfLoadedFromExternal: true,
     gameInfo: {
       title: '',

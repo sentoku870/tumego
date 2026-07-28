@@ -1,3 +1,14 @@
+function countMainLineMoves(root) {
+    var _a, _b;
+    let count = 0;
+    let node = (_a = root.children[0]) !== null && _a !== void 0 ? _a : null;
+    while (node) {
+        if (node.move)
+            count++;
+        node = (_b = node.children[0]) !== null && _b !== void 0 ? _b : null;
+    }
+    return count;
+}
 export class FileMenuController {
     constructor(dropdownManager, sgfService, renderer, qrManager, store, eventBus) {
         this.dropdownManager = dropdownManager;
@@ -62,7 +73,7 @@ export class FileMenuController {
             try {
                 const result = await this.sgfService.loadFromFile(file);
                 this.applySgf(result);
-                this.renderer.showMessage(`SGF読み込み完了 (${result.moves.length}手)`);
+                this.renderer.showMessage(`SGF読み込み完了 (${countMainLineMoves(result.rootNode)}手)`);
             }
             catch (error) {
                 console.error('SGF読み込み失敗', error);
@@ -74,7 +85,7 @@ export class FileMenuController {
             try {
                 const result = await this.sgfService.loadFromClipboard();
                 this.applySgf(result);
-                this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
+                this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${countMainLineMoves(result.rootNode)}手)`);
             }
             catch (error) {
                 const sgfTextarea = document.getElementById('sgf-text');

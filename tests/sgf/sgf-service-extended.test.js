@@ -29,9 +29,18 @@ const createState = (size = 9) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
+  sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
   sgfLoadedFromExternal: false,
-  capturedCounts: { black: 0, white: 0 }
+  capturedCounts: { black: 0, white: 0 },
+  markers: [],
+  markerMode: false,
+  activeMarkerKind: null,
+  activeMarkerLabel: null,
+  rootMarkers: [],
+  nodeMarkers: [],
+  gameInfo: { title: '', komi: DEFAULT_CONFIG.DEFAULT_KOMI, handicap: null, playerBlack: null, playerWhite: null, result: null }
 });
 
 const createService = (state) => {
@@ -97,6 +106,14 @@ describe('SGFService extended', () => {
         { col: 1, row: 1, color: 2 }
       ];
       state.sgfIndex = 2;
+      // テスト用: sgfMoves から sgfTree を構築
+      const n1 = { id: 'n1', parent: null, children: [], isMainLine: true, move: { col: 0, row: 0, color: 1 } };
+      const n2 = { id: 'n2', parent: null, children: [], isMainLine: true, move: { col: 1, row: 1, color: 2 } };
+      const root = { id: 'root', parent: null, children: [n1], isMainLine: true };
+      n1.parent = root;
+      n1.children = [n2];
+      n2.parent = n1;
+      state.sgfTree = root;
       const service = createService(state);
       const sgfText = service.export();
       expect(sgfText).toContain('B[');
@@ -105,7 +122,7 @@ describe('SGFService extended', () => {
   });
 
   describe('apply() - basic', () => {
-    test('throws for invalid SGFParseResult (missing moves)', () => {
+    test('throws for invalid SGFParseResult (missing rootNode)', () => {
       const state = createState(9);
       const service = createService(state);
       const invalid = { gameInfo: {} };
@@ -121,20 +138,7 @@ describe('SGFService extended', () => {
     test('throws for invalid SGFParseResult (missing gameInfo)', () => {
       const state = createState(9);
       const service = createService(state);
-      const invalid = { moves: [] };
-      let threw = false;
-      try {
-        service.apply(invalid);
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(true);
-    });
-
-    test('throws for non-array moves', () => {
-      const state = createState(9);
-      const service = createService(state);
-      const invalid = { moves: 'not an array', gameInfo: {} };
+      const invalid = { rootNode: { id: 'root', parent: null, children: [], isMainLine: true } };
       let threw = false;
       try {
         service.apply(invalid);
@@ -148,12 +152,32 @@ describe('SGFService extended', () => {
       const state = createState(9);
       state.sgfMoves = [{ col: 5, row: 5, color: 1 }];
       const service = createService(state);
+      const n1 = { id: 'n1', parent: null, children: [], isMainLine: true, move: { col: 0, row: 0, color: 1 } };
+      const n2 = { id: 'n2', parent: null, children: [], isMainLine: true, move: { col: 1, row: 1, color: 2 } };
+      n1.parent = { id: 'root', parent: null, children: [n1], isMainLine: true };
+      n2.parent = n1;
+      n1.children = [n2];
       const result = {
+        rootNode: { id: 'root', parent: null, children: [n1], isMainLine: true },
+        gameInfo: {
+          title: '',
+          komi: 6.5,
+          handicap: null,
+          playerBlack: null,
+          playerWhite: null,
+          result: null,
+          boardSize: 9,
+          handicapStones: 0,
+          handicapPositions: [],
+          startColor: 1,
+          problemDiagramSet: false,
+          problemDiagramBlack: [],
+          problemDiagramWhite: []
+        },
         moves: [
           { col: 0, row: 0, color: 1 },
           { col: 1, row: 1, color: 2 }
-        ],
-        gameInfo: { boardSize: 9 }
+        ]
       };
       const applyResult = service.apply(result);
       const sgfTextDefined = applyResult.sgfText !== undefined;
@@ -165,9 +189,13 @@ describe('SGFService extended', () => {
       state.sgfIndex = 5;
       const service = createService(state);
       // After apply with 1 move, sgfIndex becomes 1 (runHistoryAdjustmentPhase)
+      const n1 = { id: 'n1', parent: null, children: [], isMainLine: true, move: { col: 0, row: 0, color: 1 } };
+      const root = { id: 'root', parent: null, children: [n1], isMainLine: true };
+      n1.parent = root;
       service.apply({
-        moves: [{ col: 0, row: 0, color: 1 }],
-        gameInfo: { boardSize: 9 }
+        rootNode: root,
+        gameInfo: { boardSize: 9, komi: 6.5, handicap: null, playerBlack: null, playerWhite: null, result: null, handicapStones: 0, handicapPositions: [], startColor: 1, problemDiagramSet: false, problemDiagramBlack: [], problemDiagramWhite: [] },
+        moves: [{ col: 0, row: 0, color: 1 }]
       });
       // runHistoryAdjustmentPhase: firstIndex = sgfMoves.length > 0 ? 1 : 0
       // With 1 move, firstIndex = 1
@@ -178,9 +206,13 @@ describe('SGFService extended', () => {
       const state = createState(9);
       state.sgfLoadedFromExternal = false;
       const service = createService(state);
+      const n1 = { id: 'n1', parent: null, children: [], isMainLine: true, move: { col: 0, row: 0, color: 1 } };
+      const root = { id: 'root', parent: null, children: [n1], isMainLine: true };
+      n1.parent = root;
       service.apply({
-        moves: [{ col: 0, row: 0, color: 1 }],
-        gameInfo: { boardSize: 9 }
+        rootNode: root,
+        gameInfo: { boardSize: 9, komi: 6.5, handicap: null, playerBlack: null, playerWhite: null, result: null, handicapStones: 0, handicapPositions: [], startColor: 1, problemDiagramSet: false, problemDiagramBlack: [], problemDiagramWhite: [] },
+        moves: [{ col: 0, row: 0, color: 1 }]
       });
       expect(state.sgfLoadedFromExternal).toBe(true);
     });

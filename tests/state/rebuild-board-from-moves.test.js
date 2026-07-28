@@ -23,7 +23,9 @@ const createState = (size = DEFAULT_CONFIG.DEFAULT_BOARD_SIZE) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null
+  sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false
 });
 
 const createHistoryMock = () => ({

@@ -28,8 +28,18 @@ const createState = (size = DEFAULT_CONFIG.DEFAULT_BOARD_SIZE) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
-  sgfLoadedFromExternal: false
+  sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
+  sgfLoadedFromExternal: false,
+  gameInfo: { title: '', komi: DEFAULT_CONFIG.DEFAULT_KOMI, handicap: null, playerBlack: null, playerWhite: null, result: null },
+  capturedCounts: { black: 0, white: 0 },
+  markers: [],
+  markerMode: false,
+  activeMarkerKind: null,
+  activeMarkerLabel: null,
+  rootMarkers: [],
+  nodeMarkers: [],
 });
 
 const snapshotBoard = (board) => board.map(row => row.slice());

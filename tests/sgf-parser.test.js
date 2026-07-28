@@ -7,6 +7,27 @@ const createState = (overrides = {}) => {
   const size = overrides.boardSize ?? DEFAULT_CONFIG.DEFAULT_BOARD_SIZE;
   const board = overrides.board ?? Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
 
+  // テスト用: sgfMoves から自動的に SGFNode 木を構築
+  const sgfTree = overrides.sgfTree ?? {
+    id: 'root',
+    parent: null,
+    children: (overrides.sgfMoves ?? []).map((m, i) => ({
+      id: `n${i + 1}`,
+      parent: null,
+      children: [],
+      isMainLine: true,
+      move: { ...m },
+    })),
+    isMainLine: true,
+  };
+  // parent ポインタを修正
+  for (let i = 0; i < sgfTree.children.length; i++) {
+    if (i + 1 < sgfTree.children.length) {
+      sgfTree.children[i].children = [sgfTree.children[i + 1]];
+    }
+    sgfTree.children[i].parent = sgfTree;
+  }
+
   return {
     boardSize: size,
     board,
@@ -26,7 +47,17 @@ const createState = (overrides = {}) => {
     problemDiagramSet: overrides.problemDiagramSet ?? false,
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
-    gameTree: overrides.gameTree ?? null,
+    sgfTree,
+    currentNodeId: overrides.currentNodeId ?? 'root',
+    studyMode: overrides.studyMode ?? false,
+    sgfLoadedFromExternal: false,
+    capturedCounts: { black: 0, white: 0 },
+    markers: [],
+    markerMode: false,
+    activeMarkerKind: null,
+    activeMarkerLabel: null,
+    rootMarkers: overrides.rootMarkers ?? [],
+    nodeMarkers: overrides.nodeMarkers ?? (overrides.sgfMoves ?? []).map(() => []),
     gameInfo: overrides.gameInfo ?? {
       title: overrides.title ?? '',
       komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,

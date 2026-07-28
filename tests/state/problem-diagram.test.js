@@ -25,7 +25,9 @@ const createState = (size = 9) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
+    sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
   sgfLoadedFromExternal: false,
   capturedCounts: { black: 0, white: 0 }
 });
@@ -131,10 +133,12 @@ describe('GameStore problem diagram', () => {
       expect(state.problemDiagramWhite).toEqual([]);
     });
 
-    test('clears gameTree', () => {
-      state.gameTree = { root: { children: [] } };
+    test('clears sgfTree', () => {
+      state.sgfTree = { id: 'root', parent: null, children: [{ id: 'n1', parent: null, children: [], isMainLine: true }], isMainLine: true };
+      state.currentNodeId = 'n1';
       store.setProblemDiagram();
-      expect(state.gameTree).toBe(null);
+      expect(state.sgfTree.children).toEqual([]);
+      expect(state.currentNodeId).toBe('root');
     });
 
     test('resets turn and history', () => {

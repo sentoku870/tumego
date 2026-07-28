@@ -40,7 +40,9 @@ export class ModeOperations {
         this.captureBoardAsProblemDiagram();
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
-        this.state.gameTree = null;
+        this.state.sgfTree = this.createEmptyRoot();
+        this.state.currentNodeId = 'root';
+        this.state.studyMode = false;
         this.state.sgfLoadedFromExternal = false;
         this.state.sgfMoves = [];
         this.state.sgfIndex = 0;
@@ -136,7 +138,9 @@ export class ModeOperations {
         this.state.numberMode = false;
         this.state.numberStartIndex = 0;
         this.state.handicapStones = 0;
-        this.state.gameTree = null;
+        this.state.sgfTree = this.createEmptyRoot();
+        this.state.currentNodeId = 'root';
+        this.state.studyMode = false;
         this.state.sgfLoadedFromExternal = true;
         this.state.handicapPositions = [];
         this.state.problemDiagramSet = false;
@@ -220,6 +224,14 @@ export class ModeOperations {
         this.state.sgfMoves = moves.map((move) => ({ ...move }));
         this.state.sgfIndex = 0;
     }
+    /**
+     * SGF のルート木を state.sgfTree にセットし、currentNodeId を 'root' にする。
+     * SGF 読込直後に呼び出される。
+     */
+    setSgfTree(root) {
+        this.state.sgfTree = root;
+        this.state.currentNodeId = 'root';
+    }
     // ============================================================
     // Internal
     // ============================================================
@@ -249,7 +261,9 @@ export class ModeOperations {
         this.state.problemDiagramSet = false;
         this.state.problemDiagramBlack = [];
         this.state.problemDiagramWhite = [];
-        this.state.gameTree = null;
+        this.state.sgfTree = this.createEmptyRoot();
+        this.state.currentNodeId = 'root';
+        this.state.studyMode = false;
         this.state.sgfLoadedFromExternal = false;
         this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         this.state.gameInfo = {
@@ -262,6 +276,15 @@ export class ModeOperations {
         if (!markers)
             return [];
         return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+    }
+    /** ルートのみの空SGFツリーを生成する（子を持たない初期状態） */
+    createEmptyRoot() {
+        return {
+            id: 'root',
+            parent: null,
+            children: [],
+            isMainLine: true,
+        };
     }
     hasGameData() {
         return hasGameData(this.state);

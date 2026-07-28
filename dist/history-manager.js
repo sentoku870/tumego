@@ -67,6 +67,9 @@ export class HistoryManager {
             markers: this.cloneMarkers((_a = state.markers) !== null && _a !== void 0 ? _a : []),
             rootMarkers: this.cloneMarkers((_b = state.rootMarkers) !== null && _b !== void 0 ? _b : []),
             nodeMarkers: this.cloneNodeMarkers((_c = state.nodeMarkers) !== null && _c !== void 0 ? _c : []),
+            sgfTree: this.cloneSgfTree(state.sgfTree),
+            currentNodeId: state.currentNodeId,
+            studyMode: state.studyMode,
         };
     }
     cloneMoves(moves) {
@@ -81,8 +84,36 @@ export class HistoryManager {
     cloneNodeMarkers(nodeMarkers) {
         return nodeMarkers.map((group) => this.cloneMarkers(group));
     }
+    /**
+     * SGF 木をディープクローンする。id・parent・children 関係を保ったまま複製する。
+     */
+    cloneSgfTree(root) {
+        const clonedRoot = {
+            id: root.id,
+            parent: null,
+            children: [],
+            isMainLine: root.isMainLine,
+        };
+        if (root.comment !== undefined)
+            clonedRoot.comment = root.comment;
+        if (root.label !== undefined)
+            clonedRoot.label = root.label;
+        if (root.move)
+            clonedRoot.move = { ...root.move };
+        const ext = root;
+        if (ext.__markers) {
+            clonedRoot.__markers =
+                this.cloneMarkers(ext.__markers);
+        }
+        for (const child of root.children) {
+            const clonedChild = this.cloneSgfTree(child);
+            clonedChild.parent = clonedRoot;
+            clonedRoot.children.push(clonedChild);
+        }
+        return clonedRoot;
+    }
     applySnapshot(saved, currentState) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         currentState.boardSize = saved.boardSize;
         currentState.board = cloneBoard(saved.board);
         currentState.mode = saved.mode;
@@ -107,6 +138,9 @@ export class HistoryManager {
         currentState.markers = this.cloneMarkers((_h = saved.markers) !== null && _h !== void 0 ? _h : []);
         currentState.rootMarkers = this.cloneMarkers((_j = saved.rootMarkers) !== null && _j !== void 0 ? _j : []);
         currentState.nodeMarkers = this.cloneNodeMarkers((_k = saved.nodeMarkers) !== null && _k !== void 0 ? _k : []);
+        currentState.sgfTree = this.cloneSgfTree(saved.sgfTree);
+        currentState.currentNodeId = saved.currentNodeId;
+        currentState.studyMode = (_l = saved.studyMode) !== null && _l !== void 0 ? _l : false;
     }
 }
 //# sourceMappingURL=history-manager.js.map

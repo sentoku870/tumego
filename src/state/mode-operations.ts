@@ -263,6 +263,15 @@ export class ModeOperations {
     this.state.sgfIndex = 0;
   }
 
+  /**
+   * SGF のルート木を state.sgfTree にセットし、currentNodeId を 'root' にする。
+   * SGF 読込直後に呼び出される。
+   */
+  setSgfTree(root: import("../types.js").SGFNode): void {
+    this.state.sgfTree = root;
+    this.state.currentNodeId = 'root';
+  }
+
   // ============================================================
   // Internal
   // ============================================================

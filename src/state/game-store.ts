@@ -538,6 +538,11 @@ export class GameStore {
     this.modeOps.setSgfMoves(moves);
   }
 
+  /** SGF のルート木を直接セットする（外部SGF読込時に使用） */
+  setSgfTree(root: import("../types.js").SGFNode): void {
+    this.modeOps.setSgfTree(root);
+  }
+
   /** SGF パース結果から復元した問題図レベル/着手ノード別のマーカーをセット */
   setNodeMarkers(rootMarkers: BoardMarker[], nodeMarkers: BoardMarker[][]): void {
     this.state.rootMarkers = rootMarkers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));

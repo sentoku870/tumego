@@ -14,6 +14,7 @@ import {
   Move,
   OperationHistory,
   Position,
+  SGFNode,
 } from "./types.js";
 import { cloneBoard } from "./state/board-utils.js";
 
@@ -91,6 +92,9 @@ export class HistoryManager implements OperationHistory {
       markers: this.cloneMarkers(state.markers ?? []),
       rootMarkers: this.cloneMarkers(state.rootMarkers ?? []),
       nodeMarkers: this.cloneNodeMarkers(state.nodeMarkers ?? []),
+      sgfTree: this.cloneSgfTree(state.sgfTree),
+      currentNodeId: state.currentNodeId,
+      studyMode: state.studyMode,
     };
   }
 
@@ -108,6 +112,33 @@ export class HistoryManager implements OperationHistory {
 
   private cloneNodeMarkers(nodeMarkers: BoardMarker[][]): BoardMarker[][] {
     return nodeMarkers.map((group) => this.cloneMarkers(group));
+  }
+
+  /**
+   * SGF 木をディープクローンする。id・parent・children 関係を保ったまま複製する。
+   */
+  private cloneSgfTree(root: SGFNode): SGFNode {
+    const clonedRoot: SGFNode = {
+      id: root.id,
+      parent: null,
+      children: [],
+      isMainLine: root.isMainLine,
+    };
+    if (root.comment !== undefined) clonedRoot.comment = root.comment;
+    if (root.label !== undefined) clonedRoot.label = root.label;
+    if (root.move) clonedRoot.move = { ...root.move };
+    const ext = root as SGFNode & { __markers?: BoardMarker[] };
+    if (ext.__markers) {
+      (clonedRoot as SGFNode & { __markers?: BoardMarker[] }).__markers =
+        this.cloneMarkers(ext.__markers);
+    }
+
+    for (const child of root.children) {
+      const clonedChild = this.cloneSgfTree(child);
+      clonedChild.parent = clonedRoot;
+      clonedRoot.children.push(clonedChild);
+    }
+    return clonedRoot;
   }
 
   private applySnapshot(saved: HistorySnapshotState, currentState: GameState): void {
@@ -141,5 +172,8 @@ export class HistoryManager implements OperationHistory {
     currentState.markers = this.cloneMarkers(saved.markers ?? []);
     currentState.rootMarkers = this.cloneMarkers(saved.rootMarkers ?? []);
     currentState.nodeMarkers = this.cloneNodeMarkers(saved.nodeMarkers ?? []);
+    currentState.sgfTree = this.cloneSgfTree(saved.sgfTree);
+    currentState.currentNodeId = saved.currentNodeId;
+    currentState.studyMode = saved.studyMode ?? false;
   }
 }

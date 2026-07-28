@@ -24,7 +24,9 @@ const createState = (size = 9) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
+    sgfTree: { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
   sgfLoadedFromExternal: false
 });
 

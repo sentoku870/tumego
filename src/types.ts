@@ -239,10 +239,12 @@ export interface SGFParseResult {
   /** 解析したSGFテキスト（読み込んだままの形） */
   rawSGF?: string;
   gameInfo: SGFGameInfo;
-  /** ルートノード（問題図レベル）のマーカー（rootNode.properties からも取得可能） */
+  /** ルートノード（問題図レベル）のマーカー（後方互換用） */
   rootMarkers?: BoardMarker[];
-  /** 各着手ノードに紐づくマーカー（主ラインの深さ基準の配列） */
+  /** 各着手ノードに紐づくマーカー（主ラインの深さ基準の配列、後方互換用） */
   nodeMarkers?: BoardMarker[][];
+  /** 主ラインの着手配列（後方互換用） */
+  moves?: Move[];
 }
 
 export interface SGFGameInfo extends GameInfo {

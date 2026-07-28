@@ -24,9 +24,17 @@ const createState = (overrides = {}) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
+  sgfTree: overrides.sgfTree ?? { id: 'root', parent: null, children: [], isMainLine: true },
+  currentNodeId: 'root',
+  studyMode: false,
   sgfLoadedFromExternal: false,
   capturedCounts: { black: 0, white: 0 },
+  markers: [],
+  markerMode: false,
+  activeMarkerKind: null,
+  activeMarkerLabel: null,
+  rootMarkers: [],
+  nodeMarkers: [],
   ...overrides
 });
 
@@ -177,6 +185,15 @@ describe('QRManager', () => {
       const veryLongSgf = '(;GM[1]FF[4]SZ[9]' + ';B[aa]'.repeat(700) + ')';
       state.sgfLoadedFromExternal = true;
       state.sgfMoves = Array.from({ length: 700 }, () => ({ col: 0, row: 0, color: 1 }));
+      // テスト用: sgfMoves から sgfTree を構築
+      const root = { id: 'root', parent: null, children: [], isMainLine: true };
+      let parent = root;
+      for (let i = 0; i < state.sgfMoves.length; i++) {
+        const node = { id: `n${i + 1}`, parent, children: [], isMainLine: true, move: { ...state.sgfMoves[i] } };
+        parent.children.push(node);
+        parent = node;
+      }
+      state.sgfTree = root;
       manager.createSGFQRCode(state);
       const directBtn = document.getElementById('share-direct-sgf');
       directBtn?.click();
@@ -246,6 +263,15 @@ describe('QRManager', () => {
         }
       }
       state.sgfMoves = moves;
+      // テスト用: sgfMoves から sgfTree を構築
+      const root = { id: 'root', parent: null, children: [], isMainLine: true };
+      let parent = root;
+      for (let i = 0; i < moves.length; i++) {
+        const node = { id: `n${i + 1}`, parent, children: [], isMainLine: true, move: { ...moves[i] } };
+        parent.children.push(node);
+        parent = node;
+      }
+      state.sgfTree = root;
       manager.createDiscordShareLink(state);
       expect(alerted).toBe(true);
     });
