@@ -359,7 +359,7 @@ export class ToolbarButtons {
         });
         const closeBtn = document.getElementById('btn-marker-close');
         closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.addEventListener('click', () => {
-            // パレットを閉じると同時にマーカーモードも解除 → 黒配置/交互配置に戻れる
+            // パレットを閉じると同時にマーカーモードも解除 → 黒配置/自由配置に戻れる
             this.store.setMarkerMode(null);
             this.dropdownManager.hide(dropdown);
             this.setActiveMarkerButton();

@@ -121,7 +121,7 @@ describe('ToolbarState', () => {
       expect(buttons.exitSolveBtn?.textContent).toBe('編集に戻る');
       state.numberMode = false;
       stateCtl.updateAnswerButtonDisplay();
-      expect(buttons.exitSolveBtn?.textContent).toBe('解答開始');
+      expect(buttons.exitSolveBtn?.textContent).toBe('SGF配置');
     });
   });
 
@@ -165,6 +165,24 @@ describe('ToolbarState', () => {
       stateCtl.updateToolbarState();
       expect(buttons.prevMoveBtn?.disabled).toBe(false);
       expect(buttons.nextMoveBtn?.disabled).toBe(true);
+    });
+
+    test('shows 黒配置/白配置 and hides 1手戻る/1手進む in edit mode', () => {
+      state.numberMode = false;
+      stateCtl.updateToolbarState();
+      expect(buttons.blackBtn?.style.display).not.toBe('none');
+      expect(buttons.whiteBtn?.style.display).not.toBe('none');
+      expect(buttons.prevMoveBtn?.style.display).toBe('none');
+      expect(buttons.nextMoveBtn?.style.display).toBe('none');
+    });
+
+    test('shows 1手戻る/1手進む and hides 黒配置/白配置 in solve mode', () => {
+      state.numberMode = true;
+      stateCtl.updateToolbarState();
+      expect(buttons.blackBtn?.style.display).toBe('none');
+      expect(buttons.whiteBtn?.style.display).toBe('none');
+      expect(buttons.prevMoveBtn?.style.display).not.toBe('none');
+      expect(buttons.nextMoveBtn?.style.display).not.toBe('none');
     });
   });
 
