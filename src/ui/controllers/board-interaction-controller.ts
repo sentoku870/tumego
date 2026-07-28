@@ -35,6 +35,11 @@ export class BoardInteractionController {
       stateMachine.onPlaySecondaryDown(input.colors.secondary),
     "play:auxiliary:*": ({ stateMachine }) =>
       stateMachine.onPlayAuxiliaryDown(),
+    "marker:primary:*": ({ stateMachine }) => stateMachine.onMarkerPrimaryDown(),
+    "marker:secondary:*": ({ stateMachine }) =>
+      stateMachine.onMarkerSecondaryDown(),
+    "marker:auxiliary:*": ({ stateMachine }) =>
+      stateMachine.onMarkerAuxiliaryDown(),
   };
 
   private readonly pointerMoveHandlers: Record<string, PointerMoveHandler> = {
@@ -45,6 +50,7 @@ export class BoardInteractionController {
     alt: ({ stateMachine }) => stateMachine.ignoreMove(),
     play: ({ stateMachine, dragging }) =>
       dragging ? stateMachine.continueDrag() : stateMachine.ignoreMove(),
+    marker: ({ stateMachine }) => stateMachine.ignoreMove(),
   };
 
   constructor(
@@ -52,7 +58,8 @@ export class BoardInteractionController {
     private readonly elements: UIElements,
     private readonly uiState: UIInteractionState,
     private readonly eventBus: UIEventBus,
-    private readonly preferences: PreferencesStore
+    private readonly preferences: PreferencesStore,
+    private readonly onBoardInteraction?: () => void
   ) {}
 
   initialize(): void {
@@ -131,6 +138,9 @@ export class BoardInteractionController {
   private handlePointerDown(event: PointerEvent): void {
     this.focusBoard();
 
+    // 盤面クリック時はマーカーパレットを閉じる（マーカー選択状態は維持）
+    this.onBoardInteraction?.();
+
     const input = normalizePointerInput(event, this.state);
 
     const handler = this.resolvePointerDownHandler(input);
@@ -185,6 +195,11 @@ export class BoardInteractionController {
       return;
     }
 
+    if (this.state.markerMode) {
+      this.handleToggleMarker(pos);
+      return;
+    }
+
     if (this.state.eraseMode) {
       this.handleErase(pos);
     } else {
@@ -234,6 +249,15 @@ export class BoardInteractionController {
     }
 
     return false;
+  }
+
+  private handleToggleMarker(pos: Position): void {
+    if (!this.state.activeMarkerKind) {
+      return;
+    }
+    const allowMulti = Boolean(this.preferences.state.solve.allowMultiMarker);
+    this.store.toggleMarker(pos, allowMulti);
+    this.eventBus.emitUIUpdate();
   }
 
   private getPositionFromEvent(event: PointerEvent): Position {
@@ -291,6 +315,17 @@ export class BoardInteractionController {
 
     if (decision.type === "disableEraseMode") {
       this.eventBus.emitEraseModeDisable();
+      return;
+    }
+
+    if (decision.type === "disableMarkerMode") {
+      this.store.setMarkerMode(null);
+      this.eventBus.emitUIUpdate();
+      return;
+    }
+
+    if (decision.type === "toggleMarker") {
+      this.placeAtEvent(event);
       return;
     }
 

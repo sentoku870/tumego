@@ -32,6 +32,15 @@ export class BoardInputStateMachine {
     onPlayAuxiliaryDown() {
         return { type: 'ignore' };
     }
+    onMarkerPrimaryDown() {
+        return { type: 'toggleMarker' };
+    }
+    onMarkerSecondaryDown() {
+        return { type: 'disableMarkerMode' };
+    }
+    onMarkerAuxiliaryDown() {
+        return { type: 'ignore' };
+    }
     startEraseDragFromMove(isPointerActive) {
         if (!isPointerActive) {
             return { type: 'ignore' };

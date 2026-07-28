@@ -3,6 +3,8 @@ import { StoneColor } from '../../types.js';
 export type PointerDownDecision =
   | { type: 'ignore' }
   | { type: 'disableEraseMode' }
+  | { type: 'disableMarkerMode' }
+  | { type: 'toggleMarker' }
   | { type: 'startDrag'; dragColor: StoneColor | null };
 
 export type PointerMoveDecision =
@@ -50,6 +52,18 @@ export class BoardInputStateMachine {
   }
 
   onPlayAuxiliaryDown(): PointerDownDecision {
+    return { type: 'ignore' };
+  }
+
+  onMarkerPrimaryDown(): PointerDownDecision {
+    return { type: 'toggleMarker' };
+  }
+
+  onMarkerSecondaryDown(): PointerDownDecision {
+    return { type: 'disableMarkerMode' };
+  }
+
+  onMarkerAuxiliaryDown(): PointerDownDecision {
     return { type: 'ignore' };
   }
 

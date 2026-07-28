@@ -9,6 +9,8 @@ const DEFAULT_PREFERENCES: Preferences = {
     enableFullReset: true,
     highlightLastMove: true,
     showSolutionMoveNumbers: false,
+    showMarkers: true,
+    allowMultiMarker: false,
   },
   ui: { deviceProfile: "auto" },
 };
@@ -81,13 +83,26 @@ function normalizePreferences(raw: unknown): Preferences {
     const showSolutionMoveNumbers =
       readField(solve, 'showSolutionMoveNumbers', isBooleanPreference) ??
       DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
+    const showMarkers =
+      readField(solve, 'showMarkers', isBooleanPreference) ??
+      DEFAULT_PREFERENCES.solve.showMarkers;
+    const allowMultiMarker =
+      readField(solve, 'allowMultiMarker', isBooleanPreference) ??
+      DEFAULT_PREFERENCES.solve.allowMultiMarker;
     const deviceProfile =
       readField(ui, 'deviceProfile', isDeviceProfile) ??
       DEFAULT_PREFERENCES.ui.deviceProfile;
 
     return {
       edit: { rulesMode },
-      solve: { showCapturedStones, enableFullReset, highlightLastMove, showSolutionMoveNumbers },
+      solve: {
+        showCapturedStones,
+        enableFullReset,
+        highlightLastMove,
+        showSolutionMoveNumbers,
+        showMarkers,
+        allowMultiMarker,
+      },
       ui: { deviceProfile },
     };
   } catch (error) {
@@ -138,6 +153,16 @@ export class PreferencesStore {
   setShowSolutionMoveNumbers(value: BooleanPreference): void {
     if (!isBooleanPreference(value)) return;
     this.updatePrefs({ solve: { showSolutionMoveNumbers: value } });
+  }
+
+  setShowMarkers(value: BooleanPreference): void {
+    if (!isBooleanPreference(value)) return;
+    this.updatePrefs({ solve: { showMarkers: value } });
+  }
+
+  setAllowMultiMarker(value: BooleanPreference): void {
+    if (!isBooleanPreference(value)) return;
+    this.updatePrefs({ solve: { allowMultiMarker: value } });
   }
 
   setDeviceProfile(value: DeviceProfile): void {

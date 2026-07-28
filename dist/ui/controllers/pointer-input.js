@@ -5,7 +5,7 @@ const POINTER_TYPE_TO_DEVICE = {
     pen: 'pen'
 };
 export function normalizePointerInput(event, state) {
-    const mode = resolveInteractionMode(state.eraseMode, state.mode);
+    const mode = resolveInteractionMode(state.eraseMode, state.mode, state.markerMode);
     const button = resolvePointerButton(event.button);
     const device = resolvePointerDevice(event.pointerType);
     const isActive = isPointerActive(event);
@@ -17,7 +17,10 @@ export function normalizePointerInput(event, state) {
         colors: resolveColors(state.mode)
     };
 }
-function resolveInteractionMode(eraseMode, mode) {
+function resolveInteractionMode(eraseMode, mode, markerMode) {
+    if (markerMode) {
+        return 'marker';
+    }
     if (eraseMode) {
         return 'erase';
     }

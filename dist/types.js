@@ -1,4 +1,15 @@
 // ============ 基本型定義 ============
+/** LB（ラベル）マーカーで自動進転する文字のシーケンス。配置ごとに次へ進む。 */
+export const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'];
+/** 次のラベル文字を返す（シーケンス末尾で先頭に戻る） */
+export function nextMarkerLetter(current) {
+    if (!current)
+        return MARKER_LETTER_SEQUENCE[0];
+    const idx = MARKER_LETTER_SEQUENCE.indexOf(current);
+    if (idx < 0)
+        return MARKER_LETTER_SEQUENCE[0];
+    return MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
+}
 // ============ 定数 ============
 export const DEFAULT_CONFIG = {
     CELL_SIZE: 60,
@@ -27,6 +38,8 @@ export const DEFAULT_CONFIG = {
     MOVE_NUM_FONT_SCALE: 1.20,
     MOVE_NUM_STROKE_RATIO: 0.22,
     LAST_MOVE_HIGHLIGHT_OFFSET: 5,
-    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white'],
+    MARKER_RADIUS: 22,
+    MARKER_STROKE_WIDTH: 3,
+    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
 };
 //# sourceMappingURL=types.js.map

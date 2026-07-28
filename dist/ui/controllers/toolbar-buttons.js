@@ -1,12 +1,22 @@
+import { MARKER_LETTER_SEQUENCE } from '../../types.js';
 import { HistoryView } from '../views/history-view.js';
+const MARKER_KINDS = ['CR', 'TR', 'SQ', 'MA', 'LB'];
+const MARKER_GLYPHS = {
+    CR: '○',
+    TR: '△',
+    SQ: '□',
+    MA: '×',
+    LB: '文字',
+};
 export class ToolbarButtons {
-    constructor(store, renderer, boardCapture, sgfService, elements, eventBus) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
         this.sgfService = sgfService;
         this.elements = elements;
         this.eventBus = eventBus;
+        this.dropdownManager = dropdownManager;
         this.clearBtn = null;
         this.problemBtn = null;
         this.answerBtn = null;
@@ -18,7 +28,13 @@ export class ToolbarButtons {
         this.altBtn = null;
         this.undoBtn = null;
         this.exitSolveBtn = null;
+        this.markerBtn = null;
+        this.markerDropdown = null;
+        this.markerPaletteBtns = {};
+        this.markerLetterBtn = null;
+        this.markerClearBtn = null;
         this.unsubscribeFromEventBus = null;
+        this.unsubscribeMarkerDocument = null;
     }
     bindAll() {
         this.store.resetInteractionModes();
@@ -26,21 +42,24 @@ export class ToolbarButtons {
         this.bindBasicButtons();
         this.bindGameButtons();
         this.bindBoardSaveButton();
+        this.bindMarkerMenu();
         this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
             this.dispatchDisableEraseMode();
         });
     }
     dispose() {
-        var _a;
+        var _a, _b;
         (_a = this.unsubscribeFromEventBus) === null || _a === void 0 ? void 0 : _a.call(this);
         this.unsubscribeFromEventBus = null;
+        (_b = this.unsubscribeMarkerDocument) === null || _b === void 0 ? void 0 : _b.call(this);
+        this.unsubscribeMarkerDocument = null;
     }
     triggerButton(selector) {
         const button = document.querySelector(selector);
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -52,6 +71,17 @@ export class ToolbarButtons {
         this.altBtn = (_j = this.altBtn) !== null && _j !== void 0 ? _j : document.getElementById('btn-alt');
         this.undoBtn = (_k = this.undoBtn) !== null && _k !== void 0 ? _k : document.getElementById('btn-undo');
         this.exitSolveBtn = (_l = this.exitSolveBtn) !== null && _l !== void 0 ? _l : document.getElementById('btn-exit-solve-edit');
+        this.markerBtn = (_m = this.markerBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker');
+        this.markerDropdown = (_o = this.markerDropdown) !== null && _o !== void 0 ? _o : document.getElementById('marker-dropdown');
+        this.markerClearBtn = (_p = this.markerClearBtn) !== null && _p !== void 0 ? _p : document.getElementById('btn-marker-clear');
+        this.markerLetterBtn = (_q = this.markerLetterBtn) !== null && _q !== void 0 ? _q : document.getElementById('btn-marker-select-LB');
+        for (const kind of MARKER_KINDS) {
+            if (kind === 'LB')
+                continue; // LB は単一の cycling ボタン
+            if (this.markerPaletteBtns[kind])
+                continue;
+            this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`);
+        }
     }
     dispatchDisableEraseMode() {
         var _a;
@@ -254,6 +284,139 @@ export class ToolbarButtons {
                 alert(`盤面保存に失敗しました: ${message}`);
             });
         });
+    }
+    bindMarkerMenu() {
+        const btn = document.getElementById('btn-marker');
+        const dropdown = document.getElementById('marker-dropdown');
+        if (btn) {
+            btn.title = 'マーカー（○△□×／ラベル）パレットを開閉します';
+        }
+        // トリガーボタンはパレットの開閉専用。マーカー選択状態は触らない。
+        btn === null || btn === void 0 ? void 0 : btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (!btn || !dropdown)
+                return;
+            const isOpen = dropdown.classList.contains('show');
+            if (isOpen) {
+                this.dropdownManager.hide(dropdown);
+            }
+            else {
+                this.dispatchDisableEraseMode();
+                this.dropdownManager.open(btn, dropdown);
+            }
+        });
+        dropdown === null || dropdown === void 0 ? void 0 : dropdown.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+        if (btn && !this.unsubscribeMarkerDocument) {
+            const documentHandler = (event) => {
+                if (!dropdown)
+                    return;
+                if (!dropdown.classList.contains('show'))
+                    return;
+                const target = event.target;
+                if (target && (dropdown.contains(target) || btn.contains(target))) {
+                    return;
+                }
+                this.dropdownManager.hide(dropdown);
+            };
+            document.addEventListener('click', documentHandler);
+            this.unsubscribeMarkerDocument = () => {
+                document.removeEventListener('click', documentHandler);
+            };
+        }
+        // ○△□× を選んだとき: パレットは閉じず、選択種別だけ切り替える
+        for (const kind of ['CR', 'TR', 'SQ', 'MA']) {
+            const item = document.getElementById(`btn-marker-select-${kind}`);
+            item === null || item === void 0 ? void 0 : item.addEventListener('click', () => {
+                this.dispatchDisableEraseMode();
+                this.handlePaletteItemSelect(kind, null);
+            });
+        }
+        // 文字マーカー: アクティブでないとき A から開始。アクティブのとき再クリックで OFF。
+        // 配置時の自動進行は GameStore.addMarkerAt で行う。
+        const letterBtn = document.getElementById('btn-marker-select-LB');
+        letterBtn === null || letterBtn === void 0 ? void 0 : letterBtn.addEventListener('click', () => {
+            var _a;
+            this.dispatchDisableEraseMode();
+            const state = this.store.snapshot;
+            if (state.markerMode && state.activeMarkerKind === 'LB') {
+                // 同じものを再クリック → トグル OFF
+                this.store.setMarkerMode(null);
+            }
+            else {
+                // 現在の activeMarkerLabel から開始（未設定なら A）
+                const startLabel = (_a = state.activeMarkerLabel) !== null && _a !== void 0 ? _a : MARKER_LETTER_SEQUENCE[0];
+                this.store.setMarkerMode('LB', startLabel);
+            }
+            this.setActiveMarkerButton();
+            this.eventBus.emitUIUpdate();
+        });
+        const clearBtn = document.getElementById('btn-marker-clear');
+        clearBtn === null || clearBtn === void 0 ? void 0 : clearBtn.addEventListener('click', () => {
+            this.store.clearMarkers();
+            this.eventBus.emitUIUpdate();
+        });
+        const closeBtn = document.getElementById('btn-marker-close');
+        closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.addEventListener('click', () => {
+            // パレットを閉じると同時にマーカーモードも解除 → 黒配置/交互配置に戻れる
+            this.store.setMarkerMode(null);
+            this.dropdownManager.hide(dropdown);
+            this.setActiveMarkerButton();
+            this.eventBus.emitUIUpdate();
+        });
+    }
+    handlePaletteItemSelect(kind, label) {
+        const state = this.store.snapshot;
+        // 同じものを再クリック → トグル OFF
+        if (state.markerMode && state.activeMarkerKind === kind && state.activeMarkerLabel === label) {
+            this.store.setMarkerMode(null);
+        }
+        else {
+            this.store.setMarkerMode(kind, label);
+        }
+        this.setActiveMarkerButton();
+        this.eventBus.emitUIUpdate();
+    }
+    setActiveMarkerButton() {
+        this.ensureButtonRefs();
+        const state = this.store.snapshot;
+        const active = state.activeMarkerKind;
+        const activeLabel = state.activeMarkerLabel;
+        if (this.markerBtn) {
+            this.markerBtn.classList.toggle('active', active !== null);
+            let label = '🔘 マーカー';
+            if (active) {
+                if (active === 'LB' && activeLabel) {
+                    label = `🔘 マーカー (${activeLabel})`;
+                }
+                else {
+                    label = `🔘 マーカー (${MARKER_GLYPHS[active]})`;
+                }
+            }
+            if (this.markerBtn.textContent !== label) {
+                this.markerBtn.textContent = label;
+            }
+        }
+        for (const kind of ['CR', 'TR', 'SQ', 'MA']) {
+            const btn = this.markerPaletteBtns[kind];
+            if (!btn)
+                continue;
+            btn.classList.toggle('active', active === kind);
+        }
+        if (this.markerLetterBtn) {
+            this.markerLetterBtn.classList.toggle('active', active === 'LB');
+        }
+    }
+    /**
+     * 盤面クリック時など、外部要因でマーカーパレットを閉じたいときに呼ぶ。
+     * マーカー選択状態（markerMode）は維持したまま、パレットだけを閉じる。
+     */
+    closeMarkerPalette() {
+        this.ensureButtonRefs();
+        if (this.markerDropdown && this.markerDropdown.classList.contains('show')) {
+            this.dropdownManager.hide(this.markerDropdown);
+        }
     }
     setMode(mode, buttonElement) {
         this.dispatchDisableEraseMode();

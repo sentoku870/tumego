@@ -10,6 +10,7 @@ import { PreferencesStore } from '../../services/preferences-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { ToolbarButtons } from './toolbar-buttons.js';
 import { ToolbarState } from './toolbar-state.js';
+import { DropdownManager } from './dropdown-manager.js';
 
 export class ToolbarController {
   private readonly buttons: ToolbarButtons;
@@ -22,7 +23,8 @@ export class ToolbarController {
     private readonly sgfService: SGFService,
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus,
-    private readonly preferences: PreferencesStore
+    private readonly preferences: PreferencesStore,
+    private readonly dropdownManager: DropdownManager
   ) {
     this.buttons = new ToolbarButtons(
       store,
@@ -30,7 +32,8 @@ export class ToolbarController {
       boardCapture,
       sgfService,
       elements,
-      eventBus
+      eventBus,
+      dropdownManager
     );
     this.state = new ToolbarState(
       store,
@@ -68,5 +71,9 @@ export class ToolbarController {
 
   updateFullResetVisibility(): void {
     this.state.updateFullResetVisibility();
+  }
+
+  closeMarkerPalette(): void {
+    this.buttons.closeMarkerPalette();
   }
 }

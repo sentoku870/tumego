@@ -2,10 +2,13 @@
 // 純粋関数群: GameState + Preferences から描画用の中間オブジェクトを生成する。
 // DOM には一切触れないため、jsdom なしでテスト可能。
 import {
+  BoardMarker,
   BoardRenderModel,
   CoordinateLabel,
   InfoRenderModel,
   LastMoveHighlightRenderInfo,
+  MarkerKind,
+  MarkerRenderInfo,
   MoveNumberRenderInfo,
   Position,
   Board,
@@ -70,6 +73,8 @@ export class RendererViewModelBuilder {
     const enableLastMoveHighlight =
       Boolean(prefs.solve.highlightLastMove) && !options?.suppressLastMoveHighlight;
 
+    const showMarkers = Boolean(prefs.solve.showMarkers);
+
     return {
       geometry,
       stars: this.getStarPositions(state.boardSize),
@@ -82,6 +87,8 @@ export class RendererViewModelBuilder {
       lastMoveHighlight: enableLastMoveHighlight
         ? this.buildLastMoveHighlight(state, geometry)
         : undefined,
+      markers: showMarkers ? this.buildMarkerModels(state.markers ?? [], geometry) : [],
+      showMarkers,
     };
   }
 
@@ -265,6 +272,18 @@ export class RendererViewModelBuilder {
     }
 
     return sequence.join(' ');
+  }
+
+  private buildMarkerModels(markers: BoardMarker[], geometry: RendererGeometry): MarkerRenderInfo[] {
+    const radius = DEFAULT_CONFIG.MARKER_RADIUS;
+    return markers.map((m) => {
+      const { cx, cy } = geometry.toPixel({ col: m.pos.col, row: m.pos.row });
+      const info: MarkerRenderInfo = { cx, cy, kind: m.kind, radius };
+      if (m.label !== undefined) {
+        (info as { label?: string }).label = m.label;
+      }
+      return info;
+    });
   }
 
   private getStarPositions(boardSize: number): Position[] {

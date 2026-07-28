@@ -11,6 +11,8 @@ export class SettingsController {
         this.fullResetCheckbox = null;
         this.highlightLastMoveCheckbox = null;
         this.showSolutionMoveNumbersCheckbox = null;
+        this.showMarkersCheckbox = null;
+        this.allowMultiMarkerCheckbox = null;
         this.resetButton = null;
     }
     initialize() {
@@ -27,6 +29,8 @@ export class SettingsController {
         this.fullResetCheckbox = document.getElementById("setting-enable-reset");
         this.highlightLastMoveCheckbox = document.getElementById("setting-highlight-last-move");
         this.showSolutionMoveNumbersCheckbox = document.getElementById("setting-show-solution-move-numbers");
+        this.showMarkersCheckbox = document.getElementById("setting-show-markers");
+        this.allowMultiMarkerCheckbox = document.getElementById("setting-allow-multi-marker");
         this.resetButton = document.getElementById("setting-reset-button");
         this.bindEvents();
         this.selectTab("basic");
@@ -34,7 +38,7 @@ export class SettingsController {
         this.preferences.onChange((prefs) => this.syncUI(prefs));
     }
     bindEvents() {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
         (_a = this.toggleButton) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
             var _a;
             if (!this.panel)
@@ -68,11 +72,19 @@ export class SettingsController {
             const value = event.target.checked;
             this.preferences.setShowSolutionMoveNumbers(value);
         });
-        (_g = this.deviceProfileSelect) === null || _g === void 0 ? void 0 : _g.addEventListener("change", (event) => {
+        (_g = this.showMarkersCheckbox) === null || _g === void 0 ? void 0 : _g.addEventListener("change", (event) => {
+            const value = event.target.checked;
+            this.preferences.setShowMarkers(value);
+        });
+        (_h = this.allowMultiMarkerCheckbox) === null || _h === void 0 ? void 0 : _h.addEventListener("change", (event) => {
+            const value = event.target.checked;
+            this.preferences.setAllowMultiMarker(value);
+        });
+        (_j = this.deviceProfileSelect) === null || _j === void 0 ? void 0 : _j.addEventListener("change", (event) => {
             const value = event.target.value;
             this.preferences.setDeviceProfile(value);
         });
-        (_h = this.resetButton) === null || _h === void 0 ? void 0 : _h.addEventListener("click", () => {
+        (_k = this.resetButton) === null || _k === void 0 ? void 0 : _k.addEventListener("click", () => {
             this.preferences.reset();
             this.syncUI(this.preferences.state);
         });
@@ -92,6 +104,12 @@ export class SettingsController {
         }
         if (this.showSolutionMoveNumbersCheckbox) {
             this.showSolutionMoveNumbersCheckbox.checked = prefs.solve.showSolutionMoveNumbers;
+        }
+        if (this.showMarkersCheckbox) {
+            this.showMarkersCheckbox.checked = prefs.solve.showMarkers;
+        }
+        if (this.allowMultiMarkerCheckbox) {
+            this.allowMultiMarkerCheckbox.checked = prefs.solve.allowMultiMarker;
         }
         if (this.deviceProfileSelect) {
             this.deviceProfileSelect.value = prefs.ui.deviceProfile;

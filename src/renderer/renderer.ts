@@ -4,6 +4,8 @@
 import {
   CoordinateLabel,
   LastMoveHighlightRenderInfo,
+  MarkerKind,
+  MarkerRenderInfo,
   MoveNumberRenderInfo,
   StoneRenderInfo,
   UIElements,
@@ -57,6 +59,10 @@ export class Renderer {
 
     if (model.lastMoveHighlight) {
       this.drawLastMoveHighlight(model.lastMoveHighlight);
+    }
+
+    if (model.showMarkers) {
+      this.drawMarkers(model.markers);
     }
 
     if (model.showMoveNumbers) {
@@ -260,14 +266,141 @@ private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
 
 
   private drawLastMoveHighlight(highlight: LastMoveHighlightRenderInfo): void {
+    // --accent を解決してインライン stroke として設定する（盤面保存の
+    // cloneNode(true) → SVG→PNG 変換で CSS クラスが効かないため）
+    const rootStyle = getComputedStyle(document.documentElement);
+    const accent = (rootStyle.getPropertyValue('--accent') || '#d9534f').trim();
     this.elements.svg.appendChild(
       this.createSVGElement('circle', {
         cx: highlight.cx.toString(),
         cy: highlight.cy.toString(),
         r: highlight.radius.toString(),
-        class: 'last-move-highlight'
+        class: 'last-move-highlight',
+        style: `fill: none; stroke: ${accent};`,
       })
     );
+  }
+
+  private drawMarkers(markers: MarkerRenderInfo[]): void {
+    if (!markers || markers.length === 0) return;
+    const stroke = DEFAULT_CONFIG.MARKER_STROKE_WIDTH.toString();
+    // --accent を解決してインライン stroke として設定する。
+    // こうすると盤面保存時の cloneNode(true) → SVG→PNG 変換でも
+    // 外部 CSS に頼らずマーカー色が残る。
+    const rootStyle = getComputedStyle(document.documentElement);
+    const accent = (rootStyle.getPropertyValue('--accent') || '#d9534f').trim();
+    const markerStyle = `stroke: ${accent}; fill: none;`;
+    const maStyle = `stroke: ${accent};`;
+    markers.forEach((m) => {
+      const cx = m.cx.toString();
+      const cy = m.cy.toString();
+      const r = m.radius.toString();
+      switch (m.kind) {
+        case 'CR': {
+          this.elements.svg.appendChild(
+            this.createSVGElement('circle', {
+              cx, cy, r,
+              class: 'marker marker-cr',
+              style: markerStyle,
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'TR': {
+          // 上向き正三角形: 中心 (cx,cy) 半径 r
+          const top = { x: m.cx, y: m.cy - m.radius };
+          const left = { x: m.cx - m.radius * Math.sin(Math.PI / 3), y: m.cy + m.radius * 0.5 };
+          const right = { x: m.cx + m.radius * Math.sin(Math.PI / 3), y: m.cy + m.radius * 0.5 };
+          const points = `${top.x},${top.y} ${left.x},${left.y} ${right.x},${right.y}`;
+          this.elements.svg.appendChild(
+            this.createSVGElement('polygon', {
+              points,
+              class: 'marker marker-tr',
+              style: markerStyle,
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'SQ': {
+          const half = m.radius * 0.85;
+          const x = (m.cx - half).toString();
+          const y = (m.cy - half).toString();
+          const size = (half * 2).toString();
+          this.elements.svg.appendChild(
+            this.createSVGElement('rect', {
+              x, y, width: size, height: size,
+              rx: '2', ry: '2',
+              class: 'marker marker-sq',
+              style: markerStyle,
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'MA': {
+          // × 印: 2本の対角線
+          const d = m.radius * 0.7;
+          this.elements.svg.appendChild(
+            this.createSVGElement('line', {
+              x1: (m.cx - d).toString(),
+              y1: (m.cy - d).toString(),
+              x2: (m.cx + d).toString(),
+              y2: (m.cy + d).toString(),
+              class: 'marker marker-ma',
+              style: maStyle,
+              'stroke-width': stroke,
+            })
+          );
+          this.elements.svg.appendChild(
+            this.createSVGElement('line', {
+              x1: (m.cx - d).toString(),
+              y1: (m.cy + d).toString(),
+              x2: (m.cx + d).toString(),
+              y2: (m.cy - d).toString(),
+              class: 'marker marker-ma',
+              style: maStyle,
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'LB': {
+          // ラベル文字: 背景円 + 文字で石/空点いずれでも読みやすく
+          const labelText = (m.label ?? '').slice(0, 3);
+          if (!labelText) break;
+          const bgRadius = m.radius * 0.6;
+          this.elements.svg.appendChild(
+            this.createSVGElement('circle', {
+              cx,
+              cy,
+              r: bgRadius.toString(),
+              class: 'marker marker-lb',
+              style: `fill: ${accent}; fill-opacity: 0.85; stroke: none;`,
+            })
+          );
+          const textSize = (m.radius * 0.9).toString();
+          const text = this.createSVGElement('text', {
+            x: cx,
+            y: cy,
+            class: 'marker-label',
+            'font-size': textSize,
+            'font-weight': '700',
+            'text-anchor': 'middle',
+            'dominant-baseline': 'central',
+            style: `fill: #fff; stroke: #fff; stroke-width: 1; paint-order: stroke;`,
+          });
+          text.textContent = labelText;
+          this.elements.svg.appendChild(text);
+          break;
+        }
+        default: {
+          const _exhaustive: never = m.kind as never;
+          void _exhaustive;
+        }
+      }
+    });
   }
 
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {

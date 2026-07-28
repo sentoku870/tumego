@@ -34,12 +34,14 @@ export class RendererViewModelBuilder {
     }
     // suppressLastMoveHighlight: true のときは「直前の手ハイライト」を出さない
     buildBoardModel(options) {
+        var _a;
         const state = this.store.snapshot;
         const geometry = new RendererGeometry(state.boardSize);
         const prefs = this.getPreferences();
         const showMoveNumbers = state.numberMode && Boolean(prefs.solve.showSolutionMoveNumbers);
         const showCapturedStones = prefs.solve.showCapturedStones;
         const enableLastMoveHighlight = Boolean(prefs.solve.highlightLastMove) && !(options === null || options === void 0 ? void 0 : options.suppressLastMoveHighlight);
+        const showMarkers = Boolean(prefs.solve.showMarkers);
         return {
             geometry,
             stars: this.getStarPositions(state.boardSize),
@@ -52,6 +54,8 @@ export class RendererViewModelBuilder {
             lastMoveHighlight: enableLastMoveHighlight
                 ? this.buildLastMoveHighlight(state, geometry)
                 : undefined,
+            markers: showMarkers ? this.buildMarkerModels((_a = state.markers) !== null && _a !== void 0 ? _a : [], geometry) : [],
+            showMarkers,
         };
     }
     buildInfoModel() {
@@ -205,6 +209,17 @@ export class RendererViewModelBuilder {
             sequence.push(`${mark}${num} ${col}${row}`);
         }
         return sequence.join(' ');
+    }
+    buildMarkerModels(markers, geometry) {
+        const radius = DEFAULT_CONFIG.MARKER_RADIUS;
+        return markers.map((m) => {
+            const { cx, cy } = geometry.toPixel({ col: m.pos.col, row: m.pos.row });
+            const info = { cx, cy, kind: m.kind, radius };
+            if (m.label !== undefined) {
+                info.label = m.label;
+            }
+            return info;
+        });
     }
     getStarPositions(boardSize) {
         const starMap = {

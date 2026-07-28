@@ -66,14 +66,16 @@ export function compositionRoot(
     sgfService,
     elements,
     eventBus,
-    preferences
+    preferences,
+    dropdownManager
   );
   const board = new BoardInteractionController(
     store,
     elements,
     uiState,
     eventBus,
-    preferences
+    preferences,
+    () => toolbar.closeMarkerPalette()
   );
   const feature = new FeatureMenuController(
     dropdownManager,

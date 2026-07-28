@@ -37,7 +37,7 @@ export class SGFService {
     apply(result) {
         var _a, _b, _c, _d, _e, _f;
         const validated = this.validateParseResult(result);
-        const { moves, gameInfo, rawSGF } = validated;
+        const { moves, gameInfo, rawSGF, rootMarkers, nodeMarkers } = validated;
         // 1) 盤サイズ変更と盤面再生成
         this.store.prepareBoardForSgf(gameInfo.boardSize);
         // 2) 履歴保存 + フラグ類リセット
@@ -55,6 +55,8 @@ export class SGFService {
         this.store.updateGameInfoFromSgf(gameInfo);
         // 5) 着手履歴セット + 0 手目に進める（手順があれば 1 手目）
         this.store.setSgfMoves(moves);
+        // 6) マーカー（ルート + 各着手ノード）
+        this.store.setNodeMarkers(rootMarkers !== null && rootMarkers !== void 0 ? rootMarkers : [], nodeMarkers !== null && nodeMarkers !== void 0 ? nodeMarkers : []);
         const firstIndex = this.state.sgfMoves.length > 0 ? 1 : 0;
         this.store.setMoveIndex(firstIndex);
         return {

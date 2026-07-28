@@ -1,5 +1,6 @@
 // ============ SGF処理エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
+const MARKER_PROPERTIES = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 export class SGFParser {
     // ============ SGF解析 ============
     parse(sgfText) {
@@ -123,7 +124,106 @@ export class SGFParser {
         if (playerMatch) {
             gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
         }
-        return { moves, gameInfo, rawSGF: rawText };
+        // マーカー（CR/TR/SQ/MA）をノード別に解析
+        const { rootMarkers, nodeMarkers } = this.parseMarkersPerNode(rawText, moves.length);
+        return {
+            moves,
+            gameInfo,
+            rawSGF: rawText,
+            rootMarkers,
+            nodeMarkers,
+        };
+    }
+    /**
+     * SGFテキストを「;B[..] / ;W[..]」の開始位置で分割し、各ノード内の
+     * CR/TR/SQ/MA を集めてルート用・着手ノード用の配列として返す。
+     * パス（座標なし）の着手があっても nodeMarkers の長さは sgfMoves.length に揃える。
+     */
+    parseMarkersPerNode(rawText, moveCount) {
+        const inner = this.extractInner(rawText);
+        // 着手ノード境界（;B[..] / ;W[..]）のインデックスを順に抽出
+        const moveBoundary = new RegExp(';([BW])\\[[^\\]]*\\]', 'gi');
+        const boundaries = [];
+        let m;
+        while ((m = moveBoundary.exec(inner)) !== null) {
+            boundaries.push(m.index);
+        }
+        if (boundaries.length === 0) {
+            return { rootMarkers: this.collectMarkersInNode(inner), nodeMarkers: this.emptyNodeMarkers(moveCount) };
+        }
+        // ルートチャンク: 先頭の手前まで
+        const rootChunk = inner.slice(0, boundaries[0]);
+        const rootMarkers = this.collectMarkersInNode(rootChunk);
+        // 着手チャンク: 各境界から次の境界まで
+        const nodeMarkers = [];
+        for (let i = 0; i < moveCount; i++) {
+            const start = boundaries[i];
+            const end = i + 1 < boundaries.length ? boundaries[i + 1] : inner.length;
+            const chunk = inner.slice(start, end);
+            nodeMarkers.push(this.collectMarkersInNode(chunk));
+        }
+        return { rootMarkers, nodeMarkers };
+    }
+    extractInner(rawText) {
+        const openIdx = rawText.indexOf('(');
+        const closeIdx = rawText.lastIndexOf(')');
+        if (openIdx < 0 || closeIdx < 0 || closeIdx <= openIdx) {
+            return rawText;
+        }
+        return rawText.slice(openIdx + 1, closeIdx);
+    }
+    collectMarkersInNode(chunk) {
+        var _a, _b, _c;
+        const out = [];
+        // CR/TR/SQ/MA は elist 形式: TR[aa][bb][cc]
+        for (const kind of MARKER_PROPERTIES) {
+            if (kind === 'LB') {
+                // LB は coord:label のシンプル形式: LB[aa:A][bb:黒]
+                const pattern = /\bLB((?:\[[a-z]{2}:[^\]]*\])+)(?=[A-Z]\w*\[|;|\)|$)/gi;
+                const matches = chunk.matchAll(pattern);
+                for (const m of matches) {
+                    const group = (_a = m[1]) !== null && _a !== void 0 ? _a : '';
+                    const items = group.matchAll(/\[([a-z]{2}):([^\]]*)\]/gi);
+                    for (const item of items) {
+                        const coord = item[1].toLowerCase();
+                        if (coord.length !== 2)
+                            continue;
+                        const col = coord.charCodeAt(0) - 97;
+                        const row = coord.charCodeAt(1) - 97;
+                        if (col < 0 || row < 0)
+                            continue;
+                        const label = ((_b = item[2]) !== null && _b !== void 0 ? _b : '').replace(/\\:/g, ':').replace(/\\\]/g, ']');
+                        out.push({ pos: { col, row }, kind: 'LB', label });
+                    }
+                }
+                continue;
+            }
+            const pattern = new RegExp(`\\b${kind}((?:\\[[a-z]{2}\\])+)(?=[A-Z]\\w*\\[|;|\\)|$)`, 'gi');
+            const matches = chunk.matchAll(pattern);
+            for (const m of matches) {
+                const coordGroup = (_c = m[1]) !== null && _c !== void 0 ? _c : '';
+                const coords = coordGroup.match(/\[([a-z]{2})\]/gi);
+                if (!coords)
+                    continue;
+                for (const coord of coords) {
+                    const clean = coord.slice(1, -1).toLowerCase();
+                    if (clean.length !== 2)
+                        continue;
+                    const col = clean.charCodeAt(0) - 97;
+                    const row = clean.charCodeAt(1) - 97;
+                    if (col < 0 || row < 0)
+                        continue;
+                    out.push({ pos: { col, row }, kind });
+                }
+            }
+        }
+        return out;
+    }
+    emptyNodeMarkers(moveCount) {
+        const out = [];
+        for (let i = 0; i < moveCount; i++)
+            out.push([]);
+        return out;
     }
     // ============ SGF出力 ============
     export(state) {
@@ -169,14 +269,61 @@ export class SGFParser {
         if ((_g = state.gameInfo) === null || _g === void 0 ? void 0 : _g.result) {
             sgf += `RE[${state.gameInfo.result}]`;
         }
-        // 着手を記録
-        for (const move of state.sgfMoves) {
+        // ルートレベルのマーカー
+        sgf += this.markerPropsToString(state.rootMarkers);
+        // 着手を記録（マーカーはその着手ノードのプロパティとして後に並べる）
+        state.sgfMoves.forEach((move, idx) => {
+            var _a, _b;
             const color = move.color === 1 ? 'B' : 'W';
             const coord = `${String.fromCharCode(97 + move.col)}${String.fromCharCode(97 + move.row)}`;
             sgf += `;${color}[${coord}]`;
-        }
+            const nodeMarkers = (_b = (_a = state.nodeMarkers) === null || _a === void 0 ? void 0 : _a[idx]) !== null && _b !== void 0 ? _b : [];
+            sgf += this.markerPropsToString(nodeMarkers);
+        });
         sgf += ')';
         return sgf;
+    }
+    markerPropsToString(markers) {
+        var _a;
+        if (!markers || markers.length === 0)
+            return '';
+        const groupedElist = {};
+        const labels = [];
+        for (const m of markers) {
+            if (m.kind === 'LB') {
+                labels.push(m);
+            }
+            else {
+                const list = (_a = groupedElist[m.kind]) !== null && _a !== void 0 ? _a : [];
+                list.push(m.pos);
+                groupedElist[m.kind] = list;
+            }
+        }
+        let out = '';
+        for (const kind of MARKER_PROPERTIES) {
+            if (kind === 'LB') {
+                if (labels.length === 0)
+                    continue;
+                const items = labels
+                    .map((m) => {
+                    var _a;
+                    const coord = `${String.fromCharCode(97 + m.pos.col)}${String.fromCharCode(97 + m.pos.row)}`;
+                    const safe = ((_a = m.label) !== null && _a !== void 0 ? _a : '').replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
+                    return `[${coord}:${safe}]`;
+                })
+                    .join('');
+                out += `LB${items}`;
+                continue;
+            }
+            const points = groupedElist[kind];
+            if (!points || points.length === 0)
+                continue;
+            const coords = points
+                .map((p) => `[${String.fromCharCode(97 + p.col)}${String.fromCharCode(97 + p.row)}]`)
+                .join('');
+            out += `${kind}${coords}`;
+        }
+        return out;
     }
 }
 //# sourceMappingURL=sgf-parser.js.map

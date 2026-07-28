@@ -4,7 +4,7 @@
 // 内部の modeOps / cache / handicap / monitor は private であり、
 // 外部コード（services, controllers）は GameStore の公開メソッド経由でのみ
 // 状態書込を行う。直接アクセスが必要な操作は本クラスにラッパーを追加すること。
-import { DEFAULT_CONFIG, } from "../types.js";
+import { DEFAULT_CONFIG, nextMarkerLetter, } from "../types.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
 import { HandicapSetter } from "./handicap-setter.js";
 import { ModeOperations } from "./mode-operations.js";
@@ -22,6 +22,18 @@ export class GameStore {
         this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
         if (!this.state.capturedCounts) {
             this.state.capturedCounts = createInitialCapturedCounts();
+        }
+        if (!this.state.markers) {
+            this.state.markers = [];
+        }
+        if (this.state.activeMarkerLabel === undefined) {
+            this.state.activeMarkerLabel = null;
+        }
+        if (!this.state.rootMarkers) {
+            this.state.rootMarkers = [];
+        }
+        if (!this.state.nodeMarkers) {
+            this.state.nodeMarkers = [];
         }
         if (!this.state.gameInfo) {
             this.state.gameInfo = this.createDefaultGameInfo();
@@ -105,7 +117,10 @@ export class GameStore {
         if (record) {
             this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
             this.state.sgfMoves.push({ col: pos.col, row: pos.row, color: moveColor });
+            this.state.nodeMarkers = this.state.nodeMarkers.slice(0, this.state.sgfIndex);
+            this.state.nodeMarkers.push([]);
             this.state.sgfIndex = this.state.sgfMoves.length;
+            this.syncMarkersToCurrentNode();
         }
         this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
         return true;
@@ -126,8 +141,10 @@ export class GameStore {
                 return true;
             }
             this.state.sgfMoves = this.state.sgfMoves.slice(0, removeIndex);
+            this.state.nodeMarkers = this.state.nodeMarkers.slice(0, removeIndex);
             this.state.sgfIndex = this.state.sgfMoves.length;
             this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
+            this.syncMarkersToCurrentNode();
             this.cache.invalidate();
             return true;
         }
@@ -195,6 +212,7 @@ export class GameStore {
         const result = this.cache.setMoveIndex(clamped);
         this.applyRebuildResult(result);
         this.state.sgfIndex = clamped;
+        this.syncMarkersToCurrentNode();
     }
     /**
      * 後方互換のため公開。盤面タイムラインを指定手数まで再構築し state を更新する。
@@ -203,6 +221,7 @@ export class GameStore {
     rebuildBoardFromMoves(limit) {
         const result = this.cache.rebuildBoardFromMoves(limit);
         this.applyRebuildResult(result);
+        this.syncMarkersToCurrentNode();
         return result.board;
     }
     // ============================================================
@@ -252,6 +271,142 @@ export class GameStore {
         this.state.eraseMode = false;
     }
     // ============================================================
+    // 公開: マーカー
+    // ============================================================
+    /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
+    setMarkerMode(kind, label = null) {
+        this.state.activeMarkerKind = kind;
+        this.state.activeMarkerLabel = kind === 'LB' ? label : null;
+        this.state.markerMode = kind !== null;
+        this.dispatchDisableEraseModeIfActive();
+    }
+    /** アクティブ種別のマーカーを pos にトグル配置する。 */
+    toggleMarker(pos, allowMulti = false) {
+        var _a;
+        const kind = this.state.activeMarkerKind;
+        if (!kind)
+            return false;
+        if (!this.isValidPosition(pos))
+            return false;
+        const label = (_a = this.state.activeMarkerLabel) !== null && _a !== void 0 ? _a : undefined;
+        const existing = this.findMarkerAt(pos, kind, label);
+        if (existing) {
+            this.removeMarkerAt(pos, kind, label);
+            return false;
+        }
+        if (!allowMulti) {
+            const any = this.findMarkerAt(pos);
+            if (any && !allowMulti) {
+                this.removeMarkerAt(pos, any.kind, any.label);
+            }
+        }
+        this.addMarkerAt(pos, kind, label);
+        return true;
+    }
+    /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
+    addMarker(pos, kind, label) {
+        if (!this.isValidPosition(pos))
+            return false;
+        return this.addMarkerAt(pos, kind, label);
+    }
+    /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
+    removeMarker(pos, kind, label) {
+        if (!this.isValidPosition(pos))
+            return false;
+        if (kind === undefined) {
+            const before = this.state.markers.length;
+            this.state.markers = this.state.markers.filter((m) => m.pos.col !== pos.col || m.pos.row !== pos.row);
+            const changed = this.state.markers.length !== before;
+            if (changed)
+                this.persistMarkersToCurrentNode();
+            return changed;
+        }
+        return this.removeMarkerAt(pos, kind, label);
+    }
+    /** 表示中ノードのマーカーを全消去 */
+    clearMarkers() {
+        if (this.state.markers.length === 0)
+            return;
+        this.state.markers = [];
+        this.persistMarkersToCurrentNode();
+    }
+    // ============================================================
+    // Internal: マーカー
+    // ============================================================
+    findMarkerAt(pos, kind, label) {
+        return this.state.markers.find((m) => m.pos.col === pos.col &&
+            m.pos.row === pos.row &&
+            (kind === undefined || m.kind === kind) &&
+            (label === undefined || m.label === label));
+    }
+    addMarkerAt(pos, kind, label) {
+        const exists = this.state.markers.some((m) => m.pos.col === pos.col &&
+            m.pos.row === pos.row &&
+            m.kind === kind &&
+            m.label === label);
+        if (exists)
+            return false;
+        const marker = { pos: { col: pos.col, row: pos.row }, kind };
+        if (label !== undefined)
+            marker.label = label;
+        this.state.markers.push(marker);
+        this.persistMarkersToCurrentNode();
+        // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
+        if (kind === 'LB' && label) {
+            this.state.activeMarkerLabel = nextMarkerLetter(label);
+        }
+        return true;
+    }
+    removeMarkerAt(pos, kind, label) {
+        const before = this.state.markers.length;
+        this.state.markers = this.state.markers.filter((m) => !(m.pos.col === pos.col &&
+            m.pos.row === pos.row &&
+            m.kind === kind &&
+            (label === undefined || m.label === label)));
+        const changed = this.state.markers.length !== before;
+        if (changed)
+            this.persistMarkersToCurrentNode();
+        return changed;
+    }
+    /**
+     * 表示中のマーカー一覧を、現在の sgfIndex に対応する永続スロットに書き戻す。
+     * sgfIndex === 0 は問題図レベル（rootMarkers）、それ以降は nodeMarkers[sgfIndex - 1]。
+     */
+    persistMarkersToCurrentNode() {
+        const clone = this.cloneMarkers(this.state.markers);
+        if (this.state.sgfIndex === 0) {
+            this.state.rootMarkers = clone;
+        }
+        else {
+            const slot = this.state.sgfIndex - 1;
+            this.state.nodeMarkers[slot] = clone;
+        }
+    }
+    /** sgfIndex に応じて state.markers を rootMarkers / nodeMarkers から復元する */
+    syncMarkersToCurrentNode() {
+        if (this.state.sgfIndex === 0) {
+            this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+        }
+        else {
+            const slot = this.state.sgfIndex - 1;
+            const slotMarkers = this.state.nodeMarkers[slot];
+            this.state.markers = slotMarkers ? this.cloneMarkers(slotMarkers) : [];
+        }
+    }
+    cloneMarkers(markers) {
+        return markers.map((m) => {
+            const clone = { pos: { ...m.pos }, kind: m.kind };
+            if (m.label !== undefined)
+                clone.label = m.label;
+            return clone;
+        });
+    }
+    dispatchDisableEraseModeIfActive() {
+        if (this.state.eraseMode) {
+            this.state.eraseMode = false;
+        }
+    }
+    // ============================================================
     // 公開: 置石（HandicapSetter への委譲）
     // ============================================================
     setHandicap(stones) {
@@ -279,6 +434,12 @@ export class GameStore {
     /** SGF 手順のセットを委譲 */
     setSgfMoves(moves) {
         this.modeOps.setSgfMoves(moves);
+    }
+    /** SGF パース結果から復元した問題図レベル/着手ノード別のマーカーをセット */
+    setNodeMarkers(rootMarkers, nodeMarkers) {
+        this.state.rootMarkers = rootMarkers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+        this.state.nodeMarkers = nodeMarkers.map((group) => group.map((m) => ({ pos: { ...m.pos }, kind: m.kind })));
+        this.syncMarkersToCurrentNode();
     }
     // ============================================================
     // 公開: パフォーマンス計測
@@ -326,6 +487,7 @@ export class GameStore {
         this.state.history = result.history;
         this.state.turn = result.turn;
         this.state.capturedCounts = result.counts;
+        this.syncMarkersToCurrentNode();
         this.syncKomiToGameInfo();
     }
     syncKomiToGameInfo() {

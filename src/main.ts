@@ -36,7 +36,13 @@ function createInitialState(): GameState {
       playerWhite: null,
       result: null
     },
-    capturedCounts: createInitialCapturedCounts()
+    capturedCounts: createInitialCapturedCounts(),
+    markers: [],
+    markerMode: false,
+    activeMarkerKind: null,
+    activeMarkerLabel: null,
+    rootMarkers: [],
+    nodeMarkers: []
   };
 }
 

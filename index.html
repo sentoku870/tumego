@@ -30,6 +30,18 @@
           <button class="ctrl-btn" id="btn-clear">全消去</button>
           <button class="ctrl-btn" id="btn-undo" title="直前の状態に戻します（履歴スナップショット単位）">Undo</button>
           <button class="ctrl-btn" id="btn-erase">消去</button>
+          <div class="menu-container marker-menu">
+            <button class="ctrl-btn" id="btn-marker" title="マーカー（○△□×／ラベル）パレットを開閉します。ラベルは配置時に A→B→C と自動で進みます">🔘 マーカー</button>
+            <div class="menu-dropdown marker-dropdown" id="marker-dropdown" role="menu" aria-label="マーカー選択">
+              <button id="btn-marker-select-CR" data-marker-kind="CR" class="marker-palette-item" role="menuitem">○</button>
+              <button id="btn-marker-select-TR" data-marker-kind="TR" class="marker-palette-item" role="menuitem">△</button>
+              <button id="btn-marker-select-SQ" data-marker-kind="SQ" class="marker-palette-item" role="menuitem">□</button>
+              <button id="btn-marker-select-MA" data-marker-kind="MA" class="marker-palette-item" role="menuitem">×</button>
+              <button id="btn-marker-select-LB" data-marker-kind="LB" class="marker-palette-item" role="menuitem" title="文字マーカー（配置時に自動で次の文字へ進みます）">文字</button>
+              <button id="btn-marker-clear" class="marker-palette-action" role="menuitem">マーカー消去</button>
+              <button id="btn-marker-close" class="marker-palette-action" role="menuitem">閉じる</button>
+            </div>
+          </div>
         </div>
         <div class="toolbar-row">
           <button class="ctrl-btn play-btn" id="btn-alt">交互配置</button>
@@ -172,6 +184,14 @@
             <label class="settings-row checkbox-row">
               <input type="checkbox" id="setting-show-solution-move-numbers" />
               <span>解答手順に手数を表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-show-markers" />
+              <span>盤面マーカー（○△□×）を表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-allow-multi-marker" />
+              <span>同じ交点に複数のマーカーを重ねる</span>
             </label>
           </div>
 

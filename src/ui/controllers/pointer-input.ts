@@ -1,7 +1,7 @@
 import { GameState, PlayMode, StoneColor } from '../../types.js';
 import { isPointerActive } from '../utils/pointer-utils.js';
 
-export type InteractionMode = 'erase' | 'alt' | 'play';
+export type InteractionMode = 'erase' | 'alt' | 'play' | 'marker';
 export type PointerDevice = 'mouse' | 'touch' | 'pen' | 'unknown';
 export type PointerButtonKind = 'primary' | 'secondary' | 'auxiliary';
 
@@ -23,7 +23,7 @@ const POINTER_TYPE_TO_DEVICE: Record<string, PointerDevice> = {
 };
 
 export function normalizePointerInput(event: PointerEvent, state: GameState): NormalizedPointerInput {
-  const mode = resolveInteractionMode(state.eraseMode, state.mode);
+  const mode = resolveInteractionMode(state.eraseMode, state.mode, state.markerMode);
   const button = resolvePointerButton(event.button);
   const device = resolvePointerDevice(event.pointerType);
   const isActive = isPointerActive(event);
@@ -37,7 +37,10 @@ export function normalizePointerInput(event: PointerEvent, state: GameState): No
   };
 }
 
-function resolveInteractionMode(eraseMode: boolean, mode: PlayMode): InteractionMode {
+function resolveInteractionMode(eraseMode: boolean, mode: PlayMode, markerMode: boolean): InteractionMode {
+  if (markerMode) {
+    return 'marker';
+  }
   if (eraseMode) {
     return 'erase';
   }
