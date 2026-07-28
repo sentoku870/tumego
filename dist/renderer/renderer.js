@@ -238,6 +238,7 @@ export class Renderer {
         const markerStyle = `stroke: ${accent}; fill: none;`;
         const maStyle = `stroke: ${accent};`;
         markers.forEach((m) => {
+            var _a;
             const cx = m.cx.toString();
             const cy = m.cy.toString();
             const r = m.radius.toString();
@@ -300,6 +301,34 @@ export class Renderer {
                         style: maStyle,
                         'stroke-width': stroke,
                     }));
+                    break;
+                }
+                case 'LB': {
+                    // ラベル文字: 背景円 + 文字で石/空点いずれでも読みやすく
+                    const labelText = ((_a = m.label) !== null && _a !== void 0 ? _a : '').slice(0, 3);
+                    if (!labelText)
+                        break;
+                    const bgRadius = m.radius * 0.6;
+                    this.elements.svg.appendChild(this.createSVGElement('circle', {
+                        cx,
+                        cy,
+                        r: bgRadius.toString(),
+                        class: 'marker marker-lb',
+                        style: `fill: ${accent}; fill-opacity: 0.85; stroke: none;`,
+                    }));
+                    const textSize = (m.radius * 0.9).toString();
+                    const text = this.createSVGElement('text', {
+                        x: cx,
+                        y: cy,
+                        class: 'marker-label',
+                        'font-size': textSize,
+                        'font-weight': '700',
+                        'text-anchor': 'middle',
+                        'dominant-baseline': 'central',
+                        style: `fill: #fff; stroke: #fff; stroke-width: 1; paint-order: stroke;`,
+                    });
+                    text.textContent = labelText;
+                    this.elements.svg.appendChild(text);
                     break;
                 }
                 default: {

@@ -53,6 +53,9 @@ export class GameStore {
     if (!this.state.markers) {
       this.state.markers = [];
     }
+    if (this.state.activeMarkerLabel === undefined) {
+      this.state.activeMarkerLabel = null;
+    }
     if (!this.state.rootMarkers) {
       this.state.rootMarkers = [];
     }
@@ -351,8 +354,9 @@ export class GameStore {
   // ============================================================
 
   /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
-  setMarkerMode(kind: MarkerKind | null): void {
+  setMarkerMode(kind: MarkerKind | null, label: string | null = null): void {
     this.state.activeMarkerKind = kind;
+    this.state.activeMarkerLabel = kind === 'LB' ? label : null;
     this.state.markerMode = kind !== null;
     this.dispatchDisableEraseModeIfActive();
   }
@@ -362,31 +366,31 @@ export class GameStore {
     const kind = this.state.activeMarkerKind;
     if (!kind) return false;
     if (!this.isValidPosition(pos)) return false;
+    const label = this.state.activeMarkerLabel ?? undefined;
 
-    const existing = this.findMarkerAt(pos);
+    const existing = this.findMarkerAt(pos, kind, label);
     if (existing) {
-      if (existing.kind === kind) {
-        this.removeMarkerAt(pos, kind);
-        return false;
-      }
-      if (!allowMulti) {
-        this.removeMarkerAt(pos, existing.kind);
-        this.addMarkerAt(pos, kind);
-        return true;
+      this.removeMarkerAt(pos, kind, label);
+      return false;
+    }
+    if (!allowMulti) {
+      const any = this.findMarkerAt(pos);
+      if (any && !allowMulti) {
+        this.removeMarkerAt(pos, any.kind, any.label);
       }
     }
-    this.addMarkerAt(pos, kind);
+    this.addMarkerAt(pos, kind, label);
     return true;
   }
 
   /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
-  addMarker(pos: Position, kind: MarkerKind): boolean {
+  addMarker(pos: Position, kind: MarkerKind, label?: string): boolean {
     if (!this.isValidPosition(pos)) return false;
-    return this.addMarkerAt(pos, kind);
+    return this.addMarkerAt(pos, kind, label);
   }
 
   /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
-  removeMarker(pos: Position, kind?: MarkerKind): boolean {
+  removeMarker(pos: Position, kind?: MarkerKind, label?: string): boolean {
     if (!this.isValidPosition(pos)) return false;
     if (kind === undefined) {
       const before = this.state.markers.length;
@@ -397,7 +401,7 @@ export class GameStore {
       if (changed) this.persistMarkersToCurrentNode();
       return changed;
     }
-    return this.removeMarkerAt(pos, kind);
+    return this.removeMarkerAt(pos, kind, label);
   }
 
   /** 表示中ノードのマーカーを全消去 */
@@ -411,25 +415,42 @@ export class GameStore {
   // Internal: マーカー
   // ============================================================
 
-  private findMarkerAt(pos: Position): BoardMarker | undefined {
+  private findMarkerAt(pos: Position, kind?: MarkerKind, label?: string): BoardMarker | undefined {
     return this.state.markers.find(
-      (m) => m.pos.col === pos.col && m.pos.row === pos.row
+      (m) =>
+        m.pos.col === pos.col &&
+        m.pos.row === pos.row &&
+        (kind === undefined || m.kind === kind) &&
+        (label === undefined || m.label === label)
     );
   }
 
-  private addMarkerAt(pos: Position, kind: MarkerKind): boolean {
-    if (this.state.markers.some((m) => m.pos.col === pos.col && m.pos.row === pos.row && m.kind === kind)) {
-      return false;
-    }
-    this.state.markers.push({ pos: { col: pos.col, row: pos.row }, kind });
+  private addMarkerAt(pos: Position, kind: MarkerKind, label?: string): boolean {
+    const exists = this.state.markers.some(
+      (m) =>
+        m.pos.col === pos.col &&
+        m.pos.row === pos.row &&
+        m.kind === kind &&
+        m.label === label
+    );
+    if (exists) return false;
+    const marker: BoardMarker = { pos: { col: pos.col, row: pos.row }, kind };
+    if (label !== undefined) marker.label = label;
+    this.state.markers.push(marker);
     this.persistMarkersToCurrentNode();
     return true;
   }
 
-  private removeMarkerAt(pos: Position, kind: MarkerKind): boolean {
+  private removeMarkerAt(pos: Position, kind: MarkerKind, label?: string): boolean {
     const before = this.state.markers.length;
     this.state.markers = this.state.markers.filter(
-      (m) => !(m.pos.col === pos.col && m.pos.row === pos.row && m.kind === kind)
+      (m) =>
+        !(
+          m.pos.col === pos.col &&
+          m.pos.row === pos.row &&
+          m.kind === kind &&
+          (label === undefined || m.label === label)
+        )
     );
     const changed = this.state.markers.length !== before;
     if (changed) this.persistMarkersToCurrentNode();
@@ -462,7 +483,11 @@ export class GameStore {
   }
 
   private cloneMarkers(markers: BoardMarker[]): BoardMarker[] {
-    return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+    return markers.map((m) => {
+      const clone: BoardMarker = { pos: { ...m.pos }, kind: m.kind };
+      if (m.label !== undefined) clone.label = m.label;
+      return clone;
+    });
   }
 
   private dispatchDisableEraseModeIfActive(): void {

@@ -38,14 +38,22 @@
         </div>
         <div class="toolbar-row marker-row" id="marker-row">
           <div class="menu-container marker-menu">
-            <button class="ctrl-btn" id="btn-marker" title="マーカー（○△□×）を選択・配置します">🔘 マーカー</button>
+            <button class="ctrl-btn" id="btn-marker" title="マーカー（○△□×／ラベル）を選択・配置します。選択してもパレットは閉じません">🔘 マーカー</button>
             <div class="menu-dropdown marker-dropdown" id="marker-dropdown" role="menu" aria-label="マーカー選択">
               <button id="btn-marker-select-CR" data-marker-kind="CR" class="marker-palette-item" role="menuitem">○</button>
               <button id="btn-marker-select-TR" data-marker-kind="TR" class="marker-palette-item" role="menuitem">△</button>
               <button id="btn-marker-select-SQ" data-marker-kind="SQ" class="marker-palette-item" role="menuitem">□</button>
               <button id="btn-marker-select-MA" data-marker-kind="MA" class="marker-palette-item" role="menuitem">×</button>
-              <button id="btn-marker-clear" role="menuitem">マーカー消去</button>
+              <button id="btn-marker-select-LB-A" data-marker-kind="LB" data-marker-label="A" class="marker-palette-item marker-palette-letter" role="menuitem">A</button>
+              <button id="btn-marker-select-LB-B" data-marker-kind="LB" data-marker-label="B" class="marker-palette-item marker-palette-letter" role="menuitem">B</button>
+              <button id="btn-marker-select-LB-C" data-marker-kind="LB" data-marker-label="C" class="marker-palette-item marker-palette-letter" role="menuitem">C</button>
+              <button id="btn-marker-select-LB-D" data-marker-kind="LB" data-marker-label="D" class="marker-palette-item marker-palette-letter" role="menuitem">D</button>
+              <button id="btn-marker-select-LB-E" data-marker-kind="LB" data-marker-label="E" class="marker-palette-item marker-palette-letter" role="menuitem">E</button>
+              <button id="btn-marker-clear" class="marker-palette-action" role="menuitem">マーカー消去</button>
+              <button id="btn-marker-close" class="marker-palette-action" role="menuitem">閉じる</button>
             </div>
+          </div>
+        </div>
           </div>
         </div>
       </div>

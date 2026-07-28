@@ -208,6 +208,33 @@ describe('Renderer', () => {
       expect(lineCount).toBe(2);
     });
 
+    test('renders LB marker as a label text on a background disc', () => {
+      state.markers = [
+        { pos: { col: 2, row: 2 }, kind: 'LB', label: 'A' },
+      ];
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, showMarkers: true } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      const content = elements.svg.innerHTML;
+      expect(content).toContain('marker-lb');
+      expect(content).toContain('marker-label');
+      expect(content).toContain('>A<');
+    });
+
+    test('LB marker label survives SVG clone for board capture', () => {
+      document.documentElement.style.setProperty('--accent', '#0088ff');
+      state.markers = [
+        { pos: { col: 3, row: 3 }, kind: 'LB', label: 'X' },
+      ];
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, showMarkers: true } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      const cloned = elements.svg.cloneNode(true);
+      const xml = new XMLSerializer().serializeToString(cloned);
+      expect(xml).toContain('>X<');
+      document.documentElement.style.removeProperty('--accent');
+    });
+
     test('skips marker rendering when showMarkers is false', () => {
       state.markers = [
         { pos: { col: 0, row: 0 }, kind: 'CR' },

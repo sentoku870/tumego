@@ -1,6 +1,6 @@
 // ============ SGF処理エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
-const MARKER_PROPERTIES = ['CR', 'TR', 'SQ', 'MA'];
+const MARKER_PROPERTIES = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 export class SGFParser {
     // ============ SGF解析 ============
     parse(sgfText) {
@@ -173,13 +173,35 @@ export class SGFParser {
         return rawText.slice(openIdx + 1, closeIdx);
     }
     collectMarkersInNode(chunk) {
-        var _a;
+        var _a, _b, _c;
         const out = [];
+        // CR/TR/SQ/MA は elist 形式: TR[aa][bb][cc]
         for (const kind of MARKER_PROPERTIES) {
+            if (kind === 'LB') {
+                // LB は coord:label のシンプル形式: LB[aa:A][bb:黒]
+                const pattern = /\bLB((?:\[[a-z]{2}:[^\]]*\])+)(?=[A-Z]\w*\[|;|\)|$)/gi;
+                const matches = chunk.matchAll(pattern);
+                for (const m of matches) {
+                    const group = (_a = m[1]) !== null && _a !== void 0 ? _a : '';
+                    const items = group.matchAll(/\[([a-z]{2}):([^\]]*)\]/gi);
+                    for (const item of items) {
+                        const coord = item[1].toLowerCase();
+                        if (coord.length !== 2)
+                            continue;
+                        const col = coord.charCodeAt(0) - 97;
+                        const row = coord.charCodeAt(1) - 97;
+                        if (col < 0 || row < 0)
+                            continue;
+                        const label = ((_b = item[2]) !== null && _b !== void 0 ? _b : '').replace(/\\:/g, ':').replace(/\\\]/g, ']');
+                        out.push({ pos: { col, row }, kind: 'LB', label });
+                    }
+                }
+                continue;
+            }
             const pattern = new RegExp(`\\b${kind}((?:\\[[a-z]{2}\\])+)(?=[A-Z]\\w*\\[|;|\\)|$)`, 'gi');
             const matches = chunk.matchAll(pattern);
             for (const m of matches) {
-                const coordGroup = (_a = m[1]) !== null && _a !== void 0 ? _a : '';
+                const coordGroup = (_c = m[1]) !== null && _c !== void 0 ? _c : '';
                 const coords = coordGroup.match(/\[([a-z]{2})\]/gi);
                 if (!coords)
                     continue;
@@ -262,16 +284,39 @@ export class SGFParser {
         return sgf;
     }
     markerPropsToString(markers) {
+        var _a;
         if (!markers || markers.length === 0)
             return '';
-        const grouped = { CR: [], TR: [], SQ: [], MA: [] };
+        const groupedElist = {};
+        const labels = [];
         for (const m of markers) {
-            grouped[m.kind].push(m.pos);
+            if (m.kind === 'LB') {
+                labels.push(m);
+            }
+            else {
+                const list = (_a = groupedElist[m.kind]) !== null && _a !== void 0 ? _a : [];
+                list.push(m.pos);
+                groupedElist[m.kind] = list;
+            }
         }
         let out = '';
         for (const kind of MARKER_PROPERTIES) {
-            const points = grouped[kind];
-            if (points.length === 0)
+            if (kind === 'LB') {
+                if (labels.length === 0)
+                    continue;
+                const items = labels
+                    .map((m) => {
+                    var _a;
+                    const coord = `${String.fromCharCode(97 + m.pos.col)}${String.fromCharCode(97 + m.pos.row)}`;
+                    const safe = ((_a = m.label) !== null && _a !== void 0 ? _a : '').replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
+                    return `[${coord}:${safe}]`;
+                })
+                    .join('');
+                out += `LB${items}`;
+                continue;
+            }
+            const points = groupedElist[kind];
+            if (!points || points.length === 0)
                 continue;
             const coords = points
                 .map((p) => `[${String.fromCharCode(97 + p.col)}${String.fromCharCode(97 + p.row)}]`)

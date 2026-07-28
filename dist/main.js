@@ -39,6 +39,7 @@ function createInitialState() {
         markers: [],
         markerMode: false,
         activeMarkerKind: null,
+        activeMarkerLabel: null,
         rootMarkers: [],
         nodeMarkers: []
     };

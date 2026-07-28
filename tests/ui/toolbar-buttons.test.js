@@ -193,11 +193,12 @@ describe('ToolbarButtons', () => {
       ['CR', 'TR', 'SQ', 'MA'].forEach((kind) => {
         const btn = document.createElement('button');
         btn.id = `btn-marker-select-${kind}`;
-        document.body.appendChild(btn);
+        // 実DOMと同じ階層に置くため dropdown の中に追加
+        dropdown.appendChild(btn);
       });
       const clear = document.createElement('button');
       clear.id = 'btn-marker-clear';
-      document.body.appendChild(clear);
+      dropdown.appendChild(clear);
     };
 
     test('trigger button toggles the marker dropdown', () => {
@@ -212,7 +213,7 @@ describe('ToolbarButtons', () => {
       expect(dropdown.classList.contains('show')).toBe(false);
     });
 
-    test('palette item sets activeMarkerKind and closes the dropdown', () => {
+    test('palette item sets activeMarkerKind and keeps the dropdown open for quick switching', () => {
       setupMarkerDOM();
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
@@ -223,7 +224,8 @@ describe('ToolbarButtons', () => {
       trItem.click();
       expect(state.activeMarkerKind).toBe('TR');
       expect(state.markerMode).toBe(true);
-      expect(dropdown.classList.contains('show')).toBe(false);
+      // クイック切替のためパレットは開いたまま
+      expect(dropdown.classList.contains('show')).toBe(true);
     });
 
     test('setActiveMarkerButton updates trigger label and palette active class', () => {
@@ -241,7 +243,7 @@ describe('ToolbarButtons', () => {
       expect(trigger.classList.contains('active')).toBe(false);
     });
 
-    test('palette clear button invokes store.clearMarkers and closes the dropdown', () => {
+    test('palette clear button invokes store.clearMarkers and keeps the dropdown open', () => {
       setupMarkerDOM();
       buttons.bindAll();
       state.markers = [
@@ -253,25 +255,127 @@ describe('ToolbarButtons', () => {
       trigger.click();
       document.getElementById('btn-marker-clear').click();
       expect(state.markers).toEqual([]);
-      expect(dropdown.classList.contains('show')).toBe(false);
+      // 連続して別のマーカー種別を試せるようパレットは開いたまま
+      expect(dropdown.classList.contains('show')).toBe(true);
     });
 
-    test('clicking the trigger while markerMode is on disables marker mode and closes the dropdown', () => {
+    test('clicking the trigger while markerMode is on only toggles the dropdown (does not disable marker mode)', () => {
       setupMarkerDOM();
+      const dropdown = document.getElementById('marker-dropdown');
+      // 閉じるボタンとレターボタンは dropdown の中に置く
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'btn-marker-close';
+      dropdown.appendChild(closeBtn);
+      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
+        const b = document.createElement('button');
+        b.id = `btn-marker-select-LB-${letter}`;
+        dropdown.appendChild(b);
+      });
       buttons.bindAll();
       const trigger = document.getElementById('btn-marker');
-      const dropdown = document.getElementById('marker-dropdown');
       // 1) Activate marker mode by selecting a kind
       trigger.click();
       document.getElementById('btn-marker-select-CR').click();
       expect(state.markerMode).toBe(true);
       expect(state.activeMarkerKind).toBe('CR');
-      expect(dropdown.classList.contains('show')).toBe(false);
-      // 2) Clicking the trigger again should turn off marker mode
+      // Palette stays open after selection (quick switching)
+      expect(dropdown.classList.contains('show')).toBe(true);
+      // 2) Clicking the trigger again should only close the dropdown
       trigger.click();
+      expect(state.markerMode).toBe(true);
+      expect(state.activeMarkerKind).toBe('CR');
+      expect(dropdown.classList.contains('show')).toBe(false);
+    });
+
+    test('palette item click does NOT close the dropdown (for quick switching)', () => {
+      setupMarkerDOM();
+      const dropdown = document.getElementById('marker-dropdown');
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'btn-marker-close';
+      dropdown.appendChild(closeBtn);
+      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
+        const b = document.createElement('button');
+        b.id = `btn-marker-select-LB-${letter}`;
+        dropdown.appendChild(b);
+      });
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      trigger.click();
+      const trItem = document.getElementById('btn-marker-select-TR');
+      trItem.click();
+      expect(state.activeMarkerKind).toBe('TR');
+      expect(state.markerMode).toBe(true);
+      // パレットは開いたまま（クイック切替用）
+      expect(dropdown.classList.contains('show')).toBe(true);
+    });
+
+    test('clicking the same active kind again toggles marker mode off', () => {
+      setupMarkerDOM();
+      const dropdown = document.getElementById('marker-dropdown');
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'btn-marker-close';
+      dropdown.appendChild(closeBtn);
+      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
+        const b = document.createElement('button');
+        b.id = `btn-marker-select-LB-${letter}`;
+        dropdown.appendChild(b);
+      });
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      trigger.click();
+      const sq = document.getElementById('btn-marker-select-SQ');
+      sq.click();
+      expect(state.markerMode).toBe(true);
+      expect(state.activeMarkerKind).toBe('SQ');
+      sq.click();
+      expect(state.markerMode).toBe(false);
+      expect(state.activeMarkerKind).toBe(null);
+    });
+
+    test('close button hides dropdown and disables marker mode', () => {
+      setupMarkerDOM();
+      const dropdown = document.getElementById('marker-dropdown');
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'btn-marker-close';
+      dropdown.appendChild(closeBtn);
+      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
+        const b = document.createElement('button');
+        b.id = `btn-marker-select-LB-${letter}`;
+        dropdown.appendChild(b);
+      });
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      trigger.click();
+      document.getElementById('btn-marker-select-MA').click();
+      expect(state.markerMode).toBe(true);
+      // 「閉じる」でパレットを閉じてマーカー解除
+      closeBtn.click();
       expect(state.markerMode).toBe(false);
       expect(state.activeMarkerKind).toBe(null);
       expect(dropdown.classList.contains('show')).toBe(false);
+    });
+
+    test('letter palette item sets activeMarkerKind=LB with the selected label', () => {
+      setupMarkerDOM();
+      const dropdown = document.getElementById('marker-dropdown');
+      const closeBtn = document.createElement('button');
+      closeBtn.id = 'btn-marker-close';
+      dropdown.appendChild(closeBtn);
+      ['A', 'B', 'C', 'D', 'E'].forEach((letter) => {
+        const b = document.createElement('button');
+        b.id = `btn-marker-select-LB-${letter}`;
+        dropdown.appendChild(b);
+      });
+      buttons.bindAll();
+      const trigger = document.getElementById('btn-marker');
+      trigger.click();
+      const letterC = document.getElementById('btn-marker-select-LB-C');
+      letterC.click();
+      expect(state.activeMarkerKind).toBe('LB');
+      expect(state.activeMarkerLabel).toBe('C');
+      expect(state.markerMode).toBe(true);
+      // パレットは開いたまま
+      expect(dropdown.classList.contains('show')).toBe(true);
     });
 
     test('closeMarkerPalette closes the dropdown without disabling marker mode', () => {

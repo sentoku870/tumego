@@ -13,12 +13,14 @@ export type RulesMode = 'standard' | 'free';
 export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
 export type BooleanPreference = boolean;
 
-/** 盤面マーカーの種類。SGF FF4 の CR/TR/SQ/MA に対応。 */
-export type MarkerKind = 'CR' | 'TR' | 'SQ' | 'MA';
+/** 盤面マーカーの種類。SGF FF4 の CR/TR/SQ/MA/LB に対応。 */
+export type MarkerKind = 'CR' | 'TR' | 'SQ' | 'MA' | 'LB';
 
 export interface BoardMarker {
   pos: Position;
   kind: MarkerKind;
+  /** LB 種別のとき表示する 1〜数文字のラベル */
+  label?: string;
 }
 
 export interface Move {
@@ -122,6 +124,8 @@ export interface GameState {
   markerMode: boolean;
   /** 現在選択中のマーカー種別 */
   activeMarkerKind: MarkerKind | null;
+  /** LB 種別のとき現在選択中のラベル文字 */
+  activeMarkerLabel: string | null;
   /** 問題図レベル（sgfIndex === 0）で配置されたマーカー */
   rootMarkers: BoardMarker[];
   /** 各着手ノードに紐づくマーカー（SGF往復用、sgfMoves と並行配列） */
@@ -284,6 +288,8 @@ export interface MarkerRenderInfo {
   readonly cy: number;
   readonly kind: MarkerKind;
   readonly radius: number;
+  /** LB 種別のとき表示するラベル文字列 */
+  readonly label?: string;
 }
 
 export interface BoardRenderModel {

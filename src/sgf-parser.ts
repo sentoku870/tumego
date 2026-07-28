@@ -10,7 +10,7 @@ import {
   DEFAULT_CONFIG
 } from './types.js';
 
-const MARKER_PROPERTIES: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA'];
+const MARKER_PROPERTIES: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 
 export class SGFParser {
   // ============ SGF解析 ============
@@ -209,7 +209,27 @@ export class SGFParser {
 
   private collectMarkersInNode(chunk: string): BoardMarker[] {
     const out: BoardMarker[] = [];
+    // CR/TR/SQ/MA は elist 形式: TR[aa][bb][cc]
     for (const kind of MARKER_PROPERTIES) {
+      if (kind === 'LB') {
+        // LB は coord:label のシンプル形式: LB[aa:A][bb:黒]
+        const pattern = /\bLB((?:\[[a-z]{2}:[^\]]*\])+)(?=[A-Z]\w*\[|;|\)|$)/gi;
+        const matches = chunk.matchAll(pattern);
+        for (const m of matches) {
+          const group = m[1] ?? '';
+          const items = group.matchAll(/\[([a-z]{2}):([^\]]*)\]/gi);
+          for (const item of items) {
+            const coord = item[1].toLowerCase();
+            if (coord.length !== 2) continue;
+            const col = coord.charCodeAt(0) - 97;
+            const row = coord.charCodeAt(1) - 97;
+            if (col < 0 || row < 0) continue;
+            const label = (item[2] ?? '').replace(/\\:/g, ':').replace(/\\\]/g, ']');
+            out.push({ pos: { col, row }, kind: 'LB', label });
+          }
+        }
+        continue;
+      }
       const pattern = new RegExp(
         `\\b${kind}((?:\\[[a-z]{2}\\])+)(?=[A-Z]\\w*\\[|;|\\)|$)`,
         'gi'
@@ -310,14 +330,33 @@ export class SGFParser {
 
   private markerPropsToString(markers: BoardMarker[] | undefined): string {
     if (!markers || markers.length === 0) return '';
-    const grouped: Record<MarkerKind, Position[]> = { CR: [], TR: [], SQ: [], MA: [] };
+    const groupedElist: Partial<Record<Exclude<MarkerKind, 'LB'>, Position[]>> = {};
+    const labels: BoardMarker[] = [];
     for (const m of markers) {
-      grouped[m.kind].push(m.pos);
+      if (m.kind === 'LB') {
+        labels.push(m);
+      } else {
+        const list = groupedElist[m.kind] ?? [];
+        list.push(m.pos);
+        groupedElist[m.kind] = list;
+      }
     }
     let out = '';
     for (const kind of MARKER_PROPERTIES) {
-      const points = grouped[kind];
-      if (points.length === 0) continue;
+      if (kind === 'LB') {
+        if (labels.length === 0) continue;
+        const items = labels
+          .map((m) => {
+            const coord = `${String.fromCharCode(97 + m.pos.col)}${String.fromCharCode(97 + m.pos.row)}`;
+            const safe = (m.label ?? '').replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
+            return `[${coord}:${safe}]`;
+          })
+          .join('');
+        out += `LB${items}`;
+        continue;
+      }
+      const points = groupedElist[kind];
+      if (!points || points.length === 0) continue;
       const coords = points
         .map((p) => `[${String.fromCharCode(97 + p.col)}${String.fromCharCode(97 + p.row)}]`)
         .join('');

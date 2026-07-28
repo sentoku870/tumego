@@ -59,9 +59,12 @@ const setupAllDOM = () => {
    'btn-file-save', 'btn-file-qr', 'btn-file-discord', 'btn-feature-layout',
    'btn-feature-rotate', 'btn-feature-handicap', 'feature-copy-answer-sequence',
    'btn-save-board', 'settings-toggle', 'btn-header-apply', 'btn-header-reset',
-   'btn-marker', 'btn-marker-clear',
+   'btn-marker', 'btn-marker-clear', 'btn-marker-close',
    'btn-marker-select-CR', 'btn-marker-select-TR',
-   'btn-marker-select-SQ', 'btn-marker-select-MA'].forEach((id) => {
+   'btn-marker-select-SQ', 'btn-marker-select-MA',
+   'btn-marker-select-LB-A', 'btn-marker-select-LB-B',
+   'btn-marker-select-LB-C', 'btn-marker-select-LB-D',
+   'btn-marker-select-LB-E'].forEach((id) => {
     const el = document.createElement('button');
     el.id = id;
     document.body.appendChild(el);

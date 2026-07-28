@@ -92,6 +92,24 @@ describe('SGFParser markers', () => {
       expect(result.rootMarkers).toEqual([]);
       expect(result.nodeMarkers).toEqual([[], []]);
     });
+
+    test('parses LB[aa:A] labels on root', () => {
+      const sgf = '(;SZ[9]LB[aa:A][bb:B])';
+      const result = parser.parse(sgf);
+      expect(result.rootMarkers).toEqual([
+        { pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' },
+        { pos: { col: 1, row: 1 }, kind: 'LB', label: 'B' },
+      ]);
+    });
+
+    test('parses LB[aa:A] labels on move nodes (per-node)', () => {
+      const sgf = '(;SZ[9];B[aa]LB[cc:A];W[bb]LB[dd:黒])';
+      const result = parser.parse(sgf);
+      expect(result.nodeMarkers).toEqual([
+        [{ pos: { col: 2, row: 2 }, kind: 'LB', label: 'A' }],
+        [{ pos: { col: 3, row: 3 }, kind: 'LB', label: '黒' }],
+      ]);
+    });
   });
 
   describe('export', () => {
@@ -143,6 +161,30 @@ describe('SGFParser markers', () => {
       expect(sgf.includes('TR[')).toBe(false);
       expect(sgf.includes('SQ[')).toBe(false);
       expect(sgf.includes('MA[')).toBe(false);
+    });
+
+    test('emits LB[coord:label] format on root', () => {
+      const state = createState({
+        rootMarkers: [
+          { pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' },
+          { pos: { col: 1, row: 1 }, kind: 'LB', label: 'B' },
+        ],
+        sgfMoves: [{ col: 3, row: 3, color: 1 }],
+        nodeMarkers: [[]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('LB[');
+      expect(sgf.includes('[aa:A]')).toBe(true);
+      expect(sgf.includes('[bb:B]')).toBe(true);
+    });
+
+    test('emits LB[coord:label] on per-move nodes', () => {
+      const state = createState({
+        sgfMoves: [{ col: 0, row: 0, color: 1 }],
+        nodeMarkers: [[{ pos: { col: 2, row: 2 }, kind: 'LB', label: 'C' }]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('LB[cc:C]');
     });
   });
 

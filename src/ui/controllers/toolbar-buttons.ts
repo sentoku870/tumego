@@ -10,13 +10,15 @@ import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
 import { DropdownManager } from './dropdown-manager.js';
 
-const MARKER_KINDS: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA'];
+const MARKER_KINDS: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 const MARKER_GLYPHS: Record<MarkerKind, string> = {
   CR: '○',
   TR: '△',
   SQ: '□',
   MA: '×',
+  LB: 'A',
 };
+const MARKER_LETTERS = ['A', 'B', 'C', 'D', 'E'] as const;
 
 export class ToolbarButtons {
   public clearBtn: HTMLButtonElement | null = null;
@@ -33,6 +35,7 @@ export class ToolbarButtons {
   public markerBtn: HTMLButtonElement | null = null;
   public markerDropdown: HTMLElement | null = null;
   public markerPaletteBtns: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
+  public markerLetterBtns: Partial<Record<string, HTMLButtonElement | null>> = {};
   public markerClearBtn: HTMLButtonElement | null = null;
 
   private unsubscribeFromEventBus: (() => void) | null = null;
@@ -90,8 +93,13 @@ export class ToolbarButtons {
     this.markerDropdown = this.markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
     this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {
+      if (kind === 'LB') continue; // LB はレターごとに取得
       if (this.markerPaletteBtns[kind]) continue;
       this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
+    }
+    for (const letter of MARKER_LETTERS) {
+      if (this.markerLetterBtns[letter]) continue;
+      this.markerLetterBtns[letter] = document.getElementById(`btn-marker-select-LB-${letter}`) as HTMLButtonElement | null;
     }
   }
 
@@ -316,20 +324,12 @@ export class ToolbarButtons {
     const btn = document.getElementById('btn-marker') as HTMLButtonElement | null;
     const dropdown = document.getElementById('marker-dropdown') as HTMLElement | null;
     if (btn) {
-      btn.title = 'マーカー（○△□×）を選択・配置します／選択中は再度クリックで解除';
+      btn.title = 'マーカー（○△□×／ラベル）パレットを開閉します';
     }
+    // トリガーボタンはパレットの開閉専用。マーカー選択状態は触らない。
     btn?.addEventListener('click', (event) => {
       event.stopPropagation();
       if (!btn || !dropdown) return;
-      const state = this.store.snapshot;
-      if (state.markerMode) {
-        // マーカーモードを解除 → 石配置に戻れる
-        this.store.setMarkerMode(null);
-        this.dropdownManager.hide(dropdown);
-        this.setActiveMarkerButton();
-        this.eventBus.emitUIUpdate();
-        return;
-      }
       const isOpen = dropdown.classList.contains('show');
       if (isOpen) {
         this.dropdownManager.hide(dropdown);
@@ -357,38 +357,77 @@ export class ToolbarButtons {
       };
     }
 
-    for (const kind of MARKER_KINDS) {
+    // ○△□× を選んだとき: パレットは閉じず、選択種別だけ切り替える
+    for (const kind of ['CR', 'TR', 'SQ', 'MA'] as const) {
       const item = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
       item?.addEventListener('click', () => {
         this.dispatchDisableEraseMode();
-        this.store.setMarkerMode(kind);
-        this.dropdownManager.hide(dropdown);
-        this.setActiveMarkerButton();
-        this.eventBus.emitUIUpdate();
+        this.handlePaletteItemSelect(kind, null);
+      });
+    }
+    // ラベル A〜E を選んだとき: LB + 該当文字をアクティブに
+    for (const letter of MARKER_LETTERS) {
+      const item = document.getElementById(`btn-marker-select-LB-${letter}`) as HTMLButtonElement | null;
+      item?.addEventListener('click', () => {
+        this.dispatchDisableEraseMode();
+        this.handlePaletteItemSelect('LB', letter);
       });
     }
     const clearBtn = document.getElementById('btn-marker-clear') as HTMLButtonElement | null;
     clearBtn?.addEventListener('click', () => {
       this.store.clearMarkers();
+      this.eventBus.emitUIUpdate();
+    });
+    const closeBtn = document.getElementById('btn-marker-close') as HTMLButtonElement | null;
+    closeBtn?.addEventListener('click', () => {
+      // パレットを閉じると同時にマーカーモードも解除 → 黒配置/交互配置に戻れる
+      this.store.setMarkerMode(null);
       this.dropdownManager.hide(dropdown);
+      this.setActiveMarkerButton();
       this.eventBus.emitUIUpdate();
     });
   }
 
+  private handlePaletteItemSelect(kind: MarkerKind, label: string | null): void {
+    const state = this.store.snapshot;
+    // 同じものを再クリック → トグル OFF
+    if (state.markerMode && state.activeMarkerKind === kind && state.activeMarkerLabel === label) {
+      this.store.setMarkerMode(null);
+    } else {
+      this.store.setMarkerMode(kind, label);
+    }
+    this.setActiveMarkerButton();
+    this.eventBus.emitUIUpdate();
+  }
+
   public setActiveMarkerButton(): void {
     this.ensureButtonRefs();
-    const active = this.store.snapshot.activeMarkerKind;
+    const state = this.store.snapshot;
+    const active = state.activeMarkerKind;
+    const activeLabel = state.activeMarkerLabel;
     if (this.markerBtn) {
       this.markerBtn.classList.toggle('active', active !== null);
-      const label = active ? `🔘 マーカー (${MARKER_GLYPHS[active]})` : '🔘 マーカー';
+      let label = '🔘 マーカー';
+      if (active) {
+        if (active === 'LB' && activeLabel) {
+          label = `🔘 マーカー (${activeLabel})`;
+        } else {
+          label = `🔘 マーカー (${MARKER_GLYPHS[active]})`;
+        }
+      }
       if (this.markerBtn.textContent !== label) {
         this.markerBtn.textContent = label;
       }
     }
-    for (const kind of MARKER_KINDS) {
+    for (const kind of ['CR', 'TR', 'SQ', 'MA'] as const) {
       const btn = this.markerPaletteBtns[kind];
       if (!btn) continue;
       btn.classList.toggle('active', active === kind);
+    }
+    for (const letter of MARKER_LETTERS) {
+      const btn = this.markerLetterBtns[letter];
+      if (!btn) continue;
+      btn.classList.toggle('active', active === 'LB' && activeLabel === letter);
     }
   }
 

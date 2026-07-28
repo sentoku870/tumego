@@ -214,7 +214,11 @@ export class RendererViewModelBuilder {
         const radius = DEFAULT_CONFIG.MARKER_RADIUS;
         return markers.map((m) => {
             const { cx, cy } = geometry.toPixel({ col: m.pos.col, row: m.pos.row });
-            return { cx, cy, kind: m.kind, radius };
+            const info = { cx, cy, kind: m.kind, radius };
+            if (m.label !== undefined) {
+                info.label = m.label;
+            }
+            return info;
         });
     }
     getStarPositions(boardSize) {
