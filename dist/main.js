@@ -35,7 +35,12 @@ function createInitialState() {
             playerWhite: null,
             result: null
         },
-        capturedCounts: createInitialCapturedCounts()
+        capturedCounts: createInitialCapturedCounts(),
+        markers: [],
+        markerMode: false,
+        activeMarkerKind: null,
+        rootMarkers: [],
+        nodeMarkers: []
     };
 }
 // ============ Acquire required DOM elements ============

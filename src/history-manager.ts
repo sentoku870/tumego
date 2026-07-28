@@ -6,6 +6,7 @@
 // - 復元後のUI更新(Renderer.updateBoardSize/redraw等)は呼び出し側が実行する。
 import {
   AnswerMode,
+  BoardMarker,
   GameState,
   HistoryItem,
   HistorySnapshot,
@@ -87,6 +88,9 @@ export class HistoryManager implements OperationHistory {
       capturedCounts: state.capturedCounts
         ? { ...state.capturedCounts }
         : { black: 0, white: 0 },
+      markers: this.cloneMarkers(state.markers ?? []),
+      rootMarkers: this.cloneMarkers(state.rootMarkers ?? []),
+      nodeMarkers: this.cloneNodeMarkers(state.nodeMarkers ?? []),
     };
   }
 
@@ -96,6 +100,14 @@ export class HistoryManager implements OperationHistory {
 
   private clonePositions(positions: Position[]): Position[] {
     return positions.map((pos) => ({ ...pos }));
+  }
+
+  private cloneMarkers(markers: BoardMarker[]): BoardMarker[] {
+    return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+  }
+
+  private cloneNodeMarkers(nodeMarkers: BoardMarker[][]): BoardMarker[][] {
+    return nodeMarkers.map((group) => this.cloneMarkers(group));
   }
 
   private applySnapshot(saved: HistorySnapshotState, currentState: GameState): void {
@@ -126,5 +138,8 @@ export class HistoryManager implements OperationHistory {
     currentState.capturedCounts = saved.capturedCounts
       ? { ...saved.capturedCounts }
       : { black: 0, white: 0 };
+    currentState.markers = this.cloneMarkers(saved.markers ?? []);
+    currentState.rootMarkers = this.cloneMarkers(saved.rootMarkers ?? []);
+    currentState.nodeMarkers = this.cloneNodeMarkers(saved.nodeMarkers ?? []);
   }
 }

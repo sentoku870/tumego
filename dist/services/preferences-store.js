@@ -6,6 +6,8 @@ const DEFAULT_PREFERENCES = {
         enableFullReset: true,
         highlightLastMove: true,
         showSolutionMoveNumbers: false,
+        showMarkers: true,
+        allowMultiMarker: false,
     },
     ui: { deviceProfile: "auto" },
 };
@@ -45,7 +47,7 @@ function readField(container, key, guard) {
     return guard(value) ? value : undefined;
 }
 function normalizePreferences(raw) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     if (!raw || typeof raw !== "object") {
         return clonePreferences(DEFAULT_PREFERENCES);
     }
@@ -59,10 +61,19 @@ function normalizePreferences(raw) {
         const enableFullReset = (_e = (_d = readField(solve, 'enableFullReset', isBooleanPreference)) !== null && _d !== void 0 ? _d : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.enableFullReset)) !== null && _e !== void 0 ? _e : DEFAULT_PREFERENCES.solve.enableFullReset;
         const highlightLastMove = (_f = readField(solve, 'highlightLastMove', isBooleanPreference)) !== null && _f !== void 0 ? _f : DEFAULT_PREFERENCES.solve.highlightLastMove;
         const showSolutionMoveNumbers = (_g = readField(solve, 'showSolutionMoveNumbers', isBooleanPreference)) !== null && _g !== void 0 ? _g : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
-        const deviceProfile = (_h = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.ui.deviceProfile;
+        const showMarkers = (_h = readField(solve, 'showMarkers', isBooleanPreference)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.solve.showMarkers;
+        const allowMultiMarker = (_j = readField(solve, 'allowMultiMarker', isBooleanPreference)) !== null && _j !== void 0 ? _j : DEFAULT_PREFERENCES.solve.allowMultiMarker;
+        const deviceProfile = (_k = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _k !== void 0 ? _k : DEFAULT_PREFERENCES.ui.deviceProfile;
         return {
             edit: { rulesMode },
-            solve: { showCapturedStones, enableFullReset, highlightLastMove, showSolutionMoveNumbers },
+            solve: {
+                showCapturedStones,
+                enableFullReset,
+                highlightLastMove,
+                showSolutionMoveNumbers,
+                showMarkers,
+                allowMultiMarker,
+            },
             ui: { deviceProfile },
         };
     }
@@ -111,6 +122,16 @@ export class PreferencesStore {
         if (!isBooleanPreference(value))
             return;
         this.updatePrefs({ solve: { showSolutionMoveNumbers: value } });
+    }
+    setShowMarkers(value) {
+        if (!isBooleanPreference(value))
+            return;
+        this.updatePrefs({ solve: { showMarkers: value } });
+    }
+    setAllowMultiMarker(value) {
+        if (!isBooleanPreference(value))
+            return;
+        this.updatePrefs({ solve: { allowMultiMarker: value } });
     }
     setDeviceProfile(value) {
         if (!isDeviceProfile(value))

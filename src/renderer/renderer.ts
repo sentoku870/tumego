@@ -4,6 +4,8 @@
 import {
   CoordinateLabel,
   LastMoveHighlightRenderInfo,
+  MarkerKind,
+  MarkerRenderInfo,
   MoveNumberRenderInfo,
   StoneRenderInfo,
   UIElements,
@@ -57,6 +59,10 @@ export class Renderer {
 
     if (model.lastMoveHighlight) {
       this.drawLastMoveHighlight(model.lastMoveHighlight);
+    }
+
+    if (model.showMarkers) {
+      this.drawMarkers(model.markers);
     }
 
     if (model.showMoveNumbers) {
@@ -268,6 +274,90 @@ private drawMoveNumbers(numbers: MoveNumberRenderInfo[]): void {
         class: 'last-move-highlight'
       })
     );
+  }
+
+  private drawMarkers(markers: MarkerRenderInfo[]): void {
+    if (!markers || markers.length === 0) return;
+    const stroke = DEFAULT_CONFIG.MARKER_STROKE_WIDTH.toString();
+    markers.forEach((m) => {
+      const cx = m.cx.toString();
+      const cy = m.cy.toString();
+      const r = m.radius.toString();
+      switch (m.kind) {
+        case 'CR': {
+          this.elements.svg.appendChild(
+            this.createSVGElement('circle', {
+              cx, cy, r,
+              class: 'marker marker-cr',
+              fill: 'none',
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'TR': {
+          // 上向き正三角形: 中心 (cx,cy) 半径 r
+          const top = { x: m.cx, y: m.cy - m.radius };
+          const left = { x: m.cx - m.radius * Math.sin(Math.PI / 3), y: m.cy + m.radius * 0.5 };
+          const right = { x: m.cx + m.radius * Math.sin(Math.PI / 3), y: m.cy + m.radius * 0.5 };
+          const points = `${top.x},${top.y} ${left.x},${left.y} ${right.x},${right.y}`;
+          this.elements.svg.appendChild(
+            this.createSVGElement('polygon', {
+              points,
+              class: 'marker marker-tr',
+              fill: 'none',
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'SQ': {
+          const half = m.radius * 0.85;
+          const x = (m.cx - half).toString();
+          const y = (m.cy - half).toString();
+          const size = (half * 2).toString();
+          this.elements.svg.appendChild(
+            this.createSVGElement('rect', {
+              x, y, width: size, height: size,
+              rx: '2', ry: '2',
+              class: 'marker marker-sq',
+              fill: 'none',
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        case 'MA': {
+          // × 印: 2本の対角線
+          const d = m.radius * 0.7;
+          this.elements.svg.appendChild(
+            this.createSVGElement('line', {
+              x1: (m.cx - d).toString(),
+              y1: (m.cy - d).toString(),
+              x2: (m.cx + d).toString(),
+              y2: (m.cy + d).toString(),
+              class: 'marker marker-ma',
+              'stroke-width': stroke,
+            })
+          );
+          this.elements.svg.appendChild(
+            this.createSVGElement('line', {
+              x1: (m.cx - d).toString(),
+              y1: (m.cy + d).toString(),
+              x2: (m.cx + d).toString(),
+              y2: (m.cy - d).toString(),
+              class: 'marker marker-ma',
+              'stroke-width': stroke,
+            })
+          );
+          break;
+        }
+        default: {
+          const _exhaustive: never = m.kind as never;
+          void _exhaustive;
+        }
+      }
+    });
   }
 
   private createSVGElement(tag: string, attributes: { [key: string]: string }): SVGElement {

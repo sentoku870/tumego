@@ -1,4 +1,5 @@
 import { HistoryView } from '../views/history-view.js';
+const MARKER_KINDS = ['CR', 'TR', 'SQ', 'MA'];
 export class ToolbarButtons {
     constructor(store, renderer, boardCapture, sgfService, elements, eventBus) {
         this.store = store;
@@ -18,6 +19,8 @@ export class ToolbarButtons {
         this.altBtn = null;
         this.undoBtn = null;
         this.exitSolveBtn = null;
+        this.markerBtnRefs = {};
+        this.markerClearBtn = null;
         this.unsubscribeFromEventBus = null;
     }
     bindAll() {
@@ -26,6 +29,7 @@ export class ToolbarButtons {
         this.bindBasicButtons();
         this.bindGameButtons();
         this.bindBoardSaveButton();
+        this.bindMarkerButtons();
         this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
             this.dispatchDisableEraseMode();
         });
@@ -40,7 +44,7 @@ export class ToolbarButtons {
         button === null || button === void 0 ? void 0 : button.click();
     }
     ensureButtonRefs() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         this.clearBtn = (_a = this.clearBtn) !== null && _a !== void 0 ? _a : document.getElementById('btn-clear');
         this.problemBtn = (_b = this.problemBtn) !== null && _b !== void 0 ? _b : document.getElementById('btn-problem');
         this.answerBtn = (_c = this.answerBtn) !== null && _c !== void 0 ? _c : document.getElementById('btn-answer');
@@ -52,6 +56,12 @@ export class ToolbarButtons {
         this.altBtn = (_j = this.altBtn) !== null && _j !== void 0 ? _j : document.getElementById('btn-alt');
         this.undoBtn = (_k = this.undoBtn) !== null && _k !== void 0 ? _k : document.getElementById('btn-undo');
         this.exitSolveBtn = (_l = this.exitSolveBtn) !== null && _l !== void 0 ? _l : document.getElementById('btn-exit-solve-edit');
+        this.markerClearBtn = (_m = this.markerClearBtn) !== null && _m !== void 0 ? _m : document.getElementById('btn-marker-clear');
+        for (const kind of MARKER_KINDS) {
+            if (this.markerBtnRefs[kind])
+                continue;
+            this.markerBtnRefs[kind] = document.getElementById(`btn-marker-${kind}`);
+        }
     }
     dispatchDisableEraseMode() {
         var _a;
@@ -254,6 +264,38 @@ export class ToolbarButtons {
                 alert(`盤面保存に失敗しました: ${message}`);
             });
         });
+    }
+    bindMarkerButtons() {
+        for (const kind of MARKER_KINDS) {
+            const btn = document.getElementById(`btn-marker-${kind}`);
+            btn === null || btn === void 0 ? void 0 : btn.addEventListener('click', () => {
+                const current = this.store.snapshot.activeMarkerKind;
+                if (current === kind) {
+                    this.store.setMarkerMode(null);
+                }
+                else {
+                    this.dispatchDisableEraseMode();
+                    this.store.setMarkerMode(kind);
+                }
+                this.setActiveMarkerButton();
+                this.eventBus.emitUIUpdate();
+            });
+        }
+        const clearBtn = document.getElementById('btn-marker-clear');
+        clearBtn === null || clearBtn === void 0 ? void 0 : clearBtn.addEventListener('click', () => {
+            this.store.clearMarkers();
+            this.eventBus.emitUIUpdate();
+        });
+    }
+    setActiveMarkerButton() {
+        this.ensureButtonRefs();
+        const active = this.store.snapshot.activeMarkerKind;
+        for (const kind of MARKER_KINDS) {
+            const btn = this.markerBtnRefs[kind];
+            if (!btn)
+                continue;
+            btn.classList.toggle('active', active === kind);
+        }
     }
     setMode(mode, buttonElement) {
         this.dispatchDisableEraseMode();

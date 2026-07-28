@@ -49,6 +49,20 @@ text.coord {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
+/* ===== 盤面マーカー（○△□×） ===== */
+.marker {
+  stroke: var(--accent);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  /* 盤面回転時に△と×も向きを反転 */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+svg.rotated .marker {
+  transform: rotate(180deg);
+}
+
 /* ===== 情報表示 ===== */
 .info {
   margin-block: 4px;

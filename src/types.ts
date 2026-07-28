@@ -13,6 +13,14 @@ export type RulesMode = 'standard' | 'free';
 export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
 export type BooleanPreference = boolean;
 
+/** 盤面マーカーの種類。SGF FF4 の CR/TR/SQ/MA に対応。 */
+export type MarkerKind = 'CR' | 'TR' | 'SQ' | 'MA';
+
+export interface BoardMarker {
+  pos: Position;
+  kind: MarkerKind;
+}
+
 export interface Move {
   col: number;
   row: number;
@@ -76,6 +84,10 @@ export interface GameConfig {
   readonly MOVE_NUM_STROKE_RATIO: number;
   /** 直前手のハイライト半径オフセット (px) */
   readonly LAST_MOVE_HIGHLIGHT_OFFSET: number;
+  /** マーカー描画の基本半径 (px) — 石の内側に収まるよう STONE_RADIUS 未満 */
+  readonly MARKER_RADIUS: number;
+  /** マーカー枠線の太さ (px) */
+  readonly MARKER_STROKE_WIDTH: number;
   /** 盤面保存時にコピー対象とする CSS 変数名 */
   readonly BOARD_CAPTURE_CSS_VARS: readonly string[];
 }
@@ -104,6 +116,16 @@ export interface GameState {
   sgfLoadedFromExternal: boolean;
   gameInfo: SGFGameInfo;
   capturedCounts: CapturedCounts;
+  /** 表示中のマーカー集合（編集・解答モードとも） */
+  markers: BoardMarker[];
+  /** マーカーモードがオンか */
+  markerMode: boolean;
+  /** 現在選択中のマーカー種別 */
+  activeMarkerKind: MarkerKind | null;
+  /** 問題図レベル（sgfIndex === 0）で配置されたマーカー */
+  rootMarkers: BoardMarker[];
+  /** 各着手ノードに紐づくマーカー（SGF往復用、sgfMoves と並行配列） */
+  nodeMarkers: BoardMarker[][];
 }
 
 // ============ UI要素 ============
@@ -139,6 +161,9 @@ export type HistorySnapshotState = Pick<
   | "komi"
   | "sgfLoadedFromExternal"
   | "capturedCounts"
+  | "markers"
+  | "rootMarkers"
+  | "nodeMarkers"
 >;
 
 export interface HistorySnapshot {
@@ -188,6 +213,10 @@ export interface SGFParseResult {
   moves: Move[];
   gameInfo: SGFGameInfo;
   rawSGF?: string;
+  /** ルートノード（問題図レベル）のマーカー */
+  rootMarkers?: BoardMarker[];
+  /** 各着手ノードに紐づくマーカー。sgfMoves と並行配列 */
+  nodeMarkers?: BoardMarker[][];
 }
 
 export interface SGFGameInfo extends GameInfo {
@@ -250,6 +279,13 @@ export interface LastMoveHighlightRenderInfo {
   readonly radius: number;
 }
 
+export interface MarkerRenderInfo {
+  readonly cx: number;
+  readonly cy: number;
+  readonly kind: MarkerKind;
+  readonly radius: number;
+}
+
 export interface BoardRenderModel {
   readonly geometry: BoardRenderGeometry;
   readonly stars: Position[];
@@ -258,6 +294,8 @@ export interface BoardRenderModel {
   readonly moveNumbers: MoveNumberRenderInfo[];
   readonly showMoveNumbers: boolean;
   readonly lastMoveHighlight?: LastMoveHighlightRenderInfo;
+  readonly markers: MarkerRenderInfo[];
+  readonly showMarkers: boolean;
 }
 
 export interface InfoRenderModel {
@@ -289,6 +327,10 @@ export interface Preferences {
     enableFullReset: boolean;
     highlightLastMove: BooleanPreference;
     showSolutionMoveNumbers: BooleanPreference;
+    /** 盤面マーカーを表示するか */
+    showMarkers: BooleanPreference;
+    /** 同一交点に複数のマーカーを重ねられるか */
+    allowMultiMarker: BooleanPreference;
   };
   ui: { deviceProfile: DeviceProfile };
 }
@@ -326,5 +368,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   MOVE_NUM_FONT_SCALE: 1.20,
   MOVE_NUM_STROKE_RATIO: 0.22,
   LAST_MOVE_HIGHLIGHT_OFFSET: 5,
-  BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white'],
+  MARKER_RADIUS: 22,
+  MARKER_STROKE_WIDTH: 3,
+  BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
 } as const;

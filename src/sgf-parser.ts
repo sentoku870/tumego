@@ -1,5 +1,7 @@
 // ============ SGF処理エンジン ============
 import {
+  BoardMarker,
+  MarkerKind,
   Move,
   Position,
   GameState,
@@ -7,6 +9,8 @@ import {
   SGFParseResult,
   DEFAULT_CONFIG
 } from './types.js';
+
+const MARKER_PROPERTIES: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA'];
 
 export class SGFParser {
   // ============ SGF解析 ============
@@ -144,7 +148,94 @@ export class SGFParser {
       gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
     }
 
-    return { moves, gameInfo, rawSGF: rawText };
+    // マーカー（CR/TR/SQ/MA）をノード別に解析
+    const { rootMarkers, nodeMarkers } = this.parseMarkersPerNode(rawText, moves.length);
+
+    return {
+      moves,
+      gameInfo,
+      rawSGF: rawText,
+      rootMarkers,
+      nodeMarkers,
+    };
+  }
+
+  /**
+   * SGFテキストを「;B[..] / ;W[..]」の開始位置で分割し、各ノード内の
+   * CR/TR/SQ/MA を集めてルート用・着手ノード用の配列として返す。
+   * パス（座標なし）の着手があっても nodeMarkers の長さは sgfMoves.length に揃える。
+   */
+  private parseMarkersPerNode(
+    rawText: string,
+    moveCount: number
+  ): { rootMarkers: BoardMarker[]; nodeMarkers: BoardMarker[][] } {
+    const inner = this.extractInner(rawText);
+
+    // 着手ノード境界（;B[..] / ;W[..]）のインデックスを順に抽出
+    const moveBoundary = new RegExp(';([BW])\\[[^\\]]*\\]', 'gi');
+    const boundaries: number[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = moveBoundary.exec(inner)) !== null) {
+      boundaries.push(m.index);
+    }
+
+    if (boundaries.length === 0) {
+      return { rootMarkers: this.collectMarkersInNode(inner), nodeMarkers: this.emptyNodeMarkers(moveCount) };
+    }
+
+    // ルートチャンク: 先頭の手前まで
+    const rootChunk = inner.slice(0, boundaries[0]);
+    const rootMarkers = this.collectMarkersInNode(rootChunk);
+
+    // 着手チャンク: 各境界から次の境界まで
+    const nodeMarkers: BoardMarker[][] = [];
+    for (let i = 0; i < moveCount; i++) {
+      const start = boundaries[i];
+      const end = i + 1 < boundaries.length ? boundaries[i + 1] : inner.length;
+      const chunk = inner.slice(start, end);
+      nodeMarkers.push(this.collectMarkersInNode(chunk));
+    }
+    return { rootMarkers, nodeMarkers };
+  }
+
+  private extractInner(rawText: string): string {
+    const openIdx = rawText.indexOf('(');
+    const closeIdx = rawText.lastIndexOf(')');
+    if (openIdx < 0 || closeIdx < 0 || closeIdx <= openIdx) {
+      return rawText;
+    }
+    return rawText.slice(openIdx + 1, closeIdx);
+  }
+
+  private collectMarkersInNode(chunk: string): BoardMarker[] {
+    const out: BoardMarker[] = [];
+    for (const kind of MARKER_PROPERTIES) {
+      const pattern = new RegExp(
+        `\\b${kind}((?:\\[[a-z]{2}\\])+)(?=[A-Z]\\w*\\[|;|\\)|$)`,
+        'gi'
+      );
+      const matches = chunk.matchAll(pattern);
+      for (const m of matches) {
+        const coordGroup = m[1] ?? '';
+        const coords = coordGroup.match(/\[([a-z]{2})\]/gi);
+        if (!coords) continue;
+        for (const coord of coords) {
+          const clean = coord.slice(1, -1).toLowerCase();
+          if (clean.length !== 2) continue;
+          const col = clean.charCodeAt(0) - 97;
+          const row = clean.charCodeAt(1) - 97;
+          if (col < 0 || row < 0) continue;
+          out.push({ pos: { col, row }, kind });
+        }
+      }
+    }
+    return out;
+  }
+
+  private emptyNodeMarkers(moveCount: number): BoardMarker[][] {
+    const out: BoardMarker[][] = [];
+    for (let i = 0; i < moveCount; i++) out.push([]);
+    return out;
   }
 
   // ============ SGF出力 ============
@@ -201,14 +292,37 @@ export class SGFParser {
       sgf += `RE[${state.gameInfo.result}]`;
     }
 
-    // 着手を記録
-    for (const move of state.sgfMoves) {
+    // ルートレベルのマーカー
+    sgf += this.markerPropsToString(state.rootMarkers);
+
+    // 着手を記録（マーカーはその着手ノードのプロパティとして後に並べる）
+    state.sgfMoves.forEach((move, idx) => {
       const color = move.color === 1 ? 'B' : 'W';
       const coord = `${String.fromCharCode(97 + move.col)}${String.fromCharCode(97 + move.row)}`;
       sgf += `;${color}[${coord}]`;
-    }
+      const nodeMarkers = state.nodeMarkers?.[idx] ?? [];
+      sgf += this.markerPropsToString(nodeMarkers);
+    });
 
     sgf += ')';
     return sgf;
+  }
+
+  private markerPropsToString(markers: BoardMarker[] | undefined): string {
+    if (!markers || markers.length === 0) return '';
+    const grouped: Record<MarkerKind, Position[]> = { CR: [], TR: [], SQ: [], MA: [] };
+    for (const m of markers) {
+      grouped[m.kind].push(m.pos);
+    }
+    let out = '';
+    for (const kind of MARKER_PROPERTIES) {
+      const points = grouped[kind];
+      if (points.length === 0) continue;
+      const coords = points
+        .map((p) => `[${String.fromCharCode(97 + p.col)}${String.fromCharCode(97 + p.row)}]`)
+        .join('');
+      out += `${kind}${coords}`;
+    }
+    return out;
   }
 }

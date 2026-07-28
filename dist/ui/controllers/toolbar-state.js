@@ -58,15 +58,19 @@ export class ToolbarState {
         this.updateFullResetVisibility();
         const state = this.store.snapshot;
         const isSolve = state.numberMode;
+        const isMarker = state.markerMode;
         const hasHistorySnapshots = this.store.historyManager.getList().length > 0;
         this.setDisabled(this.buttons.undoBtn, !hasHistorySnapshots);
         if (isSolve) {
             this.disableEraseMode();
         }
+        if (isMarker) {
+            this.disableEraseMode();
+        }
         this.setDisabled(this.buttons.eraseBtn, isSolve);
-        this.setDisabled(this.buttons.altBtn, isSolve);
-        this.setDisabled(this.buttons.blackBtn, isSolve);
-        this.setDisabled(this.buttons.whiteBtn, isSolve);
+        this.setDisabled(this.buttons.altBtn, isSolve || isMarker);
+        this.setDisabled(this.buttons.blackBtn, isSolve || isMarker);
+        this.setDisabled(this.buttons.whiteBtn, isSolve || isMarker);
         this.setDisabled(this.buttons.answerBtn, !isSolve);
         if (this.buttons.exitSolveBtn) {
             this.buttons.exitSolveBtn.disabled = false;
@@ -75,6 +79,8 @@ export class ToolbarState {
         const hasNextMove = state.sgfIndex < state.sgfMoves.length;
         this.setDisabled(this.buttons.prevMoveBtn, !hasPrevMove);
         this.setDisabled(this.buttons.nextMoveBtn, !hasNextMove);
+        this.buttons.setActiveMarkerButton();
+        this.setDisabled(this.buttons.markerClearBtn, !state.markers || state.markers.length === 0);
         this.updateProblemButtonState();
         this.updateAnswerButtonDisplay();
     }

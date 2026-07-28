@@ -12,6 +12,8 @@ export class SettingsController {
   private fullResetCheckbox: HTMLInputElement | null = null;
   private highlightLastMoveCheckbox: HTMLInputElement | null = null;
   private showSolutionMoveNumbersCheckbox: HTMLInputElement | null = null;
+  private showMarkersCheckbox: HTMLInputElement | null = null;
+  private allowMultiMarkerCheckbox: HTMLInputElement | null = null;
   private resetButton: HTMLButtonElement | null = null;
 
   constructor(private readonly preferences: PreferencesStore) {}
@@ -32,6 +34,8 @@ export class SettingsController {
     this.fullResetCheckbox = document.getElementById("setting-enable-reset") as HTMLInputElement | null;
     this.highlightLastMoveCheckbox = document.getElementById("setting-highlight-last-move") as HTMLInputElement | null;
     this.showSolutionMoveNumbersCheckbox = document.getElementById("setting-show-solution-move-numbers") as HTMLInputElement | null;
+    this.showMarkersCheckbox = document.getElementById("setting-show-markers") as HTMLInputElement | null;
+    this.allowMultiMarkerCheckbox = document.getElementById("setting-allow-multi-marker") as HTMLInputElement | null;
     this.resetButton = document.getElementById("setting-reset-button") as HTMLButtonElement | null;
 
     this.bindEvents();
@@ -79,6 +83,16 @@ export class SettingsController {
       this.preferences.setShowSolutionMoveNumbers(value);
     });
 
+    this.showMarkersCheckbox?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLInputElement).checked;
+      this.preferences.setShowMarkers(value);
+    });
+
+    this.allowMultiMarkerCheckbox?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLInputElement).checked;
+      this.preferences.setAllowMultiMarker(value);
+    });
+
     this.deviceProfileSelect?.addEventListener("change", (event) => {
       const value = (event.target as HTMLSelectElement).value as DeviceProfile;
       this.preferences.setDeviceProfile(value);
@@ -105,6 +119,12 @@ export class SettingsController {
     }
     if (this.showSolutionMoveNumbersCheckbox) {
       this.showSolutionMoveNumbersCheckbox.checked = prefs.solve.showSolutionMoveNumbers;
+    }
+    if (this.showMarkersCheckbox) {
+      this.showMarkersCheckbox.checked = prefs.solve.showMarkers;
+    }
+    if (this.allowMultiMarkerCheckbox) {
+      this.allowMultiMarkerCheckbox.checked = prefs.solve.allowMultiMarker;
     }
     if (this.deviceProfileSelect) {
       this.deviceProfileSelect.value = prefs.ui.deviceProfile;

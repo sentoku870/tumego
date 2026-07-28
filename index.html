@@ -36,6 +36,13 @@
           <button class="ctrl-btn" id="btn-exit-solve-edit" style="display:none;">編集に戻る</button>
           <button class="ctrl-btn answer-btn" id="btn-answer" title="解答モードの先手色を切り替えます">🔥 黒先</button>
         </div>
+        <div class="toolbar-row marker-row" id="marker-row" role="group" aria-label="盤面マーカー">
+          <button class="ctrl-btn marker-btn" id="btn-marker-CR" data-marker-kind="CR" title="○マーカー（タップで配置／再タップで消去）">○</button>
+          <button class="ctrl-btn marker-btn" id="btn-marker-TR" data-marker-kind="TR" title="△マーカー（タップで配置／再タップで消去）">△</button>
+          <button class="ctrl-btn marker-btn" id="btn-marker-SQ" data-marker-kind="SQ" title="□マーカー（タップで配置／再タップで消去）">□</button>
+          <button class="ctrl-btn marker-btn" id="btn-marker-MA" data-marker-kind="MA" title="×マーカー（タップで配置／再タップで消去）">×</button>
+          <button class="ctrl-btn" id="btn-marker-clear" title="表示中のマーカーを全消去">マーカー消去</button>
+        </div>
       </div>
 
       <div class="info" id="info"></div>
@@ -172,6 +179,14 @@
             <label class="settings-row checkbox-row">
               <input type="checkbox" id="setting-show-solution-move-numbers" />
               <span>解答手順に手数を表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-show-markers" />
+              <span>盤面マーカー（○△□×）を表示する</span>
+            </label>
+            <label class="settings-row checkbox-row">
+              <input type="checkbox" id="setting-allow-multi-marker" />
+              <span>同じ交点に複数のマーカーを重ねる</span>
             </label>
           </div>
 

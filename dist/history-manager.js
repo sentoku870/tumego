@@ -41,6 +41,7 @@ export class HistoryManager {
         this.snapshots = [];
     }
     cloneSnapshotState(state) {
+        var _a, _b, _c;
         return {
             boardSize: state.boardSize,
             board: cloneBoard(state.board),
@@ -63,6 +64,9 @@ export class HistoryManager {
             capturedCounts: state.capturedCounts
                 ? { ...state.capturedCounts }
                 : { black: 0, white: 0 },
+            markers: this.cloneMarkers((_a = state.markers) !== null && _a !== void 0 ? _a : []),
+            rootMarkers: this.cloneMarkers((_b = state.rootMarkers) !== null && _b !== void 0 ? _b : []),
+            nodeMarkers: this.cloneNodeMarkers((_c = state.nodeMarkers) !== null && _c !== void 0 ? _c : []),
         };
     }
     cloneMoves(moves) {
@@ -71,8 +75,14 @@ export class HistoryManager {
     clonePositions(positions) {
         return positions.map((pos) => ({ ...pos }));
     }
+    cloneMarkers(markers) {
+        return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+    }
+    cloneNodeMarkers(nodeMarkers) {
+        return nodeMarkers.map((group) => this.cloneMarkers(group));
+    }
     applySnapshot(saved, currentState) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
         currentState.boardSize = saved.boardSize;
         currentState.board = cloneBoard(saved.board);
         currentState.mode = saved.mode;
@@ -94,6 +104,9 @@ export class HistoryManager {
         currentState.capturedCounts = saved.capturedCounts
             ? { ...saved.capturedCounts }
             : { black: 0, white: 0 };
+        currentState.markers = this.cloneMarkers((_h = saved.markers) !== null && _h !== void 0 ? _h : []);
+        currentState.rootMarkers = this.cloneMarkers((_j = saved.rootMarkers) !== null && _j !== void 0 ? _j : []);
+        currentState.nodeMarkers = this.cloneNodeMarkers((_k = saved.nodeMarkers) !== null && _k !== void 0 ? _k : []);
     }
 }
 //# sourceMappingURL=history-manager.js.map

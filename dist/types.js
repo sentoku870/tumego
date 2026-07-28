@@ -27,6 +27,8 @@ export const DEFAULT_CONFIG = {
     MOVE_NUM_FONT_SCALE: 1.20,
     MOVE_NUM_STROKE_RATIO: 0.22,
     LAST_MOVE_HIGHLIGHT_OFFSET: 5,
-    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white'],
+    MARKER_RADIUS: 22,
+    MARKER_STROKE_WIDTH: 3,
+    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
 };
 //# sourceMappingURL=types.js.map

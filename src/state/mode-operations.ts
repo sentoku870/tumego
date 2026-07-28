@@ -64,6 +64,9 @@ export class ModeOperations {
     this.state.numberMode = false;
     this.state.numberStartIndex = 0;
     this.state.history = [];
+    this.state.markers = [];
+    this.state.rootMarkers = [];
+    this.state.nodeMarkers = [];
 
     const baseBoard = this.cache.applyInitialSetup();
     this.state.board = baseBoard;
@@ -82,6 +85,8 @@ export class ModeOperations {
 
     this.state.sgfIndex = 0;
     this.state.sgfMoves = [];
+    this.state.nodeMarkers = [];
+    this.state.markers = this.cloneMarkers(this.state.rootMarkers);
     const baseBoard = this.cache.applyInitialSetup();
     this.state.board = baseBoard;
     const counts = this.cache.resetCapturedCountsTimeline();
@@ -111,6 +116,8 @@ export class ModeOperations {
 
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
+    this.state.nodeMarkers = [];
+    this.state.markers = this.cloneMarkers(this.state.rootMarkers);
 
     this.state.numberMode = true;
     this.state.numberStartIndex = 0;
@@ -173,6 +180,9 @@ export class ModeOperations {
     this.state.startColor = 1;
     this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
     this.state.eraseMode = false;
+    this.state.markers = [];
+    this.state.rootMarkers = [];
+    this.state.nodeMarkers = [];
     this.state.gameInfo = {
       ...this.state.gameInfo,
       title: '',
@@ -273,6 +283,10 @@ export class ModeOperations {
     this.state.mode = "alt";
     this.state.eraseMode = false;
 
+    this.state.markers = [];
+    this.state.rootMarkers = [];
+    this.state.nodeMarkers = [];
+
     if (!preserveProblemDiagram) {
       this.resetMetadataForNewBoard();
     }
@@ -294,6 +308,11 @@ export class ModeOperations {
       title: "",
     };
     this.state.capturedCounts = createInitialCapturedCounts();
+  }
+
+  private cloneMarkers(markers: import("../types.js").BoardMarker[] | undefined): import("../types.js").BoardMarker[] {
+    if (!markers) return [];
+    return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
   }
 
   private hasGameData(): boolean {

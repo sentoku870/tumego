@@ -20,6 +20,9 @@ export class BoardInteractionController {
             "play:primary:*": ({ stateMachine, input }) => stateMachine.onPlayPrimaryDown(input.colors.primary),
             "play:secondary:*": ({ stateMachine, input }) => stateMachine.onPlaySecondaryDown(input.colors.secondary),
             "play:auxiliary:*": ({ stateMachine }) => stateMachine.onPlayAuxiliaryDown(),
+            "marker:primary:*": ({ stateMachine }) => stateMachine.onMarkerPrimaryDown(),
+            "marker:secondary:*": ({ stateMachine }) => stateMachine.onMarkerSecondaryDown(),
+            "marker:auxiliary:*": ({ stateMachine }) => stateMachine.onMarkerAuxiliaryDown(),
         };
         this.pointerMoveHandlers = {
             erase: ({ stateMachine, input, dragging }) => dragging
@@ -27,6 +30,7 @@ export class BoardInteractionController {
                 : stateMachine.startEraseDragFromMove(input.isPointerActive),
             alt: ({ stateMachine }) => stateMachine.ignoreMove(),
             play: ({ stateMachine, dragging }) => dragging ? stateMachine.continueDrag() : stateMachine.ignoreMove(),
+            marker: ({ stateMachine }) => stateMachine.ignoreMove(),
         };
     }
     initialize() {
@@ -121,6 +125,10 @@ export class BoardInteractionController {
         if (!this.isValidPosition(pos)) {
             return;
         }
+        if (this.state.markerMode) {
+            this.handleToggleMarker(pos);
+            return;
+        }
         if (this.state.eraseMode) {
             this.handleErase(pos);
         }
@@ -165,6 +173,14 @@ export class BoardInteractionController {
         }
         return false;
     }
+    handleToggleMarker(pos) {
+        if (!this.state.activeMarkerKind) {
+            return;
+        }
+        const allowMulti = Boolean(this.preferences.state.solve.allowMultiMarker);
+        this.store.toggleMarker(pos, allowMulti);
+        this.eventBus.emitUIUpdate();
+    }
     getPositionFromEvent(event) {
         try {
             const point = this.elements.svg.createSVGPoint();
@@ -203,6 +219,15 @@ export class BoardInteractionController {
         }
         if (decision.type === "disableEraseMode") {
             this.eventBus.emitEraseModeDisable();
+            return;
+        }
+        if (decision.type === "disableMarkerMode") {
+            this.store.setMarkerMode(null);
+            this.eventBus.emitUIUpdate();
+            return;
+        }
+        if (decision.type === "toggleMarker") {
+            this.placeAtEvent(event);
             return;
         }
         this.uiState.drag.dragging = true;

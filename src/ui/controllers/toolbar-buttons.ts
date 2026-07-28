@@ -5,9 +5,11 @@ import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { BoardCaptureService } from '../../services/board-capture-service.js';
 import { SGFService } from '../../services/sgf-service.js';
-import { UIElements, PlayMode } from '../../types.js';
+import { UIElements, PlayMode, MarkerKind } from '../../types.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
+
+const MARKER_KINDS: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA'];
 
 export class ToolbarButtons {
   public clearBtn: HTMLButtonElement | null = null;
@@ -21,6 +23,8 @@ export class ToolbarButtons {
   public altBtn: HTMLButtonElement | null = null;
   public undoBtn: HTMLButtonElement | null = null;
   public exitSolveBtn: HTMLButtonElement | null = null;
+  public markerBtnRefs: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
+  public markerClearBtn: HTMLButtonElement | null = null;
 
   private unsubscribeFromEventBus: (() => void) | null = null;
 
@@ -40,6 +44,7 @@ export class ToolbarButtons {
     this.bindBasicButtons();
     this.bindGameButtons();
     this.bindBoardSaveButton();
+    this.bindMarkerButtons();
 
     this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
       this.dispatchDisableEraseMode();
@@ -68,6 +73,11 @@ export class ToolbarButtons {
     this.altBtn = this.altBtn ?? (document.getElementById('btn-alt') as HTMLButtonElement | null);
     this.undoBtn = this.undoBtn ?? (document.getElementById('btn-undo') as HTMLButtonElement | null);
     this.exitSolveBtn = this.exitSolveBtn ?? (document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null);
+    this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
+    for (const kind of MARKER_KINDS) {
+      if (this.markerBtnRefs[kind]) continue;
+      this.markerBtnRefs[kind] = document.getElementById(`btn-marker-${kind}`) as HTMLButtonElement | null;
+    }
   }
 
   private dispatchDisableEraseMode(): void {
@@ -285,6 +295,38 @@ export class ToolbarButtons {
         alert(`盤面保存に失敗しました: ${message}`);
       });
     });
+  }
+
+  private bindMarkerButtons(): void {
+    for (const kind of MARKER_KINDS) {
+      const btn = document.getElementById(`btn-marker-${kind}`) as HTMLButtonElement | null;
+      btn?.addEventListener('click', () => {
+        const current = this.store.snapshot.activeMarkerKind;
+        if (current === kind) {
+          this.store.setMarkerMode(null);
+        } else {
+          this.dispatchDisableEraseMode();
+          this.store.setMarkerMode(kind);
+        }
+        this.setActiveMarkerButton();
+        this.eventBus.emitUIUpdate();
+      });
+    }
+    const clearBtn = document.getElementById('btn-marker-clear') as HTMLButtonElement | null;
+    clearBtn?.addEventListener('click', () => {
+      this.store.clearMarkers();
+      this.eventBus.emitUIUpdate();
+    });
+  }
+
+  public setActiveMarkerButton(): void {
+    this.ensureButtonRefs();
+    const active = this.store.snapshot.activeMarkerKind;
+    for (const kind of MARKER_KINDS) {
+      const btn = this.markerBtnRefs[kind];
+      if (!btn) continue;
+      btn.classList.toggle('active', active === kind);
+    }
   }
 
   private setMode(mode: PlayMode, buttonElement: Element): void {
