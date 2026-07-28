@@ -188,6 +188,38 @@ describe('Renderer', () => {
       expect(withHighlight).not.toBe('');
       expect(withoutHighlight).not.toBe('');
     });
+
+    test('renders CR, TR, SQ, MA markers when present', () => {
+      state.markers = [
+        { pos: { col: 2, row: 2 }, kind: 'CR' },
+        { pos: { col: 3, row: 3 }, kind: 'TR' },
+        { pos: { col: 4, row: 4 }, kind: 'SQ' },
+        { pos: { col: 5, row: 5 }, kind: 'MA' },
+      ];
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, showMarkers: true } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      const content = elements.svg.innerHTML;
+      expect(content).toContain('marker-cr');
+      expect(content).toContain('marker-tr');
+      expect(content).toContain('marker-sq');
+      // MA renders two <line> elements
+      const lineCount = (content.match(/class="marker marker-ma"/g) || []).length;
+      expect(lineCount).toBe(2);
+    });
+
+    test('skips marker rendering when showMarkers is false', () => {
+      state.markers = [
+        { pos: { col: 0, row: 0 }, kind: 'CR' },
+        { pos: { col: 1, row: 1 }, kind: 'TR' },
+      ];
+      const prefs = { ...DEFAULT_PREFERENCES, solve: { ...DEFAULT_PREFERENCES.solve, showMarkers: false } };
+      const renderer2 = new Renderer(store, elements, () => prefs);
+      renderer2.render();
+      const content = elements.svg.innerHTML;
+      expect(content.includes('marker-cr')).toBe(false);
+      expect(content.includes('marker-tr')).toBe(false);
+    });
   });
 
   describe('updateInfo()', () => {

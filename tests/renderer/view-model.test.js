@@ -153,6 +153,37 @@ describe('RendererViewModelBuilder', () => {
       expect(!!withHighlight.lastMoveHighlight).toBe(true);
       expect(withoutHighlight.lastMoveHighlight).toBe(undefined);
     });
+
+    test('produces MarkerRenderInfo for each marker when showMarkers is true', () => {
+      state.markers = [
+        { pos: { col: 1, row: 2 }, kind: 'CR' },
+        { pos: { col: 3, row: 3 }, kind: 'TR' },
+      ];
+      const prefs = () => ({
+        ...noPrefs(),
+        solve: { ...noPrefs().solve, showMarkers: true },
+      });
+      const builder = new RendererViewModelBuilder(store, prefs);
+      const model = builder.buildBoardModel();
+      expect(model.markers).toHaveLength(2);
+      expect(model.markers[0].kind).toBe('CR');
+      expect(model.markers[1].kind).toBe('TR');
+      expect(model.showMarkers).toBe(true);
+    });
+
+    test('omits markers when showMarkers pref is false', () => {
+      state.markers = [
+        { pos: { col: 0, row: 0 }, kind: 'SQ' },
+      ];
+      const prefs = () => ({
+        ...noPrefs(),
+        solve: { ...noPrefs().solve, showMarkers: false },
+      });
+      const builder = new RendererViewModelBuilder(store, prefs);
+      const model = builder.buildBoardModel();
+      expect(model.markers).toEqual([]);
+      expect(model.showMarkers).toBe(false);
+    });
   });
 
   describe('buildInfoModel', () => {
