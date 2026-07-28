@@ -371,3 +371,28 @@ step 8 は step 2 取り込みのため rebase --force-with-lease。
 ### 累計テスト数
 - 591 (元) → 654 (前回 9 PR) → 684 (今回 5 PR)
 - +93 テスト追加（うち -9 は dead code / jsdom 制約による削除）
+
+### PR #147 (予定): 検討モード（分岐図）機能 — ver5 前倒し実装
+- `src/types.ts`: `gameTree: GameTree | null` を撤去し `sgfTree: SGFNode` + `currentNodeId` + `studyMode: boolean` に統一
+- `src/sgf-parser.ts`: SGF FF4 の `()` `;` 構造をスタック解析する全面再構築
+  - 出力は leading `;` でセットアップノードを生成し、ルート属性と問題図・置石を正しく往復
+  - variations は main sequence の最後のノードの兄弟（SGF 標準）として配置
+- `src/services/sgf-service.ts`: `apply()` を rootNode ベースに。旧 `moves` のみの呼び出しは線形木合成で後方互換
+- `src/state/mode-operations.ts`: 検討モード + 分岐操作 API 一式
+  - `enterStudyMode` / `exitStudyMode`
+  - `appendMoveToCurrentNode`（副分岐着手）
+  - `navigateToMainChild` / `navigateToVariationSibling` / `navigateParent` / `cycleSibling`
+  - `deleteCurrentVariation` / `promoteCurrentToMain`
+  - `syncProjections`: 木 → sgfMoves / sgfIndex / nodeMarkers / markers の再計算
+- `src/state/game-store.ts`: 上記のラッパー + `isAtRoot` / `hasVariations` / `isOnVariation` / `hasVariationChildren`
+- UI:
+  - `index.html`: `study-toolbar` 行を追加（🔍検討／⬆親／🔄切替／＋別解／⭐主昇格／✕削除）
+  - `toolbar-buttons.ts`: `bindStudyModeButtons()` 新設
+  - `toolbar-state.ts`: `updateStudyModeVisibility()` で表示制御
+  - `board-interaction-controller.ts`: 検討モード中は盤面クリックで副分岐着手
+  - `view-model.ts`: info に「副N」「先分岐N」を表示
+  - `board.css`: 検討ボタン用スタイル（オレンジ系・active で accent）
+- テスト:
+  - 既存 744 テストすべて緑
+  - 新規 `tests/sgf/sgf-tree-roundtrip.test.js` でツリー構造の往復を検証
+- 状態: 実装完了。docs 更新済み。
