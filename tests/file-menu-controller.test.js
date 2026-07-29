@@ -62,7 +62,7 @@ const setupFileMenuDOM = () => {
   fileDropdown.id = 'file-dropdown';
   document.body.appendChild(fileDropdown);
 
-  ['btn-file-select', 'btn-file-load', 'btn-file-copy', 'btn-file-save', 'btn-file-qr', 'btn-file-discord'].forEach((id) => {
+  ['btn-file-select', 'btn-file-load', 'btn-file-copy', 'btn-file-finalize', 'btn-file-save', 'btn-file-qr', 'btn-file-discord'].forEach((id) => {
     const btn = document.createElement('button');
     btn.id = id;
     document.body.appendChild(btn);
@@ -266,6 +266,68 @@ describe('FileMenuController', () => {
       };
       controller.syncHeaderEditor();
       expect(document.getElementById('header-title').value).toBe('');
+    });
+  });
+
+  describe('SGF確定ボタン (btn-file-finalize)', () => {
+    test('解答モード中は numberMode=false に遷移し sgfLoadedFromExternal=true になる', () => {
+      state.numberMode = true;
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.sgfMoves = [{ col: 1, row: 1, color: 1 }];
+      state.sgfIndex = 1;
+      controller.initialize();
+
+      const btn = document.getElementById('btn-file-finalize');
+      btn.click();
+
+      if (state.numberMode !== false) throw new Error('numberMode should be false');
+      if (state.sgfLoadedFromExternal !== true) {
+        throw new Error('sgfLoadedFromExternal should be true');
+      }
+      if (state.sgfMoves.length !== 1) {
+        throw new Error('sgfMoves should be preserved');
+      }
+    });
+
+    test('編集モード中は確定されず、メッセージが表示される', () => {
+      state.numberMode = false;
+      const beforeMoves = state.sgfMoves.slice();
+      controller.initialize();
+
+      const btn = document.getElementById('btn-file-finalize');
+      btn.click();
+
+      if (state.numberMode !== false) throw new Error('numberMode should stay false');
+      if (state.sgfLoadedFromExternal !== false) {
+        throw new Error('sgfLoadedFromExternal should stay false');
+      }
+      if (state.sgfMoves.length !== beforeMoves.length) {
+        throw new Error('sgfMoves should not change');
+      }
+    });
+
+    test('確定後の状態は apply() 直後と一致する', () => {
+      state.numberMode = true;
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.sgfMoves = [
+        { col: 1, row: 1, color: 1 },
+        { col: 2, row: 2, color: 2 },
+      ];
+      state.sgfIndex = 2;
+      controller.initialize();
+
+      const btn = document.getElementById('btn-file-finalize');
+      btn.click();
+
+      if (state.numberMode !== false) throw new Error('numberMode should be false');
+      if (state.sgfLoadedFromExternal !== true) {
+        throw new Error('sgfLoadedFromExternal should be true');
+      }
+      if (state.sgfMoves.length !== 2) {
+        throw new Error('sgfMoves should be preserved');
+      }
     });
   });
 });

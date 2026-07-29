@@ -57,8 +57,10 @@ export class SGFService {
   /**
    * SGF 解析結果を state に適用する。
    * 状態書込はすべて ModeOperations 経由。
+   * options.historyLabel を渡すと履歴スナップショットのラベルを差し替えられる
+   * （SGF確定など、ファイル読み込み以外の経路で使う）。
    */
-  apply(result: SGFParseResult): ApplyResult {
+  apply(result: SGFParseResult, options?: { historyLabel?: string }): ApplyResult {
     const validated = this.validateParseResult(result);
     const { moves, gameInfo, rawSGF, rootMarkers, nodeMarkers } = validated;
 
@@ -66,7 +68,7 @@ export class SGFService {
     this.store.prepareBoardForSgf(gameInfo.boardSize);
 
     // 2) 履歴保存 + フラグ類リセット
-    this.store.resetForSgfLoad(this.state.sgfMoves.length);
+    this.store.resetForSgfLoad(this.state.sgfMoves.length, options?.historyLabel);
 
     // 3) メタ情報適用（startColor, handicap, problemDiagram）
     this.store.applySgfMeta(gameInfo);
@@ -93,6 +95,23 @@ export class SGFService {
     return {
       sgfText: rawSGF ?? this.parser.export(this.state)
     };
+  }
+
+  /**
+   * 現在の state を SGF 文字列に書き出し、それをあたかも外部から読み込んだかのように
+   * 再適用する。SGF配置 → 解答入力後にこのメソッドを呼ぶことで、SGF選択直後と
+   * 同じ状態（sgfLoadedFromExternal=true, numberMode=false, 着手が sgfMoves に
+   * 保持された状態）に遷移できる。盤面の直接編集が sgfMoves を破壊しなくなるため、
+   * 軽い検討が安全に行える。
+   */
+  applyGeneratedSgf(): ApplyResult {
+    const sgfText = this.parser.export(this.state);
+    const parsed = this.parser.parse(sgfText);
+    const moveCount = this.state.sgfMoves.length;
+    const label = moveCount > 0
+      ? `SGF確定前（${moveCount}手）`
+      : 'SGF確定前（問題図のみ）';
+    return this.apply(parsed, { historyLabel: label });
   }
 
   private validateParseResult(result: SGFParseResult): SGFParseResult {
