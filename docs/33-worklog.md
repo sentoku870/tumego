@@ -371,3 +371,49 @@ step 8 は step 2 取り込みのため rebase --force-with-lease。
 ### 累計テスト数
 - 591 (元) → 654 (前回 9 PR) → 684 (今回 5 PR)
 - +93 テスト追加（うち -9 は dead code / jsdom 制約による削除）
+
+---
+
+## 2026-07-29 SGF確定ボタンの追加
+
+### 背景
+SGF配置で解答を入力したあと、軽く検討しようとすると「再生途中で別の手を打った瞬間にそれ以降の手順が消失する」問題があった。SGF選択（外部SGF読み込み）は盤面編集が `sgfMoves` を破壊しないので安全だが、SGF配置は解答セッションとして手順を破壊的に書き換える実装になっていた。
+
+ユーザーから「SGF配置でも SGF選択と同じ動作（読み込んだSGF状態）にしたい」との要望があり、専用の『SGF確定』ボタンを新設する方針で実装。
+
+### 実装内容
+
+**コア機能**
+- `src/services/sgf-service.ts`: `applyGeneratedSgf()` を追加
+  - 現在の state を SGF 文字列化 → パース → `apply()` で再適用
+  - 履歴ラベルは `SGF確定前（X手）` / `SGF確定前（問題図のみ）`
+- `src/services/sgf-service.ts`: `apply()` に `options.historyLabel` 引数を追加
+- `src/state/mode-operations.ts`: `resetForSgfLoad()` に `customLabel` 引数を追加
+- `src/state/game-store.ts`: 上記のラッパーも対応
+
+**UI**
+- `index.html`: ファイルメニューに `📌 SGF確定` ボタン (`#btn-file-finalize`) を追加
+- `src/ui/controllers/file-menu-controller.ts`: ボタンハンドラを追加
+  - 解答モード（`numberMode=true`）時のみ動作
+  - 確定後は `numberMode=false`, `sgfLoadedFromExternal=true` の編集モードへ移行
+  - メッセージ表示とSGFテキストエリア更新
+
+### 動作仕様（確定後）
+
+- SGF選択直後と同一状態（`sgfLoadedFromExternal=true`, `numberMode=false`）
+- 1手戻る/進む: `sgfMoves` 基準で動作
+- 盤面の直接編集: `sgfMoves` には書き込まない（破壊的更新は起きない）
+- Undo: 「SGF確定前」ラベルで確定前の状態に戻る
+- SGFコピー: `sgfMoves` 全体を SGF 文字列で出力
+
+### テスト
+- `tests/state/finalize-solve-session.test.js` (12 ケース): 状態遷移・履歴ラベル・確定後の検討耐性・round-trip
+- `tests/file-menu-controller.test.js` (3 ケース追加): ボタンの状態遷移・編集モード時の不動作
+
+### 検証結果
+- 760/760 テスト緑（684 → 760、+76 テスト）
+- `npm run build` 緑
+
+### 注記
+- 変化図・分岐は未実装（Lv4-5 相当のため別タスク）
+- 確定後の編集は SGF選択と完全に同じ挙動（盤面のみ更新、`sgfMoves` 不変）

@@ -519,8 +519,8 @@ export class GameStore {
   }
 
   /** SGF 読み込み時の状態初期化を委譲 */
-  resetForSgfLoad(sgfMovesCountBeforeLoad: number): void {
-    this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad);
+  resetForSgfLoad(sgfMovesCountBeforeLoad: number, customLabel?: string): void {
+    this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel);
   }
 
   /** SGF メタ情報（先手色/置石/問題図）の適用を委譲 */
