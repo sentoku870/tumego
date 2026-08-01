@@ -295,12 +295,11 @@ describe('GoEngine', () => {
   describe('snapback (multi-stone capturing group)', () => {
     // Regression: when the capturing group contains multiple stones,
     // a 1-stone / 1-liberty capture is a legitimate snapback-style
-    // recapture and must NOT be marked as ko. Reproduces the
-    // 13x13 problem from SGF ...B[gm];W[fl];B[el];W[fm];B[il];W[ik];B[hm]
-    // where B[hm] (H1) captures the white stone at H2 while merging into
-    // the existing black stone at G1.
-    test('SB1: 1-stone capture by a multi-stone group with 1 liberty is not a ko', () => {
-      // Minimal 3x3 reproduction: black surrounds white at center,
+    // recapture and must NOT be marked as ko. Without the fix, koPoint
+    // is incorrectly set to the captured point and the immediate
+    // recapture is rejected as a ko violation.
+    test('SB1: minimal 3x3 reproduction of multi-stone capture not being ko', () => {
+      // 3x3 board: 8 black stones surround white at center,
       // black's only liberty is the captured point.
       const board = emptyBoard(3);
       placeStones(board, [
@@ -310,17 +309,13 @@ describe('GoEngine', () => {
       ], 1);
       placeStones(board, [{ col: 1, row: 1 }], 2);
 
-      // Black plays at (1,0) and captures the single white stone at (1,1).
       const state = createState(board);
       const result = engine.playMove(state, { col: 1, row: 0 }, 1);
 
       expect(result).not.toBeNull();
       expect(result.captured).toHaveLength(1);
-      // With the fix: koPoint must be null because the capturing group
-      // has 8 stones (not 1). Without the fix, koPoint would be (1,1).
       expect(result.koPoint).toBeNull();
 
-      // White recaptures at (1,1): takes the 8-stone black group.
       const recaptureState = createState(result.board);
       const recapture = engine.playMove(recaptureState, { col: 1, row: 1 }, 2);
 
@@ -346,6 +341,77 @@ describe('GoEngine', () => {
 
       expect(result).not.toBeNull();
       expect(result.koPoint).toEqual({ col: 2, row: 2 });
+    });
+
+    test('SB3: 13x13 reproduction from user SGF (B[hm] captures J1 then white recaptures at J1)', () => {
+      // Reproduces the 13x13 problem reported by the user:
+      //   (;GM[1]FF[4]SZ[13]KM[6.5]
+      //     AB[ih][jh][kh][hi][li][hj][lj][dk][ek][fk][gk][hk][lk][ll][jm][lm]
+      //     AW[kk][gl][hl][kl][im][km]
+      //     ;B[gm];W[fl];B[el];W[fm];B[il];W[ik];B[hm])
+      //
+      // Move 7: B[hm] = H1, captures the white stone at J1 (state.board[12][8])
+      // because H1/G1/J2/K1 surround it.
+      // The merged black group (G1)(H1) has only the captured point J1 as
+      // its liberty. Without the fix, koPoint is set to J1 and the immediate
+      // white recapture at J1 is rejected as a ko violation.
+      const board = emptyBoard(13);
+
+      // AB (black setup)
+      placeStones(board, [
+        { col: 8, row: 7 }, { col: 9, row: 7 }, { col: 10, row: 7 },
+        { col: 7, row: 8 }, { col: 11, row: 8 },
+        { col: 7, row: 9 }, { col: 11, row: 9 },
+        { col: 3, row: 10 }, { col: 4, row: 10 }, { col: 5, row: 10 }, { col: 6, row: 10 }, { col: 7, row: 10 },
+        { col: 11, row: 10 }, { col: 11, row: 11 }, { col: 9, row: 12 }, { col: 11, row: 12 }
+      ], 1);
+      // AW (white setup)
+      placeStones(board, [
+        { col: 10, row: 10 },
+        { col: 6, row: 11 }, { col: 7, row: 11 }, { col: 10, row: 11 },
+        { col: 8, row: 12 }, { col: 10, row: 12 }
+      ], 2);
+
+      // Apply moves 1-6
+      const moves = [
+        { col: 6, row: 12, color: 1 }, // 1: G1
+        { col: 5, row: 11, color: 2 }, // 2: F2
+        { col: 4, row: 11, color: 1 }, // 3: E2
+        { col: 5, row: 12, color: 2 }, // 4: F1
+        { col: 8, row: 11, color: 1 }, // 5: J2
+        { col: 8, row: 10, color: 2 }   // 6: J3
+      ];
+
+      let cur = board;
+      for (const m of moves) {
+        const state = createState(cur);
+        const result = engine.playMove(state, { col: m.col, row: m.row }, m.color);
+        expect(result).not.toBeNull();
+        cur = result.board;
+      }
+
+      // Move 7: B[hm] = H1 (col 7, row 12) captures white J1.
+      const beforeMove7 = cur;
+      const move7State = createState(beforeMove7);
+      const move7 = engine.playMove(move7State, { col: 7, row: 12 }, 1);
+
+      expect(move7).not.toBeNull();
+      expect(move7.captured).toHaveLength(1);
+      // Without the fix, koPoint would be { col: 8, row: 12 } (J1).
+      // With the fix, the multi-stone capturing group means no ko.
+      expect(move7.koPoint).toBeNull();
+
+      // After move 7, the merged black group (G1)(H1) has 2 stones and
+      // its only liberty is the captured point J1. White recapturing at
+      // J1 takes both stones (snapback), which is legal.
+      const afterMove7State = createState(move7.board);
+      const recapture = engine.playMove(afterMove7State, { col: 8, row: 12 }, 2);
+
+      expect(recapture).not.toBeNull();
+      expect(recapture.captured.length).toBe(2);
+      expect(recapture.board[12][6]).toBe(0); // G1 cleared
+      expect(recapture.board[12][7]).toBe(0); // H1 cleared
+      expect(recapture.board[12][8]).toBe(2); // J1 is white
     });
   });
 });
