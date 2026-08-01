@@ -477,5 +477,78 @@ describe('GoEngine', () => {
       expect(move7.board[12][7]).toBe(0); // H1 cleared
       expect(move7.board[12][8]).toBe(2); // J1 is white
     });
+
+    test('SB5: 13x13 double-snapback reproduction (W[J1] recaptures G1+H1, then B[H1] recaptures J1)', () => {
+      // SGF provided by the user (double-snapback structure):
+      //   (;GM[1]FF[4]SZ[13]KM[6.5]
+      //     AB[dk][ek][fk][gk][gm][hi][hj][hk][ih][jh][jm][kh][li][lj][lk][ll][lm]
+      //     AW[gl][hl][im][kk][kl][km]
+      //     ;W[fl];B[el];W[fm];B[il];W[ik];B[hm];W[im];B[hm])
+      //
+      // Move 6: B[hm] = H1 captures J1 (snapback setup)
+      // Move 7: W[im] = J1 captures G1+H1 (snapback)
+      // Move 8: B[hm] = H1 captures J1 again (re-snapback)
+      const board = emptyBoard(13);
+
+      // AB (black setup, includes G1)
+      placeStones(board, [
+        { col: 3, row: 10 }, { col: 4, row: 10 }, { col: 5, row: 10 }, { col: 6, row: 10 },
+        { col: 6, row: 12 }, // G1
+        { col: 7, row: 8 }, { col: 7, row: 9 }, { col: 7, row: 10 },
+        { col: 8, row: 7 }, { col: 9, row: 7 }, { col: 9, row: 12 }, { col: 10, row: 7 },
+        { col: 11, row: 8 }, { col: 11, row: 9 }, { col: 11, row: 10 }, { col: 11, row: 11 }, { col: 11, row: 12 }
+      ], 1);
+      // AW (white setup)
+      placeStones(board, [
+        { col: 6, row: 11 }, { col: 7, row: 11 },
+        { col: 8, row: 12 }, // J1
+        { col: 10, row: 10 }, { col: 10, row: 11 }, { col: 10, row: 12 }
+      ], 2);
+
+      // Apply moves 1-5 (white-first)
+      const moves = [
+        { col: 5, row: 11, color: 2 }, // 1: F2
+        { col: 4, row: 11, color: 1 }, // 2: E2
+        { col: 5, row: 12, color: 2 }, // 3: F1
+        { col: 8, row: 11, color: 1 }, // 4: J2
+        { col: 8, row: 10, color: 2 }   // 5: J3
+      ];
+
+      let cur = board;
+      for (const m of moves) {
+        const state = createState(cur);
+        const result = engine.playMove(state, { col: m.col, row: m.row }, m.color);
+        expect(result).not.toBeNull();
+        cur = result.board;
+      }
+
+      // Move 6: B[hm] = H1 (col 7, row 12) captures white J1.
+      const move6 = engine.playMove(createState(cur), { col: 7, row: 12 }, 1);
+
+      expect(move6).not.toBeNull();
+      expect(move6.captured).toHaveLength(1);
+      // With the fix: koPoint must be null (multi-stone capturing group).
+      expect(move6.koPoint).toBeNull();
+
+      // Move 7: W[im] = J1 takes the 2-stone black group (snapback).
+      const move7 = engine.playMove(createState(move6.board), { col: 8, row: 12 }, 2);
+
+      expect(move7).not.toBeNull();
+      expect(move7.captured.length).toBe(2);
+      expect(move7.board[12][6]).toBe(0); // G1 cleared
+      expect(move7.board[12][7]).toBe(0); // H1 cleared
+      expect(move7.board[12][8]).toBe(2); // J1 is white
+
+      // Move 8: B[hm] = H1 (col 7, row 12) takes white J1 again (re-snapback).
+      const move8 = engine.playMove(createState(move7.board), { col: 7, row: 12 }, 1);
+
+      expect(move8).not.toBeNull();
+      expect(move8.captured).toHaveLength(1);
+      // The black stone is now a single stone (H1 only) with 2 liberties
+      // (G1 and J1 are both empty). So koPoint must be null.
+      expect(move8.koPoint).toBeNull();
+      expect(move8.board[12][7]).toBe(1); // H1 is black
+      expect(move8.board[12][8]).toBe(0); // J1 cleared (captured)
+    });
   });
 });
