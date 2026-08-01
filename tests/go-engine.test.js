@@ -291,4 +291,61 @@ describe('GoEngine', () => {
       expect(recapture.board[2][2]).toBe(2);
     });
   });
+
+  describe('snapback (multi-stone capturing group)', () => {
+    // Regression: when the capturing group contains multiple stones,
+    // a 1-stone / 1-liberty capture is a legitimate snapback-style
+    // recapture and must NOT be marked as ko. Reproduces the
+    // 13x13 problem from SGF ...B[gm];W[fl];B[el];W[fm];B[il];W[ik];B[hm]
+    // where B[hm] (H1) captures the white stone at H2 while merging into
+    // the existing black stone at G1.
+    test('SB1: 1-stone capture by a multi-stone group with 1 liberty is not a ko', () => {
+      // Minimal 3x3 reproduction: black surrounds white at center,
+      // black's only liberty is the captured point.
+      const board = emptyBoard(3);
+      placeStones(board, [
+        { col: 0, row: 0 }, { col: 2, row: 0 },
+        { col: 0, row: 1 }, { col: 2, row: 1 },
+        { col: 0, row: 2 }, { col: 1, row: 2 }, { col: 2, row: 2 }
+      ], 1);
+      placeStones(board, [{ col: 1, row: 1 }], 2);
+
+      // Black plays at (1,0) and captures the single white stone at (1,1).
+      const state = createState(board);
+      const result = engine.playMove(state, { col: 1, row: 0 }, 1);
+
+      expect(result).not.toBeNull();
+      expect(result.captured).toHaveLength(1);
+      // With the fix: koPoint must be null because the capturing group
+      // has 8 stones (not 1). Without the fix, koPoint would be (1,1).
+      expect(result.koPoint).toBeNull();
+
+      // White recaptures at (1,1): takes the 8-stone black group.
+      const recaptureState = createState(result.board);
+      const recapture = engine.playMove(recaptureState, { col: 1, row: 1 }, 2);
+
+      expect(recapture).not.toBeNull();
+      expect(recapture.captured.length > 1).toBe(true);
+    });
+
+    test('SB2: simple ko with single-stone group still sets koPoint', () => {
+      // Regression guard: real ko (single-stone capturing group) still works.
+      const buildBase = () => {
+        const b = emptyBoard(5);
+        placeStones(b, [{ col: 2, row: 2 }], 2);
+        placeStones(b, [
+          { col: 1, row: 2 }, { col: 3, row: 2 }, { col: 2, row: 1 }
+        ], 1);
+        placeStones(b, [
+          { col: 1, row: 3 }, { col: 3, row: 3 }, { col: 2, row: 4 }
+        ], 2);
+        return b;
+      };
+      const state = createState(buildBase());
+      const result = engine.playMove(state, { col: 2, row: 3 }, 1);
+
+      expect(result).not.toBeNull();
+      expect(result.koPoint).toEqual({ col: 2, row: 2 });
+    });
+  });
 });
