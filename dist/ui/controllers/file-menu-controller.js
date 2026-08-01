@@ -16,6 +16,7 @@ export class FileMenuController {
         const fileSelectBtn = document.getElementById('btn-file-select');
         const fileLoadBtn = document.getElementById('btn-file-load');
         const fileCopyBtn = document.getElementById('btn-file-copy');
+        const fileFinalizeBtn = document.getElementById('btn-file-finalize');
         const fileSaveBtn = document.getElementById('btn-file-save');
         const fileQRBtn = document.getElementById('btn-file-qr');
         const fileDiscordBtn = document.getElementById('btn-file-discord');
@@ -107,6 +108,30 @@ export class FileMenuController {
             }
             catch (error) {
                 this.renderer.showMessage('SGF をテキストエリアに表示しました');
+            }
+        });
+        fileFinalizeBtn === null || fileFinalizeBtn === void 0 ? void 0 : fileFinalizeBtn.addEventListener('click', () => {
+            this.dropdownManager.hide(fileDropdown);
+            if (!this.store.snapshot.numberMode) {
+                this.renderer.showMessage('解答モード中のみ確定できます');
+                return;
+            }
+            try {
+                const applyResult = this.sgfService.applyGeneratedSgf();
+                this.renderer.updateBoardSize();
+                const sgfTextarea = document.getElementById('sgf-text');
+                if (sgfTextarea) {
+                    sgfTextarea.value = applyResult.sgfText;
+                }
+                this.eventBus.emitUIUpdate();
+                this.populateHeaderFields();
+                this.eventBus.emitSgfApplied(applyResult.sgfText);
+                this.eventBus.emitAnswerButtonUpdate();
+                this.renderer.showMessage('SGF を確定しました（編集モードへ移行）');
+            }
+            catch (error) {
+                console.error('SGF確定失敗', error);
+                this.renderer.showMessage('SGF確定に失敗しました');
             }
         });
         fileSaveBtn === null || fileSaveBtn === void 0 ? void 0 : fileSaveBtn.addEventListener('click', async () => {

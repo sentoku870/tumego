@@ -420,8 +420,8 @@ export class GameStore {
         this.modeOps.prepareBoardForSgf(newSize);
     }
     /** SGF 読み込み時の状態初期化を委譲 */
-    resetForSgfLoad(sgfMovesCountBeforeLoad) {
-        this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad);
+    resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel) {
+        this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel);
     }
     /** SGF メタ情報（先手色/置石/問題図）の適用を委譲 */
     applySgfMeta(gameInfo) {

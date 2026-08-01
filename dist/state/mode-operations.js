@@ -125,10 +125,12 @@ export class ModeOperations {
     }
     /**
      * SGF 読み込み時に状態を初期化する。履歴保存 + 盤サイズ/盤面変更 +
-     * 各種フラグのリセットを行う。
+     * 各種フラグのリセットを行う。customLabel を指定すると、履歴スナップショットの
+     * ラベルを「SGF読み込み前（X手）」の代わりにその値にする（SGF確定などで利用）。
      */
-    resetForSgfLoad(sgfMovesCountBeforeLoad) {
-        this.history.save(`SGF読み込み前（${sgfMovesCountBeforeLoad}手）`, this.state);
+    resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel) {
+        const label = customLabel !== null && customLabel !== void 0 ? customLabel : `SGF読み込み前（${sgfMovesCountBeforeLoad}手）`;
+        this.history.save(label, this.state);
         this.state.history = [];
         this.state.turn = 0;
         this.state.sgfMoves = [];
