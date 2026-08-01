@@ -223,4 +223,27 @@ describe('BoardInteractionController pointer handling', () => {
     expect(uiState.drag.dragging).toBe(true);
     expect(placeSpy.mock.calls.length).toBe(1);
   });
+
+  test('in solve mode, stale markerMode flag is ignored and tryMove is called', () => {
+    // Reset the placeAtEvent spy so the real implementation runs.
+    placeSpy.mockRestore();
+    state.numberMode = true;
+    state.markerMode = true;
+    jest.spyOn(controller, 'isValidPosition').mockReturnValue(true);
+
+    controller.placeAtEvent(createPointerEvent());
+
+    expect(store.tryMove.mock.calls.length).toBe(1);
+  });
+
+  test('in solve mode, stale eraseMode flag is ignored and tryMove is called', () => {
+    placeSpy.mockRestore();
+    state.numberMode = true;
+    state.eraseMode = true;
+    jest.spyOn(controller, 'isValidPosition').mockReturnValue(true);
+
+    controller.placeAtEvent(createPointerEvent());
+
+    expect(store.tryMove.mock.calls.length).toBe(1);
+  });
 });

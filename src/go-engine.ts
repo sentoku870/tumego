@@ -95,11 +95,18 @@ export class GoEngine {
       return null;
     }
 
-    // Determine ko: only when a single stone was captured and the new group
-    // has exactly one liberty (the captured point), the opponent cannot
-    // immediately recapture.
+    // Determine ko: a ko is only marked when a single opponent stone is
+    // captured and the just-placed stone forms a single-stone group with
+    // exactly one liberty (the captured point). When the capturing group
+    // has multiple stones (e.g. the new stone merges into an existing
+    // friendly group), a 1-stone / 1-liberty capture is a legitimate
+    // snapback-style recapture scenario and must not be marked as ko.
     const koPoint =
-      captured.length === 1 && selfGroup.libs === 1 ? captured[0] : null;
+      captured.length === 1 &&
+      selfGroup.libs === 1 &&
+      selfGroup.stones.length === 1
+        ? captured[0]
+        : null;
 
     return { board, koPoint, captured };
   }

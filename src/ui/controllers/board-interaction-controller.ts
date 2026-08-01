@@ -195,6 +195,14 @@ export class BoardInteractionController {
       return;
     }
 
+    // In solve mode, marker/erase modes are meaningless (you are playing
+    // through the solution). Always treat the click as a stone placement
+    // regardless of stale markerMode/eraseMode flags.
+    if (this.state.numberMode) {
+      this.handlePlaceStone(pos);
+      return;
+    }
+
     if (this.state.markerMode) {
       this.handleToggleMarker(pos);
       return;
