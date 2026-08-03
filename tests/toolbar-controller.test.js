@@ -94,6 +94,7 @@ describe('ToolbarController', () => {
         threw = true;
       }
       expect(threw).toBe(false);
+      expect(state.eraseMode).toBe(false);
     });
 
     test('disables eraseMode when true', () => {

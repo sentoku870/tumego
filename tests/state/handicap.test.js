@@ -218,17 +218,17 @@ describe('GameStore handicap', () => {
   });
 
   describe('handicap gameInfo sync', () => {
-    test('updates gameInfo.handicap for even mode', () => {
+    test('keeps gameInfo.handicap as null for even mode', () => {
       store.setHandicap('even');
       expect(state.gameInfo.handicap).toBe(null);
     });
 
-    test('updates gameInfo.handicap for no-komi equivalent (0)', () => {
+    test('keeps gameInfo.handicap as null for zero (no-komi equivalent)', () => {
       store.setHandicap(0);
       expect(state.gameInfo.handicap).toBe(null);
     });
 
-    test('updates gameInfo.handicap for numeric mode', () => {
+    test('sets gameInfo.handicap to numeric value for numeric mode', () => {
       store.setHandicap(3);
       expect(state.gameInfo.handicap).toBe(3);
     });

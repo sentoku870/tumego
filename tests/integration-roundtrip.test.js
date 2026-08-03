@@ -68,7 +68,7 @@ const createState = (size = 9) => {
 const cloneState = (state) => JSON.parse(JSON.stringify(state));
 
 describe('Integration: SGF import, handicap, and history restore', () => {
-  test('restores every field after round trip', () => {
+  test('restores all state fields after applying SGF and handicap changes', () => {
     const parser = new SGFParser();
     const history = new HistoryManager();
     const engine = new GoEngine();
@@ -90,9 +90,7 @@ describe('Integration: SGF import, handicap, and history restore', () => {
     expect(state.komi).toBe(0);
 
     const baselineEntry = history.getList().find(item => item.label === baselineDescription);
-    if (!baselineEntry) {
-      throw new Error('baseline snapshot was not saved');
-    }
+    expect(baselineEntry !== undefined).toBe(true);
 
     const restored = history.restore(baselineEntry.index, state);
     expect(restored).toBe(true);

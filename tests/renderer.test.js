@@ -140,9 +140,11 @@ describe('Renderer', () => {
       ];
       state.sgfIndex = 2;
       renderer2.render();
-      const content = elements.svg.innerHTML;
-      // Move numbers are rendered as text
-      expect(content).toContain('text');
+      const moveNumElements = elements.svg.querySelectorAll('text.move-num');
+      expect(moveNumElements.length).toBe(2);
+      const moveNumTexts = Array.from(moveNumElements).map(el => el.textContent);
+      expect(moveNumTexts.includes('1')).toBe(true);
+      expect(moveNumTexts.includes('2')).toBe(true);
     });
 
     test('render with suppressLastMoveHighlight does not draw highlight', () => {
@@ -151,14 +153,13 @@ describe('Renderer', () => {
       // With highlight
       const rendererWith = new Renderer(store, elements, () => DEFAULT_PREFERENCES);
       rendererWith.render();
-      const withHighlight = elements.svg.innerHTML;
+      const withHighlight = elements.svg.querySelectorAll('.last-move-highlight').length;
+      expect(withHighlight).toBe(1);
       // Without highlight
       elements.svg.innerHTML = '';
       rendererWith.render({ suppressLastMoveHighlight: true });
-      const withoutHighlight = elements.svg.innerHTML;
-      // Both should have content
-      expect(withHighlight).not.toBe('');
-      expect(withoutHighlight).not.toBe('');
+      const withoutHighlight = elements.svg.querySelectorAll('.last-move-highlight').length;
+      expect(withoutHighlight).toBe(0);
     });
 
     test('renders CR, TR, SQ, MA markers when present', () => {
