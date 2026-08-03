@@ -1,18 +1,36 @@
-import { Renderer } from '../renderer/renderer.js';
 import { Modal } from '../ui/views/modal.js';
 import { DEFAULT_CONFIG } from '../types.js';
+import { RenderSnapshot } from './render-snapshot.js';
+import { RendererSnapshotAdapter } from '../renderer/renderer-snapshot.js';
+import type { Renderer } from '../renderer/renderer.js';
 
 export class BoardCaptureService {
   private currentPreviewModal: Modal | null = null;
 
+  /**
+   * @param svgElement 盤面の SVG 要素
+   * @param snapshotOrRenderer RenderSnapshot 実装、または直接 Renderer（後方互換）
+   * @param notify 成功時に表示する通知コールバック
+   */
   constructor(
     private readonly svgElement: SVGSVGElement,
-    private readonly renderer: Renderer
-  ) {}
+    snapshotOrRenderer: RenderSnapshot | Renderer,
+    private readonly notify?: (message: string) => void
+  ) {
+    // 後方互換: Renderer を直接渡された場合は Adapter でラップする
+    if (typeof (snapshotOrRenderer as RenderSnapshot).renderWithoutHighlight === 'function'
+        && typeof (snapshotOrRenderer as RenderSnapshot).renderNormal === 'function') {
+      this.snapshot = snapshotOrRenderer as RenderSnapshot;
+    } else {
+      this.snapshot = new RendererSnapshotAdapter(snapshotOrRenderer as Renderer);
+    }
+  }
+
+  private readonly snapshot: RenderSnapshot;
 
   async captureBoard(): Promise<void> {
     // ① 盤面保存用：直前の手ハイライトを消した状態で描画
-    this.renderer.render({ suppressLastMoveHighlight: true });
+    this.snapshot.renderWithoutHighlight();
 
     try {
       // ② この状態の SVG を PNG に変換
@@ -32,7 +50,7 @@ export class BoardCaptureService {
         try {
           const item = new clipboardItemCtor({ 'image/png': pngBlob });
           await clipboard.write([item]);
-          this.renderer.showMessage('コピーしました');
+          this.notify?.('コピーしました');
           return;
         } catch (error) {
           console.error('クリップボードへの書き込みに失敗しました', error);
@@ -50,7 +68,7 @@ export class BoardCaptureService {
       this.showBoardPreviewModal(dataUrl);
     } finally {
       // ③ 画面表示用には、元のハイライト状態で描画し直す
-      this.renderer.render();
+      this.snapshot.renderNormal();
     }
   }
 

@@ -5,6 +5,7 @@ import { QRManager } from '../qr-manager.js';
 import { HistoryManager } from '../history-manager.js';
 import { GameStore } from '../state/game-store.js';
 import { Renderer } from '../renderer/renderer.js';
+import { RendererSnapshotAdapter } from '../renderer/renderer-snapshot.js';
 import { BoardCaptureService } from '../services/board-capture-service.js';
 import { SGFService } from '../services/sgf-service.js';
 import { SGFIO } from '../services/sgf-io.js';
@@ -54,7 +55,12 @@ export function compositionRoot(
   const store = new GameStore(state, engine, historyManager);
 
   const renderer = new Renderer(store, elements, () => preferences.state);
-  const boardCapture = new BoardCaptureService(elements.svg, renderer);
+  const renderSnapshot = new RendererSnapshotAdapter(renderer);
+  const boardCapture = new BoardCaptureService(
+    elements.svg,
+    renderSnapshot,
+    (msg) => renderer.showMessage(msg)
+  );
   const sgfIO = new SGFIO(sgfParser);
   const sgfShare = new SGFShare(sgfParser);
   const qrManager = new QRManager(sgfParser, sgfShare);
