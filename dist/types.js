@@ -1,45 +1,5 @@
-// ============ 基本型定義 ============
-/** LB（ラベル）マーカーで自動進転する文字のシーケンス。配置ごとに次へ進む。 */
-export const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'];
-/** 次のラベル文字を返す（シーケンス末尾で先頭に戻る） */
-export function nextMarkerLetter(current) {
-    if (!current)
-        return MARKER_LETTER_SEQUENCE[0];
-    const idx = MARKER_LETTER_SEQUENCE.indexOf(current);
-    if (idx < 0)
-        return MARKER_LETTER_SEQUENCE[0];
-    return MARKER_LETTER_SEQUENCE[(idx + 1) % MARKER_LETTER_SEQUENCE.length];
-}
-// ============ 定数 ============
-export const DEFAULT_CONFIG = {
-    CELL_SIZE: 60,
-    MARGIN: 30,
-    STONE_RADIUS: 26,
-    STAR_RADIUS: 4,
-    MAX_BOARD_SIZE: 19,
-    MIN_BOARD_SIZE: 9,
-    DEFAULT_BOARD_SIZE: 9,
-    DEFAULT_KOMI: 6.5,
-    COORD_FONT_RATIO: 0.28,
-    MOVE_NUM_FONT_RATIO: 0.4,
-    COORD_LABEL_OFFSET_X: 20,
-    COORD_LABEL_OFFSET_Y: 15,
-    MOBILE_BREAKPOINT: 768,
-    MOBILE_HORIZONTAL_RESERVED: 250,
-    DESKTOP_HORIZONTAL_RESERVED: 350,
-    QR_DATA_SMALL: 800,
-    QR_DATA_MEDIUM: 1500,
-    QR_DATA_LARGE: 2500,
-    QR_IMAGE_SMALL: '300x300',
-    QR_IMAGE_MEDIUM: '400x400',
-    QR_IMAGE_LARGE: '500x500',
-    MOVE_NUM_BG_RADIUS_RATIO: 1.15,
-    MOVE_NUM_BORDER_MARGIN: 2,
-    MOVE_NUM_FONT_SCALE: 1.20,
-    MOVE_NUM_STROKE_RATIO: 0.22,
-    LAST_MOVE_HIGHLIGHT_OFFSET: 5,
-    MARKER_RADIUS: 22,
-    MARKER_STROKE_WIDTH: 3,
-    BOARD_CAPTURE_CSS_VARS: ['--board', '--line', '--star', '--coord', '--black', '--white', '--accent'],
-};
+// ============ 後方互換用 re-export ============
+// 既存の `from './types.js'` パスを維持するため、types/index.ts に委譲する。
+// 新規コードは `from './types/index.js'` または `from './types/<category>.js'` を推奨。
+export * from './types/index.js';
 //# sourceMappingURL=types.js.map

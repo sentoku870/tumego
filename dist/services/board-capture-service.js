@@ -1,14 +1,29 @@
 import { Modal } from '../ui/views/modal.js';
 import { DEFAULT_CONFIG } from '../types.js';
+import { RendererSnapshotAdapter } from '../renderer/renderer-snapshot.js';
 export class BoardCaptureService {
-    constructor(svgElement, renderer) {
+    /**
+     * @param svgElement 盤面の SVG 要素
+     * @param snapshotOrRenderer RenderSnapshot 実装、または直接 Renderer（後方互換）
+     * @param notify 成功時に表示する通知コールバック
+     */
+    constructor(svgElement, snapshotOrRenderer, notify) {
         this.svgElement = svgElement;
-        this.renderer = renderer;
+        this.notify = notify;
         this.currentPreviewModal = null;
+        // 後方互換: Renderer を直接渡された場合は Adapter でラップする
+        if (typeof snapshotOrRenderer.renderWithoutHighlight === 'function'
+            && typeof snapshotOrRenderer.renderNormal === 'function') {
+            this.snapshot = snapshotOrRenderer;
+        }
+        else {
+            this.snapshot = new RendererSnapshotAdapter(snapshotOrRenderer);
+        }
     }
     async captureBoard() {
+        var _a;
         // ① 盤面保存用：直前の手ハイライトを消した状態で描画
-        this.renderer.render({ suppressLastMoveHighlight: true });
+        this.snapshot.renderWithoutHighlight();
         try {
             // ② この状態の SVG を PNG に変換
             const canvasElement = this.getBoardCaptureCanvas();
@@ -22,7 +37,7 @@ export class BoardCaptureService {
                 try {
                     const item = new clipboardItemCtor({ 'image/png': pngBlob });
                     await clipboard.write([item]);
-                    this.renderer.showMessage('コピーしました');
+                    (_a = this.notify) === null || _a === void 0 ? void 0 : _a.call(this, 'コピーしました');
                     return;
                 }
                 catch (error) {
@@ -40,7 +55,7 @@ export class BoardCaptureService {
         }
         finally {
             // ③ 画面表示用には、元のハイライト状態で描画し直す
-            this.renderer.render();
+            this.snapshot.renderNormal();
         }
     }
     async blobToDataUrl(blob) {

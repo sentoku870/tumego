@@ -1,7 +1,12 @@
+// ============ BoardInteractionController (Facade) ============
+// 盤面のポインタイベントとフォーカス管理を統合する。
+// 座標変換は BoardPosition、mode 別処理は BoardPointerHandler に委譲。
 import { DEFAULT_CONFIG } from "../../types.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { BoardInputStateMachine, } from "./board-input-state-machine.js";
 import { normalizePointerInput, } from "./pointer-input.js";
+import { BoardPosition } from "./board/board-position.js";
+import { BoardPointerHandler } from "./board/board-pointer-handler.js";
 export class BoardInteractionController {
     constructor(store, elements, uiState, eventBus, preferences, onBoardInteraction) {
         this.store = store;
@@ -33,6 +38,8 @@ export class BoardInteractionController {
             play: ({ stateMachine, dragging }) => dragging ? stateMachine.continueDrag() : stateMachine.ignoreMove(),
             marker: ({ stateMachine }) => stateMachine.ignoreMove(),
         };
+        this.position = new BoardPosition(elements.svg);
+        this.pointerHandler = new BoardPointerHandler(store, uiState, eventBus, preferences);
     }
     initialize() {
         this.initBoardFocusEvents();
@@ -106,7 +113,7 @@ export class BoardInteractionController {
         if (!this.applyPointerMoveDecision(decision)) {
             return;
         }
-        const pos = this.getPositionFromEvent(event);
+        const pos = this.position.fromEvent(event);
         const last = this.uiState.drag.lastPos;
         if (last && last.col === pos.col && last.row === pos.row) {
             return;
@@ -125,91 +132,11 @@ export class BoardInteractionController {
         this.uiState.resetDrag();
     }
     placeAtEvent(event) {
-        const pos = this.getPositionFromEvent(event);
+        const pos = this.position.fromEvent(event);
         if (!this.isValidPosition(pos)) {
             return;
         }
-        // In solve mode, marker/erase modes are meaningless (you are playing
-        // through the solution). Always treat the click as a stone placement
-        // regardless of stale markerMode/eraseMode flags.
-        if (this.state.numberMode) {
-            this.handlePlaceStone(pos);
-            return;
-        }
-        if (this.state.markerMode) {
-            this.handleToggleMarker(pos);
-            return;
-        }
-        if (this.state.eraseMode) {
-            this.handleErase(pos);
-        }
-        else {
-            this.handlePlaceStone(pos);
-        }
-    }
-    handlePlaceStone(pos) {
-        var _a;
-        const state = this.state;
-        // === 解答モード（numberMode = true） ==========================
-        if (state.numberMode) {
-            if (this.store.tryMove(pos)) {
-                this.eventBus.emitUIUpdate();
-            }
-            return;
-        }
-        // === 編集モード（numberMode = false） ==========================
-        const rulesMode = this.preferences.state.edit.rulesMode;
-        const color = (_a = this.uiState.drag.dragColor) !== null && _a !== void 0 ? _a : this.store.currentColor;
-        const placed = rulesMode === "standard"
-            ? this.store.placeWithRulesInEdit(pos, color)
-            : this.store.directPlace(pos, color);
-        if (placed) {
-            this.eventBus.emitUIUpdate();
-        }
-    }
-    handleErase(pos) {
-        const state = this.state;
-        // === 解答モード：SGF編集としての削除 ==========================
-        if (state.numberMode) {
-            if (this.store.removeStone(pos)) {
-                this.eventBus.emitUIUpdate();
-                return true;
-            }
-            return false;
-        }
-        // === 編集モード：盤面直接消し ==========================
-        if (this.store.directRemove(pos)) {
-            this.eventBus.emitUIUpdate();
-            return true;
-        }
-        return false;
-    }
-    handleToggleMarker(pos) {
-        if (!this.state.activeMarkerKind) {
-            return;
-        }
-        const allowMulti = Boolean(this.preferences.state.solve.allowMultiMarker);
-        this.store.toggleMarker(pos, allowMulti);
-        this.eventBus.emitUIUpdate();
-    }
-    getPositionFromEvent(event) {
-        try {
-            const point = this.elements.svg.createSVGPoint();
-            point.x = event.clientX;
-            point.y = event.clientY;
-            const ctm = this.elements.svg.getScreenCTM();
-            if (!ctm) {
-                return { col: -1, row: -1 };
-            }
-            const svgPoint = point.matrixTransform(ctm.inverse());
-            const col = Math.round((svgPoint.x - DEFAULT_CONFIG.MARGIN) / DEFAULT_CONFIG.CELL_SIZE);
-            const row = Math.round((svgPoint.y - DEFAULT_CONFIG.MARGIN) / DEFAULT_CONFIG.CELL_SIZE);
-            return { col, row };
-        }
-        catch (error) {
-            console.error("座標変換エラー:", error);
-            return { col: -1, row: -1 };
-        }
+        this.pointerHandler.handleClick(pos);
     }
     isValidPosition(pos) {
         return isValidPosition(this.state.boardSize, pos);
@@ -260,4 +187,6 @@ export class BoardInteractionController {
         return true;
     }
 }
+// DEFAULT_CONFIG import は参照を保持するため
+void DEFAULT_CONFIG;
 //# sourceMappingURL=board-interaction-controller.js.map

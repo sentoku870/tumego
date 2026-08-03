@@ -40,7 +40,6 @@ export class ModeOperations {
         this.captureBoardAsProblemDiagram();
         this.state.handicapPositions = [];
         this.state.handicapStones = 0;
-        this.state.gameTree = null;
         this.state.sgfLoadedFromExternal = false;
         this.state.sgfMoves = [];
         this.state.sgfIndex = 0;
@@ -162,7 +161,6 @@ export class ModeOperations {
         this.state.numberMode = false;
         this.state.numberStartIndex = 0;
         this.state.handicapStones = 0;
-        this.state.gameTree = null;
         this.state.sgfLoadedFromExternal = true;
         this.state.handicapPositions = [];
         this.state.problemDiagramSet = false;
@@ -275,7 +273,6 @@ export class ModeOperations {
         this.state.problemDiagramSet = false;
         this.state.problemDiagramBlack = [];
         this.state.problemDiagramWhite = [];
-        this.state.gameTree = null;
         this.state.sgfLoadedFromExternal = false;
         this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
         this.state.gameInfo = {

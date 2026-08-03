@@ -1,5 +1,5 @@
 import { ToolbarButtons } from './toolbar-buttons.js';
-import { ToolbarState } from './toolbar-state.js';
+import { ToolbarState } from './toolbar/toolbar-state.js';
 export class ToolbarController {
     constructor(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager) {
         this.store = store;

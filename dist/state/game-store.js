@@ -1,18 +1,13 @@
-// ============ GameStore (Facade) ============
-// 盤面キャッシュ・置石・モード遷移・計測を内部の専用クラスへ委譲するファサード。
-// 公開API（既存呼び出し側との互換性）は維持する。
-// 内部の modeOps / cache / handicap / monitor は private であり、
-// 外部コード（services, controllers）は GameStore の公開メソッド経由でのみ
-// 状態書込を行う。直接アクセスが必要な操作は本クラスにラッパーを追加すること。
-import { DEFAULT_CONFIG, nextMarkerLetter, } from "../types.js";
-import { BoardCacheManager } from "./board-cache-manager.js";
-import { HandicapSetter } from "./handicap-setter.js";
-import { ModeOperations } from "./mode-operations.js";
-import { PerformanceMonitor, } from "./performance-monitor.js";
-import { cloneBoard, createInitialCapturedCounts, isValidPosition } from "./board-utils.js";
+import { BoardCacheManager } from './board-cache-manager.js';
+import { GameInfoStore } from './game-info-store.js';
+import { HandicapSetter } from './handicap-setter.js';
+import { MarkerStore } from './marker-store.js';
+import { ModeController } from './mode-controller.js';
+import { ModeOperations } from './mode-operations.js';
+import { PerformanceMonitor } from './performance-monitor.js';
+import { cloneBoard, createInitialCapturedCounts, isValidPosition } from './board-utils.js';
 export class GameStore {
     constructor(state, engine, history) {
-        var _a, _b;
         this.state = state;
         this.engine = engine;
         this.history = history;
@@ -20,31 +15,14 @@ export class GameStore {
         this.cache = new BoardCacheManager(state, engine, this.monitor);
         this.modeOps = new ModeOperations(state, history, this.cache);
         this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
+        this.markers = new MarkerStore(state);
+        this.modeController = new ModeController(state);
+        this.gameInfoStore = new GameInfoStore(state);
         if (!this.state.capturedCounts) {
             this.state.capturedCounts = createInitialCapturedCounts();
         }
-        if (!this.state.markers) {
-            this.state.markers = [];
-        }
-        if (this.state.activeMarkerLabel === undefined) {
-            this.state.activeMarkerLabel = null;
-        }
-        if (!this.state.rootMarkers) {
-            this.state.rootMarkers = [];
-        }
-        if (!this.state.nodeMarkers) {
-            this.state.nodeMarkers = [];
-        }
-        if (!this.state.gameInfo) {
-            this.state.gameInfo = this.createDefaultGameInfo();
-        }
-        else {
-            this.state.gameInfo = {
-                ...this.createDefaultGameInfo(),
-                ...this.state.gameInfo,
-                komi: (_b = (_a = this.state.gameInfo.komi) !== null && _a !== void 0 ? _a : this.state.komi) !== null && _b !== void 0 ? _b : DEFAULT_CONFIG.DEFAULT_KOMI,
-            };
-        }
+        this.markers.ensureDefaults();
+        this.gameInfoStore.ensureDefaults();
     }
     // ============================================================
     // 公開: 状態参照
@@ -56,52 +34,16 @@ export class GameStore {
         return this.history;
     }
     get currentColor() {
-        if (this.state.numberMode) {
-            return this.state.turn % 2 === 0
-                ? this.state.startColor
-                : (3 - this.state.startColor);
-        }
-        if (this.state.mode === "alt") {
-            return this.state.turn % 2 === 0
-                ? this.state.startColor
-                : (3 - this.state.startColor);
-        }
-        return this.state.mode === "black" ? 1 : 2;
+        return this.modeController.currentColor;
     }
     // ============================================================
-    // 公開: ゲーム情報
+    // 公開: ゲーム情報 (GameInfoStore への委譲)
     // ============================================================
     getGameInfo() {
-        var _a, _b, _c, _d, _e, _f, _g;
-        const info = (_a = this.state.gameInfo) !== null && _a !== void 0 ? _a : this.createDefaultGameInfo();
-        return {
-            title: (_b = info.title) !== null && _b !== void 0 ? _b : "",
-            playerBlack: (_c = info.playerBlack) !== null && _c !== void 0 ? _c : null,
-            playerWhite: (_d = info.playerWhite) !== null && _d !== void 0 ? _d : null,
-            komi: (_f = (_e = info.komi) !== null && _e !== void 0 ? _e : this.state.komi) !== null && _f !== void 0 ? _f : DEFAULT_CONFIG.DEFAULT_KOMI,
-            result: (_g = info.result) !== null && _g !== void 0 ? _g : null,
-        };
+        return this.gameInfoStore.getGameInfo();
     }
     updateGameInfo(patch) {
-        const current = this.getGameInfo();
-        const next = {
-            ...current,
-            ...patch,
-        };
-        if (patch.komi !== undefined) {
-            if (typeof patch.komi === "number" && Number.isFinite(patch.komi)) {
-                this.state.komi = patch.komi;
-                next.komi = patch.komi;
-            }
-            else {
-                next.komi = current.komi;
-            }
-        }
-        this.state.gameInfo = {
-            ...this.state.gameInfo,
-            ...next,
-            komi: next.komi,
-        };
+        this.gameInfoStore.updateGameInfo(patch);
     }
     // ============================================================
     // 公開: 着手・石操作
@@ -120,7 +62,7 @@ export class GameStore {
             this.state.nodeMarkers = this.state.nodeMarkers.slice(0, this.state.sgfIndex);
             this.state.nodeMarkers.push([]);
             this.state.sgfIndex = this.state.sgfMoves.length;
-            this.syncMarkersToCurrentNode();
+            this.markers.syncToCurrentNode();
         }
         this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
         return true;
@@ -144,7 +86,7 @@ export class GameStore {
             this.state.nodeMarkers = this.state.nodeMarkers.slice(0, removeIndex);
             this.state.sgfIndex = this.state.sgfMoves.length;
             this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
-            this.syncMarkersToCurrentNode();
+            this.markers.syncToCurrentNode();
             this.cache.invalidate();
             return true;
         }
@@ -212,7 +154,7 @@ export class GameStore {
         const result = this.cache.setMoveIndex(clamped);
         this.applyRebuildResult(result);
         this.state.sgfIndex = clamped;
-        this.syncMarkersToCurrentNode();
+        this.markers.syncToCurrentNode();
     }
     /**
      * 後方互換のため公開。盤面タイムラインを指定手数まで再構築し state を更新する。
@@ -221,7 +163,7 @@ export class GameStore {
     rebuildBoardFromMoves(limit) {
         const result = this.cache.rebuildBoardFromMoves(limit);
         this.applyRebuildResult(result);
-        this.syncMarkersToCurrentNode();
+        this.markers.syncToCurrentNode();
         return result.board;
     }
     // ============================================================
@@ -246,165 +188,45 @@ export class GameStore {
         this.modeOps.resetForClearAll();
     }
     // ============================================================
-    // 公開: 単純な状態書込 setter
+    // 公開: 単純な状態書込 setter (ModeController への委譲)
     // ============================================================
-    /** 配置モード（black/white/alt）を切り替える */
+    /** 配置モード (black/white/alt) を切り替える */
     setMode(mode) {
-        this.state.mode = mode;
+        this.modeController.setMode(mode);
     }
     /** 消去モードをオン／オフする */
     setEraseMode(enabled) {
-        this.state.eraseMode = enabled;
+        this.modeController.setEraseMode(enabled);
     }
-    /** 先手色（黒/白）を切り替える */
+    /** 先手色 (黒/白) を切り替える */
     setStartColor(color) {
-        this.state.startColor = color;
+        this.modeController.setStartColor(color);
     }
-    /** 解答モードでの先手色（黒先/白先）を切り替える */
+    /** 解答モードでの先手色 (黒先/白先) を切り替える */
     setAnswerMode(mode) {
-        this.state.answerMode = mode;
+        this.modeController.setAnswerMode(mode);
     }
     /** バインド時の初期化: 編集モード・解答モード・消去モードを既定値に戻す */
     resetInteractionModes() {
-        this.state.mode = 'alt';
-        this.state.numberMode = false;
-        this.state.eraseMode = false;
+        this.modeController.resetInteractionModes();
     }
     // ============================================================
-    // 公開: マーカー
+    // 公開: マーカー (MarkerStore への委譲)
     // ============================================================
-    /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
     setMarkerMode(kind, label = null) {
-        this.state.activeMarkerKind = kind;
-        this.state.activeMarkerLabel = kind === 'LB' ? label : null;
-        this.state.markerMode = kind !== null;
-        this.dispatchDisableEraseModeIfActive();
+        this.markers.setMarkerMode(kind, label);
     }
-    /** アクティブ種別のマーカーを pos にトグル配置する。 */
     toggleMarker(pos, allowMulti = false) {
-        var _a;
-        const kind = this.state.activeMarkerKind;
-        if (!kind)
-            return false;
-        if (!this.isValidPosition(pos))
-            return false;
-        const label = (_a = this.state.activeMarkerLabel) !== null && _a !== void 0 ? _a : undefined;
-        const existing = this.findMarkerAt(pos, kind, label);
-        if (existing) {
-            this.removeMarkerAt(pos, kind, label);
-            return false;
-        }
-        if (!allowMulti) {
-            const any = this.findMarkerAt(pos);
-            if (any && !allowMulti) {
-                this.removeMarkerAt(pos, any.kind, any.label);
-            }
-        }
-        this.addMarkerAt(pos, kind, label);
-        return true;
+        return this.markers.toggleMarker(pos, allowMulti);
     }
-    /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
     addMarker(pos, kind, label) {
-        if (!this.isValidPosition(pos))
-            return false;
-        return this.addMarkerAt(pos, kind, label);
+        return this.markers.addMarker(pos, kind, label);
     }
-    /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
     removeMarker(pos, kind, label) {
-        if (!this.isValidPosition(pos))
-            return false;
-        if (kind === undefined) {
-            const before = this.state.markers.length;
-            this.state.markers = this.state.markers.filter((m) => m.pos.col !== pos.col || m.pos.row !== pos.row);
-            const changed = this.state.markers.length !== before;
-            if (changed)
-                this.persistMarkersToCurrentNode();
-            return changed;
-        }
-        return this.removeMarkerAt(pos, kind, label);
+        return this.markers.removeMarker(pos, kind, label);
     }
-    /** 表示中ノードのマーカーを全消去 */
     clearMarkers() {
-        if (this.state.markers.length === 0)
-            return;
-        this.state.markers = [];
-        this.persistMarkersToCurrentNode();
-    }
-    // ============================================================
-    // Internal: マーカー
-    // ============================================================
-    findMarkerAt(pos, kind, label) {
-        return this.state.markers.find((m) => m.pos.col === pos.col &&
-            m.pos.row === pos.row &&
-            (kind === undefined || m.kind === kind) &&
-            (label === undefined || m.label === label));
-    }
-    addMarkerAt(pos, kind, label) {
-        const exists = this.state.markers.some((m) => m.pos.col === pos.col &&
-            m.pos.row === pos.row &&
-            m.kind === kind &&
-            m.label === label);
-        if (exists)
-            return false;
-        const marker = { pos: { col: pos.col, row: pos.row }, kind };
-        if (label !== undefined)
-            marker.label = label;
-        this.state.markers.push(marker);
-        this.persistMarkersToCurrentNode();
-        // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
-        if (kind === 'LB' && label) {
-            this.state.activeMarkerLabel = nextMarkerLetter(label);
-        }
-        return true;
-    }
-    removeMarkerAt(pos, kind, label) {
-        const before = this.state.markers.length;
-        this.state.markers = this.state.markers.filter((m) => !(m.pos.col === pos.col &&
-            m.pos.row === pos.row &&
-            m.kind === kind &&
-            (label === undefined || m.label === label)));
-        const changed = this.state.markers.length !== before;
-        if (changed)
-            this.persistMarkersToCurrentNode();
-        return changed;
-    }
-    /**
-     * 表示中のマーカー一覧を、現在の sgfIndex に対応する永続スロットに書き戻す。
-     * sgfIndex === 0 は問題図レベル（rootMarkers）、それ以降は nodeMarkers[sgfIndex - 1]。
-     */
-    persistMarkersToCurrentNode() {
-        const clone = this.cloneMarkers(this.state.markers);
-        if (this.state.sgfIndex === 0) {
-            this.state.rootMarkers = clone;
-        }
-        else {
-            const slot = this.state.sgfIndex - 1;
-            this.state.nodeMarkers[slot] = clone;
-        }
-    }
-    /** sgfIndex に応じて state.markers を rootMarkers / nodeMarkers から復元する */
-    syncMarkersToCurrentNode() {
-        if (this.state.sgfIndex === 0) {
-            this.state.markers = this.cloneMarkers(this.state.rootMarkers);
-        }
-        else {
-            const slot = this.state.sgfIndex - 1;
-            const slotMarkers = this.state.nodeMarkers[slot];
-            this.state.markers = slotMarkers ? this.cloneMarkers(slotMarkers) : [];
-        }
-    }
-    cloneMarkers(markers) {
-        return markers.map((m) => {
-            const clone = { pos: { ...m.pos }, kind: m.kind };
-            if (m.label !== undefined)
-                clone.label = m.label;
-            return clone;
-        });
-    }
-    dispatchDisableEraseModeIfActive() {
-        if (this.state.eraseMode) {
-            this.state.eraseMode = false;
-        }
+        this.markers.clearMarkers();
     }
     // ============================================================
     // 公開: 置石（HandicapSetter への委譲）
@@ -415,31 +237,23 @@ export class GameStore {
     // ============================================================
     // 公開: SGF 適用（ModeOperations への委譲ラッパー）
     // ============================================================
-    /** SGF 読み込み前に盤サイズと盤面を初期化を委譲 */
     prepareBoardForSgf(newSize) {
         this.modeOps.prepareBoardForSgf(newSize);
     }
-    /** SGF 読み込み時の状態初期化を委譲 */
     resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel) {
         this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel);
     }
-    /** SGF メタ情報（先手色/置石/問題図）の適用を委譲 */
     applySgfMeta(gameInfo) {
         this.modeOps.applySgfMeta(gameInfo);
     }
-    /** SGF メタ情報から gameInfo を更新（boardSize/handicap 系）を委譲 */
     updateGameInfoFromSgf(sgfGameInfo) {
         this.modeOps.updateGameInfoFromSgf(sgfGameInfo);
     }
-    /** SGF 手順のセットを委譲 */
     setSgfMoves(moves) {
         this.modeOps.setSgfMoves(moves);
     }
-    /** SGF パース結果から復元した問題図レベル/着手ノード別のマーカーをセット */
     setNodeMarkers(rootMarkers, nodeMarkers) {
-        this.state.rootMarkers = rootMarkers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
-        this.state.nodeMarkers = nodeMarkers.map((group) => group.map((m) => ({ pos: { ...m.pos }, kind: m.kind })));
-        this.syncMarkersToCurrentNode();
+        this.markers.setNodeMarkers(rootMarkers, nodeMarkers);
     }
     // ============================================================
     // 公開: パフォーマンス計測
@@ -456,24 +270,6 @@ export class GameStore {
     // ============================================================
     // Internal
     // ============================================================
-    createDefaultGameInfo() {
-        var _a;
-        return {
-            title: "",
-            playerBlack: null,
-            playerWhite: null,
-            komi: (_a = this.state.komi) !== null && _a !== void 0 ? _a : DEFAULT_CONFIG.DEFAULT_KOMI,
-            result: null,
-            handicap: null,
-            handicapStones: 0,
-            handicapPositions: [],
-            boardSize: this.state.boardSize,
-            startColor: this.state.startColor,
-            problemDiagramSet: false,
-            problemDiagramBlack: [],
-            problemDiagramWhite: [],
-        };
-    }
     applyRebuildResult(result) {
         this.state.board = result.board;
         this.state.history = result.history;
@@ -487,14 +283,8 @@ export class GameStore {
         this.state.history = result.history;
         this.state.turn = result.turn;
         this.state.capturedCounts = result.counts;
-        this.syncMarkersToCurrentNode();
-        this.syncKomiToGameInfo();
-    }
-    syncKomiToGameInfo() {
-        this.state.gameInfo = {
-            ...this.state.gameInfo,
-            komi: this.state.komi,
-        };
+        this.markers.syncToCurrentNode();
+        this.gameInfoStore.syncKomiToGameInfo();
     }
     cloneBoard() {
         return cloneBoard(this.state.board);
