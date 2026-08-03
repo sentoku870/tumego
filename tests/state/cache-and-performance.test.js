@@ -150,19 +150,4 @@ describe('GameStore cache and performance', () => {
       expect(fresh.rebuildBoardFromMoves.callCount).not.toBe(999);
     });
   });
-
-  describe('rebuild metrics accumulation', () => {
-    test('rebuildBoardFromMoves produces metrics when enabled', () => {
-      store.setPerformanceDebugging(true, true);
-      state.sgfMoves = [
-        { col: 0, row: 0, color: 1 },
-        { col: 1, row: 1, color: 2 }
-      ];
-      store.setMoveIndex(2);
-      const metrics = store.getPerformanceMetrics();
-      // callCount should be a number >= 0
-      const valid = metrics.rebuildBoardFromMoves.callCount >= 0;
-      expect(valid).toBe(true);
-    });
-  });
 });

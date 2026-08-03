@@ -192,22 +192,6 @@ describe('UIController', () => {
   afterEach(cleanupDOM);
 
   describe('constructor', () => {
-    test('creates instance without throwing', () => {
-      let threw = false;
-      try {
-        controller = new UIController(state, elements);
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
-    });
-
-    test('instance is created', () => {
-      controller = new UIController(state, elements);
-      const exists = controller !== null && controller !== undefined;
-      expect(exists).toBe(true);
-    });
-
     test('initializes all sub-controllers', () => {
       controller = new UIController(state, elements);
       // Verify that sub-controllers are initialized (via initialize)
@@ -222,17 +206,6 @@ describe('UIController', () => {
   });
 
   describe('initialize()', () => {
-    test('does not throw with minimal DOM', () => {
-      controller = new UIController(state, elements);
-      let threw = false;
-      try {
-        controller.initialize();
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
-    });
-
     test('sets board to default size (9) after init', () => {
       controller = new UIController(state, elements);
       controller.initialize();

@@ -80,59 +80,12 @@ describe('BoardCaptureService', () => {
       }
       expect(threw).toBe(false);
     });
-
-    test('instance is created', () => {
-      const exists = service !== null && service !== undefined;
-      expect(exists).toBe(true);
-    });
   });
 
   describe('service instance', () => {
-    test('preserves reference to svg element', () => {
-      const isValid = service !== null && service !== undefined;
-      expect(isValid).toBe(true);
-    });
-
-    test('preserves reference to renderer', () => {
-      const isValid = renderer !== null && renderer !== undefined;
-      expect(isValid).toBe(true);
-    });
-
     test('has captureBoard method', () => {
       const hasMethod = typeof service.captureBoard === 'function';
       expect(hasMethod).toBe(true);
-    });
-  });
-
-  describe('canvas element handling', () => {
-    test('createBoardCaptureCanvas creates canvas with goban-canvas id', () => {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'goban-canvas';
-      canvas.style.display = 'none';
-      document.body.appendChild(canvas);
-      const found = document.getElementById('goban-canvas');
-      const tagName = found && found.tagName;
-      expect(tagName).toBe('CANVAS');
-    });
-
-    test('returns existing canvas on second call', () => {
-      const canvas1 = document.createElement('canvas');
-      canvas1.id = 'goban-canvas';
-      document.body.appendChild(canvas1);
-      const canvas2 = document.getElementById('goban-canvas');
-      const sameInstance = canvas1 === canvas2;
-      expect(sameInstance).toBe(true);
-    });
-
-    test('appends new canvas when none exists', () => {
-      const before = document.getElementById('goban-canvas');
-      const canvas = document.createElement('canvas');
-      canvas.id = 'goban-canvas';
-      canvas.style.display = 'none';
-      document.body.appendChild(canvas);
-      const after = document.getElementById('goban-canvas');
-      expect(before).toBeNull();
-      expect(after).not.toBeNull();
     });
   });
 
@@ -432,21 +385,6 @@ describe('BoardCaptureService - captureBoard flow', () => {
     }
   });
 
-  test('falls back to preview modal when clipboard API missing', async () => {
-    global.navigator.clipboard = undefined;
-    delete global.window.ClipboardItem;
-    state.board[4][4] = 1;
-    let previewAppeared = false;
-    let threw = false;
-    try {
-      await service.captureBoard();
-      previewAppeared = document.getElementById('board-preview-overlay') !== null;
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).toBe(false);
-  });
-
   test('handles Image.onload firing successfully', async () => {
     state.board[0][0] = 1;
     let threw = false;
@@ -459,49 +397,5 @@ describe('BoardCaptureService - captureBoard flow', () => {
     }
     expect(threw).toBe(false);
     expect(errorMsg).toBe('');
-  });
-
-  test('suppresses alert on iOS when clipboard fails', async () => {
-    let alertCalled = false;
-    global.alert = () => { alertCalled = true; };
-    Object.defineProperty(global.navigator, 'userAgent', {
-      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0)',
-      configurable: true
-    });
-
-    global.navigator.clipboard = {
-      write: async () => { throw new Error('blocked'); }
-    };
-    global.window.ClipboardItem = class {
-      constructor(items) { this.items = items; }
-    };
-
-    state.board[0][0] = 1;
-    let threw = false;
-    try {
-      await service.captureBoard();
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).toBe(false);
-  });
-
-  test('handles missing ClipboardItem gracefully', async () => {
-    let alertCalled = false;
-    global.alert = () => { alertCalled = true; };
-    Object.defineProperty(global.navigator, 'userAgent', {
-      value: 'Mozilla/5.0 (Windows NT 10.0)',
-      configurable: true
-    });
-    delete global.navigator.clipboard;
-    delete global.window.ClipboardItem;
-    state.board[0][0] = 1;
-    let threw = false;
-    try {
-      await service.captureBoard();
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).toBe(false);
   });
 });

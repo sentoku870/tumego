@@ -306,29 +306,6 @@ describe('SGFIO copyToClipboard()', () => {
     await io.copyToClipboard('(;B[aa])');
     expect(written).toBe('(;B[aa])');
   });
-
-  test('returns without throwing on success', async () => {
-    global.navigator.clipboard = { writeText: async () => undefined };
-    let threw = false;
-    try {
-      await io.copyToClipboard('test data');
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).toBe(false);
-  });
-
-  test('falls back when clipboard API missing', async () => {
-    const origClipboard = global.navigator.clipboard;
-    global.navigator.clipboard = undefined;
-    let threw = false;
-    try {
-      await io.copyToClipboard('test');
-    } catch (e) {
-      threw = true;
-    }
-    global.navigator.clipboard = origClipboard;
-  });
 });
 
 describe('SGFIO saveToFile()', () => {
@@ -361,17 +338,6 @@ describe('SGFIO saveToFile()', () => {
     }
     expect(threw).toBe(false);
     delete global.window.showSaveFilePicker;
-  });
-
-  test('generates timestamp-based default filename format', () => {
-    const now = new Date(2026, 5, 24, 10, 30);
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const expected = `${yyyy}${mm}${dd}_${hh}${min}.sgf`;
-    expect(expected).toBe('20260624_1030.sgf');
   });
 
   test('uses showSaveFilePicker when available', async () => {

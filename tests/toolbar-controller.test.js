@@ -150,19 +150,6 @@ describe('ToolbarController', () => {
       }
       expect(threw).toBe(false);
     });
-
-    test('does not throw with invalid selector', () => {
-      let threw = false;
-      try {
-        controller.triggerButton('###invalid###');
-      } catch (e) {
-        threw = true;
-      }
-      // querySelector with invalid selector throws
-      // We just verify the controller instance exists
-      const exists = controller !== null && controller !== undefined;
-      expect(exists).toBe(true);
-    });
   });
 
   describe('updateAnswerButtonDisplay()', () => {

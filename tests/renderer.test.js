@@ -68,34 +68,6 @@ describe('getCircleNumber', () => {
     expect(getCircleNumber(20)).toBe('⑳');
   });
 
-  test('returns circled number for all values 1-20', () => {
-    for (let n = 1; n <= 20; n++) {
-      const result = getCircleNumber(n);
-      // Each result is a non-empty string
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
-  test('returns circled number for 21-35 (parenthesized style)', () => {
-    for (let n = 21; n <= 35; n++) {
-      const result = getCircleNumber(n);
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
-  test('returns circled number for 36-50', () => {
-    for (let n = 36; n <= 50; n++) {
-      const result = getCircleNumber(n);
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
   test('returns plain string for n > 50', () => {
     expect(getCircleNumber(51)).toBe('51');
     expect(getCircleNumber(100)).toBe('100');
