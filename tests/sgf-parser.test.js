@@ -27,6 +27,13 @@ const createState = (overrides = {}) => {
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
     gameTree: overrides.gameTree ?? null,
+    sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? false,
+    markers: overrides.markers ?? [],
+    markerMode: overrides.markerMode ?? false,
+    activeMarkerKind: overrides.activeMarkerKind ?? null,
+    rootMarkers: overrides.rootMarkers ?? [],
+    nodeMarkers: overrides.nodeMarkers ?? [],
+    capturedCounts: overrides.capturedCounts ?? { black: 0, white: 0 },
     gameInfo: overrides.gameInfo ?? {
       title: overrides.title ?? '',
       komi: overrides.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
@@ -306,29 +313,6 @@ describe('SGFIO copyToClipboard()', () => {
     await io.copyToClipboard('(;B[aa])');
     expect(written).toBe('(;B[aa])');
   });
-
-  test('returns without throwing on success', async () => {
-    global.navigator.clipboard = { writeText: async () => undefined };
-    let threw = false;
-    try {
-      await io.copyToClipboard('test data');
-    } catch (e) {
-      threw = true;
-    }
-    expect(threw).toBe(false);
-  });
-
-  test('falls back when clipboard API missing', async () => {
-    const origClipboard = global.navigator.clipboard;
-    global.navigator.clipboard = undefined;
-    let threw = false;
-    try {
-      await io.copyToClipboard('test');
-    } catch (e) {
-      threw = true;
-    }
-    global.navigator.clipboard = origClipboard;
-  });
 });
 
 describe('SGFIO saveToFile()', () => {
@@ -361,17 +345,6 @@ describe('SGFIO saveToFile()', () => {
     }
     expect(threw).toBe(false);
     delete global.window.showSaveFilePicker;
-  });
-
-  test('generates timestamp-based default filename format', () => {
-    const now = new Date(2026, 5, 24, 10, 30);
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const expected = `${yyyy}${mm}${dd}_${hh}${min}.sgf`;
-    expect(expected).toBe('20260624_1030.sgf');
   });
 
   test('uses showSaveFilePicker when available', async () => {
@@ -507,5 +480,174 @@ describe('SGFIO loadFromFile()', () => {
     const result = await io.loadFromFile(file);
     expect(result.moves.length).toBe(1);
     expect(result.moves[0]).toEqual({ col: 3, row: 3, color: 1 });
+  });
+});
+
+describe('SGFParser markers', () => {
+  let parser;
+
+  beforeEach(() => {
+    parser = new SGFParser();
+  });
+
+  describe('parse', () => {
+    test('parses root-level CR', () => {
+      const sgf = '(;GM[1]FF[4]SZ[9]CR[aa][bb]AB[cc])';
+      const result = parser.parse(sgf);
+      expect(result.rootMarkers).toEqual([
+        { pos: { col: 0, row: 0 }, kind: 'CR' },
+        { pos: { col: 1, row: 1 }, kind: 'CR' },
+      ]);
+      expect(result.nodeMarkers).toEqual([]);
+    });
+
+    test('parses all four marker kinds on root', () => {
+      const sgf = '(;SZ[9]CR[aa]TR[bb]SQ[cc]MA[dd])';
+      const result = parser.parse(sgf);
+      expect(result.rootMarkers).toEqual([
+        { pos: { col: 0, row: 0 }, kind: 'CR' },
+        { pos: { col: 1, row: 1 }, kind: 'TR' },
+        { pos: { col: 2, row: 2 }, kind: 'SQ' },
+        { pos: { col: 3, row: 3 }, kind: 'MA' },
+      ]);
+    });
+
+    test('parses markers per move node (FF4 inheritance=none)', () => {
+      const sgf = '(;SZ[9];B[aa]CR[dd];W[bb]TR[ee];B[cc]SQ[ff])';
+      const result = parser.parse(sgf);
+      expect(result.moves).toHaveLength(3);
+      expect(result.nodeMarkers).toEqual([
+        [{ pos: { col: 3, row: 3 }, kind: 'CR' }],
+        [{ pos: { col: 4, row: 4 }, kind: 'TR' }],
+        [{ pos: { col: 5, row: 5 }, kind: 'SQ' }],
+      ]);
+      expect(result.rootMarkers).toEqual([]);
+    });
+
+    test('does not bleed CR into adjacent TR', () => {
+      const sgf = '(;SZ[9]CR[aa][bb]TR[cc][dd])';
+      const result = parser.parse(sgf);
+      const cr = result.rootMarkers.filter((m) => m.kind === 'CR');
+      const tr = result.rootMarkers.filter((m) => m.kind === 'TR');
+      expect(cr).toHaveLength(2);
+      expect(tr).toHaveLength(2);
+    });
+
+    test('handles SGF with no markers', () => {
+      const sgf = '(;SZ[9];B[aa];W[bb])';
+      const result = parser.parse(sgf);
+      expect(result.rootMarkers).toEqual([]);
+      expect(result.nodeMarkers).toEqual([[], []]);
+    });
+
+    test('parses LB[aa:A] labels on root', () => {
+      const sgf = '(;SZ[9]LB[aa:A][bb:B])';
+      const result = parser.parse(sgf);
+      expect(result.rootMarkers).toEqual([
+        { pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' },
+        { pos: { col: 1, row: 1 }, kind: 'LB', label: 'B' },
+      ]);
+    });
+
+    test('parses LB[aa:A] labels on move nodes (per-node)', () => {
+      const sgf = '(;SZ[9];B[aa]LB[cc:A];W[bb]LB[dd:黒])';
+      const result = parser.parse(sgf);
+      expect(result.nodeMarkers).toEqual([
+        [{ pos: { col: 2, row: 2 }, kind: 'LB', label: 'A' }],
+        [{ pos: { col: 3, row: 3 }, kind: 'LB', label: '黒' }],
+      ]);
+    });
+  });
+
+  describe('export', () => {
+    test('emits root markers before the first move', () => {
+      const state = createState({
+        rootMarkers: [
+          { pos: { col: 0, row: 0 }, kind: 'CR' },
+          { pos: { col: 1, row: 1 }, kind: 'TR' },
+        ],
+        sgfMoves: [{ col: 3, row: 3, color: 1 }],
+        nodeMarkers: [[]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('CR[aa]');
+      expect(sgf).toContain('TR[bb]');
+    });
+
+    test('emits per-move markers after each move property', () => {
+      const state = createState({
+        sgfMoves: [
+          { col: 0, row: 0, color: 1 },
+          { col: 1, row: 1, color: 2 },
+        ],
+        nodeMarkers: [
+          [{ pos: { col: 2, row: 2 }, kind: 'SQ' }],
+          [{ pos: { col: 3, row: 3 }, kind: 'MA' }],
+        ],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('SQ[cc]');
+      expect(sgf).toContain('MA[dd]');
+      const bIdx = sgf.indexOf(';B[aa]');
+      const sqIdx = sgf.indexOf('SQ[cc]');
+      const wIdx = sgf.indexOf(';W[bb]');
+      const maIdx = sgf.indexOf('MA[dd]');
+      expect(sqIdx >= 0 && bIdx >= 0 && maIdx >= 0 && wIdx >= 0).toBe(true);
+      expect(bIdx < sqIdx).toBe(true);
+      expect(wIdx < maIdx).toBe(true);
+    });
+
+    test('skips marker properties when no markers are present', () => {
+      const state = createState({
+        sgfMoves: [{ col: 0, row: 0, color: 1 }],
+        nodeMarkers: [[]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf.includes('CR[')).toBe(false);
+      expect(sgf.includes('TR[')).toBe(false);
+      expect(sgf.includes('SQ[')).toBe(false);
+      expect(sgf.includes('MA[')).toBe(false);
+    });
+
+    test('emits LB[coord:label] format on root', () => {
+      const state = createState({
+        rootMarkers: [
+          { pos: { col: 0, row: 0 }, kind: 'LB', label: 'A' },
+          { pos: { col: 1, row: 1 }, kind: 'LB', label: 'B' },
+        ],
+        sgfMoves: [{ col: 3, row: 3, color: 1 }],
+        nodeMarkers: [[]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('LB[');
+      expect(sgf.includes('[aa:A]')).toBe(true);
+      expect(sgf.includes('[bb:B]')).toBe(true);
+    });
+
+    test('emits LB[coord:label] on per-move nodes', () => {
+      const state = createState({
+        sgfMoves: [{ col: 0, row: 0, color: 1 }],
+        nodeMarkers: [[{ pos: { col: 2, row: 2 }, kind: 'LB', label: 'C' }]],
+      });
+      const sgf = parser.export(state);
+      expect(sgf).toContain('LB[cc:C]');
+    });
+  });
+
+  describe('round-trip', () => {
+    test('parse → export preserves root and per-node markers', () => {
+      const original = '(;SZ[9]CR[aa]TR[bb];B[cc]SQ[dd];W[ee]MA[ff];B[gg]CR[hh])';
+      const parsed = parser.parse(original);
+      const state = createState({
+        sgfMoves: parsed.moves,
+        problemDiagramSet: true,
+        rootMarkers: parsed.rootMarkers ?? [],
+        nodeMarkers: parsed.nodeMarkers ?? [],
+      });
+      const exported = parser.export(state);
+      const reParsed = parser.parse(exported);
+      expect(reParsed.rootMarkers).toEqual(parsed.rootMarkers);
+      expect(reParsed.nodeMarkers).toEqual(parsed.nodeMarkers);
+    });
   });
 });

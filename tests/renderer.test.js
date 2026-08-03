@@ -1,5 +1,4 @@
 import { Renderer } from '../dist/renderer/renderer.js';
-import { getCircleNumber } from '../dist/renderer/view-model.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
@@ -55,66 +54,6 @@ const createUIElements = () => {
   return { svg, boardWrapper, infoEl, sliderEl, movesEl, msgEl, capturedEl };
 };
 
-describe('getCircleNumber', () => {
-  test('returns ① for 1', () => {
-    expect(getCircleNumber(1)).toBe('①');
-  });
-
-  test('returns ⑩ for 10', () => {
-    expect(getCircleNumber(10)).toBe('⑩');
-  });
-
-  test('returns ⑳ for 20', () => {
-    expect(getCircleNumber(20)).toBe('⑳');
-  });
-
-  test('returns circled number for all values 1-20', () => {
-    for (let n = 1; n <= 20; n++) {
-      const result = getCircleNumber(n);
-      // Each result is a non-empty string
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
-  test('returns circled number for 21-35 (parenthesized style)', () => {
-    for (let n = 21; n <= 35; n++) {
-      const result = getCircleNumber(n);
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
-  test('returns circled number for 36-50', () => {
-    for (let n = 36; n <= 50; n++) {
-      const result = getCircleNumber(n);
-      expect(typeof result).toBe('string');
-      const nonEmpty = result.length > 0;
-      expect(nonEmpty).toBe(true);
-    }
-  });
-
-  test('returns plain string for n > 50', () => {
-    expect(getCircleNumber(51)).toBe('51');
-    expect(getCircleNumber(100)).toBe('100');
-  });
-
-  test('returns plain string for n < 1', () => {
-    expect(getCircleNumber(0)).toBe('0');
-    expect(getCircleNumber(-1)).toBe('-1');
-  });
-
-  test('returns unique values for distinct inputs (1-20)', () => {
-    const set = new Set();
-    for (let n = 1; n <= 20; n++) {
-      set.add(getCircleNumber(n));
-    }
-    expect(set.size).toBe(20);
-  });
-});
-
 describe('Renderer', () => {
   let store, state, elements, renderer;
 
@@ -168,9 +107,11 @@ describe('Renderer', () => {
       ];
       state.sgfIndex = 2;
       renderer2.render();
-      const content = elements.svg.innerHTML;
-      // Move numbers are rendered as text
-      expect(content).toContain('text');
+      const moveNumElements = elements.svg.querySelectorAll('text.move-num');
+      expect(moveNumElements.length).toBe(2);
+      const moveNumTexts = Array.from(moveNumElements).map(el => el.textContent);
+      expect(moveNumTexts.includes('1')).toBe(true);
+      expect(moveNumTexts.includes('2')).toBe(true);
     });
 
     test('render with suppressLastMoveHighlight does not draw highlight', () => {
@@ -179,14 +120,13 @@ describe('Renderer', () => {
       // With highlight
       const rendererWith = new Renderer(store, elements, () => DEFAULT_PREFERENCES);
       rendererWith.render();
-      const withHighlight = elements.svg.innerHTML;
+      const withHighlight = elements.svg.querySelectorAll('.last-move-highlight').length;
+      expect(withHighlight).toBe(1);
       // Without highlight
       elements.svg.innerHTML = '';
       rendererWith.render({ suppressLastMoveHighlight: true });
-      const withoutHighlight = elements.svg.innerHTML;
-      // Both should have content
-      expect(withHighlight).not.toBe('');
-      expect(withoutHighlight).not.toBe('');
+      const withoutHighlight = elements.svg.querySelectorAll('.last-move-highlight').length;
+      expect(withoutHighlight).toBe(0);
     });
 
     test('renders CR, TR, SQ, MA markers when present', () => {

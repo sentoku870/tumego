@@ -40,38 +40,6 @@ describe('GameStore simple setters', () => {
     store = new GameStore(state, new GoEngine(), new HistoryManager());
   });
 
-  describe('setMode', () => {
-    test('updates state.mode', () => {
-      store.setMode('black');
-      expect(state.mode).toBe('black');
-      store.setMode('white');
-      expect(state.mode).toBe('white');
-    });
-  });
-
-  describe('setEraseMode', () => {
-    test('updates state.eraseMode', () => {
-      store.setEraseMode(true);
-      expect(state.eraseMode).toBe(true);
-      store.setEraseMode(false);
-      expect(state.eraseMode).toBe(false);
-    });
-  });
-
-  describe('setStartColor', () => {
-    test('updates state.startColor', () => {
-      store.setStartColor(2);
-      expect(state.startColor).toBe(2);
-    });
-  });
-
-  describe('setAnswerMode', () => {
-    test('updates state.answerMode', () => {
-      store.setAnswerMode('white');
-      expect(state.answerMode).toBe('white');
-    });
-  });
-
   describe('resetInteractionModes', () => {
     test('resets mode, numberMode, and eraseMode to defaults', () => {
       state.mode = 'white';

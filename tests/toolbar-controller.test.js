@@ -94,6 +94,7 @@ describe('ToolbarController', () => {
         threw = true;
       }
       expect(threw).toBe(false);
+      expect(state.eraseMode).toBe(false);
     });
 
     test('disables eraseMode when true', () => {
@@ -149,19 +150,6 @@ describe('ToolbarController', () => {
         threw = true;
       }
       expect(threw).toBe(false);
-    });
-
-    test('does not throw with invalid selector', () => {
-      let threw = false;
-      try {
-        controller.triggerButton('###invalid###');
-      } catch (e) {
-        threw = true;
-      }
-      // querySelector with invalid selector throws
-      // We just verify the controller instance exists
-      const exists = controller !== null && controller !== undefined;
-      expect(exists).toBe(true);
     });
   });
 

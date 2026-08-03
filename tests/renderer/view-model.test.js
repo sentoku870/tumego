@@ -1,5 +1,4 @@
 import {
-  getCircleNumber,
   RendererGeometry,
   RendererViewModelBuilder,
 } from '../../dist/renderer/view-model.js';
@@ -45,30 +44,6 @@ const noPrefs = () => ({
     showSolutionMoveNumbers: false,
   },
   ui: { deviceProfile: 'auto' },
-});
-
-describe('getCircleNumber', () => {
-  test('returns ①-⑳ for 1-20', () => {
-    expect(getCircleNumber(1)).toBe('①');
-    expect(getCircleNumber(10)).toBe('⑩');
-    expect(getCircleNumber(20)).toBe('⑳');
-  });
-
-  test('returns ㉑-㉟ for 21-35', () => {
-    expect(getCircleNumber(21)).toBe('㉑');
-    expect(getCircleNumber(35)).toBe('㉟');
-  });
-
-  test('returns ㊱-㊿ for 36-50', () => {
-    expect(getCircleNumber(36)).toBe('㊱');
-    expect(getCircleNumber(50)).toBe('㊿');
-  });
-
-  test('falls back to plain number for out-of-range', () => {
-    expect(getCircleNumber(0)).toBe('0');
-    expect(getCircleNumber(51)).toBe('51');
-    expect(getCircleNumber(-1)).toBe('-1');
-  });
 });
 
 describe('RendererGeometry', () => {

@@ -1,5 +1,4 @@
 import { QRManager } from '../dist/qr-manager.js';
-import { SGFParser } from '../dist/sgf-parser.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>
@@ -38,10 +37,6 @@ const stubPrompt = (returnValue) => {
   global.prompt = () => returnValue;
 };
 
-const stubClipboard = () => {
-  global.navigator.clipboard = { writeText: async () => undefined };
-};
-
 describe('QRManager', () => {
   let manager;
 
@@ -52,41 +47,6 @@ describe('QRManager', () => {
   });
 
   describe('createSGFQRCode()', () => {
-    test('does not throw with empty board', () => {
-      const state = createState();
-      let threw = false;
-      try {
-        manager.createSGFQRCode(state);
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
-    });
-
-    test('does not throw with non-empty board', () => {
-      const state = createState();
-      state.board[0][0] = 1;
-      let threw = false;
-      try {
-        manager.createSGFQRCode(state);
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
-    });
-
-    test('does not throw with 19x19 board', () => {
-      const state = createState({ boardSize: 19 });
-      state.board[5][5] = 1;
-      let threw = false;
-      try {
-        manager.createSGFQRCode(state);
-      } catch (e) {
-        threw = true;
-      }
-      expect(threw).toBe(false);
-    });
-
     test('opens share-method popup for non-empty board', () => {
       const state = createState();
       state.board[4][4] = 1;
@@ -159,17 +119,6 @@ describe('QRManager', () => {
       expect(qrPopup).not.toBeNull();
     });
 
-    test('shows warning for large data 1500-2500', () => {
-      const state = createState();
-      const longSgf = 'B[' + 'aa'.repeat(500) + ']';
-      state.sgfMoves = [];
-      const parser = new SGFParser();
-      parser.export(state);
-      manager.createSGFQRCode(state);
-      const directBtn = document.getElementById('share-direct-sgf');
-      directBtn?.click();
-    });
-
     test('alerts and aborts for data > 2500', () => {
       let alerted = false;
       global.alert = () => { alerted = true; };
@@ -185,12 +134,6 @@ describe('QRManager', () => {
   });
 
   describe('createDiscordShareLink()', () => {
-    test('returns early when prompt returns null', async () => {
-      stubPrompt(null);
-      const state = createState();
-      await manager.createDiscordShareLink(state);
-    });
-
     test('does not throw with empty board and null prompt', () => {
       stubPrompt(null);
       const state = createState();
@@ -214,17 +157,6 @@ describe('QRManager', () => {
         threw = true;
       }
       expect(threw).toBe(false);
-    });
-
-    test('generates markdown link and writes to clipboard', async () => {
-      stubPrompt('Test Label');
-      stubClipboard();
-      const state = createState();
-      state.sgfMoves = [
-        { col: 0, row: 0, color: 1 },
-        { col: 1, row: 1, color: 2 }
-      ];
-      await manager.createDiscordShareLink(state);
     });
 
     test('alerts when data is empty', () => {
@@ -285,17 +217,6 @@ describe('QRManager', () => {
   });
 
   describe('QR popup interactions', () => {
-    test('qr-copy writes data to clipboard', async () => {
-      stubClipboard();
-      const state = createState();
-      state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
-      manager.createSGFQRCode(state);
-      const directBtn = document.getElementById('share-direct-sgf');
-      directBtn?.click();
-      const copyBtn = document.getElementById('qr-copy');
-      copyBtn?.click();
-    });
-
     test('qr-close removes popup', () => {
       const state = createState();
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];

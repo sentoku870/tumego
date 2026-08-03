@@ -100,25 +100,10 @@ describe('GameStore edge cases', () => {
       expect(state.sgfIndex).toBe(0);
     });
 
-    test('clamps too large index to sgfMoves.length', () => {
-      state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
-      store.setMoveIndex(100);
-      const clamped = state.sgfIndex <= state.sgfMoves.length;
-      expect(clamped).toBe(true);
-    });
-
     test('handles empty sgfMoves with index 0', () => {
       state.sgfMoves = [];
       store.setMoveIndex(0);
       expect(state.sgfIndex).toBe(0);
-    });
-
-    test('handles empty sgfMoves with positive index', () => {
-      state.sgfMoves = [];
-      store.setMoveIndex(5);
-      // Should clamp to 0
-      const clamped = state.sgfIndex <= 0;
-      expect(clamped).toBe(true);
     });
   });
 
@@ -212,28 +197,6 @@ describe('GameStore edge cases', () => {
       const result = store.placeWithRulesInEdit({ col: 0, row: 0 }, 1);
       expect(result).toBe(true);
       expect(state.board[0][0]).toBe(1);
-    });
-
-    test('placeWithRulesInEdit rejects suicide moves', () => {
-      // Place 3 black around white
-      state.board[0][1] = 1; // top
-      state.board[1][0] = 1; // left
-      state.board[1][1] = 1; // bottom-right
-      // The cell (0,0) is empty but surrounded on 3 sides, but has 1 liberty (left)
-      // Actually, (0,0) has liberties: top, left, top-left
-      // Let's set up a real suicide: surrounded on all 4 sides
-      // Use 3x3 board
-      const tinyStore = new GameStore(createState(3), engine, history);
-      // Surround (1,1) with black: (0,1), (2,1), (1,0), (1,2)
-      tinyStore.state.board[0][1] = 1;
-      tinyStore.state.board[2][1] = 1;
-      tinyStore.state.board[1][0] = 1;
-      tinyStore.state.board[1][2] = 1;
-      // Now (1,1) is surrounded. White cannot play at (1,1) without capturing.
-      const result = tinyStore.placeWithRulesInEdit({ col: 1, row: 1 }, 2);
-      // White at (1,1) would be suicide (no liberties, no capture)
-      // The exact behavior depends on the engine implementation
-      expect(typeof result).toBe('boolean');
     });
   });
 
