@@ -1,4 +1,4 @@
-import { ToolbarState } from '../../dist/ui/controllers/toolbar-state.js';
+import { ToolbarState } from '../../dist/ui/controllers/toolbar/toolbar-state.js';
 import { ToolbarButtons } from '../../dist/ui/controllers/toolbar-buttons.js';
 import { Renderer } from '../../dist/renderer/renderer.js';
 import { BoardCaptureService } from '../../dist/services/board-capture-service.js';
@@ -7,6 +7,12 @@ import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
 import { UIEventBus } from '../../dist/app/event-bus.js';
 import { PreferencesStore } from '../../dist/services/preferences-store.js';
+import { SGFService } from '../../dist/services/sgf-service.js';
+import { SGFParser } from '../../dist/sgf-parser.js';
+import { SGFIO } from '../../dist/services/sgf-io.js';
+import { SGFShare } from '../../dist/services/sgf-share.js';
+import { DropdownManager } from '../../dist/ui/controllers/dropdown-manager.js';
+import { UIInteractionState } from '../../dist/ui/state/ui-interaction-state.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 
 const createBoard = (size) =>
@@ -77,7 +83,13 @@ describe('ToolbarState', () => {
     eventBus = new UIEventBus();
     preferences = new PreferencesStore();
     const boardCapture = new BoardCaptureService(elements.svg, renderer);
-    buttons = new ToolbarButtons(store, renderer, boardCapture, elements, eventBus);
+    const sgfParser = new SGFParser();
+    const sgfShare = new SGFShare(sgfParser);
+    const sgfIO = new SGFIO(sgfParser);
+    const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
+    const uiState = new UIInteractionState();
+    const dropdownManager = new DropdownManager(uiState);
+    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager);
     stateCtl = new ToolbarState(store, renderer, preferences, eventBus, buttons);
   });
 

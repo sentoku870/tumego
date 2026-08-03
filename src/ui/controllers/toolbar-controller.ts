@@ -9,7 +9,7 @@ import { UIElements } from '../../types.js';
 import { PreferencesStore } from '../../services/preferences-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { ToolbarButtons } from './toolbar-buttons.js';
-import { ToolbarState } from './toolbar-state.js';
+import { ToolbarState } from './toolbar/toolbar-state.js';
 import { DropdownManager } from './dropdown-manager.js';
 
 export class ToolbarController {

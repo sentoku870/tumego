@@ -1,11 +1,11 @@
 // ============ ツールバー: 状態反映ヘルパ ============
 // ボタンの有効/無効、表示テキスト、状態に応じたスタイル更新を担当する。
 // イベントバインドは ToolbarButtons に分離。
-import { GameStore } from '../../state/game-store.js';
-import { Renderer } from '../../renderer/renderer.js';
-import { PreferencesStore } from '../../services/preferences-store.js';
-import { UIEventBus } from '../../app/event-bus.js';
-import { ToolbarButtons } from './toolbar-buttons.js';
+import { GameStore } from '../../../state/game-store.js';
+import { Renderer } from '../../../renderer/renderer.js';
+import { PreferencesStore } from '../../../services/preferences-store.js';
+import { UIEventBus } from '../../../app/event-bus.js';
+import { ToolbarButtons } from '../toolbar-buttons.js';
 
 export class ToolbarState {
   constructor(
