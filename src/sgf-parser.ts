@@ -1,14 +1,27 @@
 // ============ SGF処理エンジン ============
+// SGF テキストのパースと GameState からの SGF 出力を担当する。
+// 座標変換・メタデータ抽出は専用モジュールに委譲:
+//
+//   - sgf-coordinates.ts: 座標 ('aa' 〜 'ss') <-> (col, row)
+//   - sgf-metadata.ts:    メタデータ抽出 (GN/SZ/KM/HA/PB/PW/RE)
 import {
   BoardMarker,
   MarkerKind,
   Move,
   Position,
   GameState,
-  SGFGameInfo,
   SGFParseResult,
-  DEFAULT_CONFIG
+  SGFGameInfo
 } from './types.js';
+import {
+  positionToSgf,
+  sgfToPosition
+} from './sgf-coordinates.js';
+import {
+  extractMetadata,
+  createDefaultGameInfo,
+  sgfColorToStoneColor
+} from './sgf-metadata.js';
 
 const MARKER_PROPERTIES: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 
@@ -16,66 +29,51 @@ export class SGFParser {
   // ============ SGF解析 ============
   parse(sgfText: string): SGFParseResult {
     const rawText = sgfText.trim();
+    const gameInfo = extractMetadata(rawText, createDefaultGameInfo());
+    const moves = this.parseMoves(rawText, gameInfo);
+    const { initialBlack, initialWhite } = this.parseSetupPositions(rawText, gameInfo);
 
-    const moves: Move[] = [];
-    const gameInfo: SGFGameInfo = {
-      title: '',
-      komi: DEFAULT_CONFIG.DEFAULT_KOMI,
-      handicap: null,
-      handicapStones: 0,
-      handicapPositions: [],
-      startColor: 1,
-      problemDiagramSet: false,
-      problemDiagramBlack: [],
-      problemDiagramWhite: [],
-      playerBlack: null,
-      playerWhite: null,
-      result: null
+    // 着手履歴の先頭色から startColor を推定 (HA / PL 未指定の場合)
+    const playerMatch = rawText.match(/PL\[(B|W)\]/i);
+    if (playerMatch) {
+      gameInfo.startColor = sgfColorToStoneColor(playerMatch[1]);
+    } else if (!rawText.match(/HA\[/i) && moves.length > 0) {
+      gameInfo.startColor = moves[0].color;
+    }
+
+    // 置石 or 問題図として Black/White を適用
+    this.applySetupToGameInfo(gameInfo, initialBlack, initialWhite);
+
+    // マーカー（CR/TR/SQ/MA）をノード別に解析
+    const { rootMarkers, nodeMarkers } = this.parseMarkersPerNode(rawText, moves.length);
+
+    return {
+      moves,
+      gameInfo,
+      rawSGF: rawText,
+      rootMarkers,
+      nodeMarkers,
     };
+  }
 
-    const titleMatch = rawText.match(/GN\[([^\]]*)\]/i);
-    if (titleMatch) {
-      gameInfo.title = titleMatch[1] || '';
+  private parseMoves(rawText: string, _gameInfo: SGFGameInfo): Move[] {
+    const moves: Move[] = [];
+    const moveMatches = rawText.matchAll(/;([BW])\[((?:[a-z]{2})?)\]/gi);
+    for (const match of moveMatches) {
+      const color = sgfColorToStoneColor(match[1]);
+      const coord = (match[2] || '').toLowerCase();
+      if (coord.length !== 2) {
+        // パス着手はスキップ
+        continue;
+      }
+      const pos = sgfToPosition(coord);
+      if (!pos) continue;
+      moves.push({ col: pos.col, row: pos.row, color });
     }
+    return moves;
+  }
 
-    // 盤サイズの解析
-    const sizeMatch = rawText.match(/SZ\[(\d+)\]/i);
-    if (sizeMatch) {
-      gameInfo.boardSize = parseInt(sizeMatch[1], 10);
-    }
-
-    // コミの解析
-    const komiMatch = rawText.match(/KM\[([^\]]+)\]/i);
-    if (komiMatch) {
-      const parsedKomi = parseFloat(komiMatch[1]);
-      gameInfo.komi = Number.isNaN(parsedKomi) ? null : parsedKomi;
-    }
-
-    // ハンディキャップ（置石数）の解析
-    const handicapMatch = rawText.match(/HA\[([^\]]+)\]/i);
-    if (handicapMatch) {
-      const parsedHandicap = parseInt(handicapMatch[1], 10);
-      gameInfo.handicap = Number.isNaN(parsedHandicap) ? null : parsedHandicap;
-      gameInfo.handicapStones = Number.isNaN(parsedHandicap)
-        ? 0
-        : parsedHandicap;
-    }
-
-    const playerBlackMatch = rawText.match(/PB\[([^\]]*)\]/i);
-    if (playerBlackMatch) {
-      gameInfo.playerBlack = playerBlackMatch[1] || null;
-    }
-
-    const playerWhiteMatch = rawText.match(/PW\[([^\]]*)\]/i);
-    if (playerWhiteMatch) {
-      gameInfo.playerWhite = playerWhiteMatch[1] || null;
-    }
-
-    const resultMatch = rawText.match(/RE\[([^\]]*)\]/i);
-    if (resultMatch) {
-      gameInfo.result = resultMatch[1] || null;
-    }
-
+  private parseSetupPositions(rawText: string, _gameInfo: SGFGameInfo): { initialBlack: Position[]; initialWhite: Position[] } {
     const initialBlack: Position[] = [];
     const initialWhite: Position[] = [];
 
@@ -93,11 +91,9 @@ export class SGFParser {
 
         coords.forEach(coord => {
           const clean = coord.slice(1, -1).toLowerCase();
-          if (clean.length !== 2) return;
-          const col = clean.charCodeAt(0) - 97;
-          const row = clean.charCodeAt(1) - 97;
-          if (col >= 0 && row >= 0) {
-            target.push({ col, row });
+          const pos = sgfToPosition(clean);
+          if (pos) {
+            target.push(pos);
           }
         });
       }
@@ -105,7 +101,14 @@ export class SGFParser {
 
     collectSetup('AB', initialBlack);
     collectSetup('AW', initialWhite);
+    return { initialBlack, initialWhite };
+  }
 
+  private applySetupToGameInfo(
+    gameInfo: SGFGameInfo,
+    initialBlack: Position[],
+    initialWhite: Position[]
+  ): void {
     if (initialBlack.length > 0) {
       if ((gameInfo.handicapStones || 0) > 0) {
         gameInfo.handicapPositions = initialBlack;
@@ -123,41 +126,6 @@ export class SGFParser {
         (gameInfo.problemDiagramWhite?.length || 0) > 0) {
       gameInfo.problemDiagramSet = true;
     }
-
-    // 着手の解析
-    const moveMatches = rawText.matchAll(/;([BW])\[((?:[a-z]{2})?)\]/gi);
-    for (const match of moveMatches) {
-      const color = match[1].toUpperCase() === 'B' ? 1 : 2;
-      const coord = (match[2] || '').toLowerCase();
-      if (coord.length !== 2) {
-        // パス着手はスキップ
-        continue;
-      }
-      const col = coord.charCodeAt(0) - 97;
-      const row = coord.charCodeAt(1) - 97;
-      if (col < 0 || row < 0) continue;
-      moves.push({ col, row, color: color as 1 | 2 });
-    }
-
-    if (!handicapMatch && moves.length > 0 && !rawText.match(/PL\[(B|W)\]/i)) {
-      gameInfo.startColor = moves[0].color;
-    }
-
-    const playerMatch = rawText.match(/PL\[(B|W)\]/i);
-    if (playerMatch) {
-      gameInfo.startColor = playerMatch[1].toUpperCase() === 'B' ? 1 : 2;
-    }
-
-    // マーカー（CR/TR/SQ/MA）をノード別に解析
-    const { rootMarkers, nodeMarkers } = this.parseMarkersPerNode(rawText, moves.length);
-
-    return {
-      moves,
-      gameInfo,
-      rawSGF: rawText,
-      rootMarkers,
-      nodeMarkers,
-    };
   }
 
   /**
@@ -219,13 +187,10 @@ export class SGFParser {
           const group = m[1] ?? '';
           const items = group.matchAll(/\[([a-z]{2}):([^\]]*)\]/gi);
           for (const item of items) {
-            const coord = item[1].toLowerCase();
-            if (coord.length !== 2) continue;
-            const col = coord.charCodeAt(0) - 97;
-            const row = coord.charCodeAt(1) - 97;
-            if (col < 0 || row < 0) continue;
+            const pos = sgfToPosition(item[1].toLowerCase());
+            if (!pos) continue;
             const label = (item[2] ?? '').replace(/\\:/g, ':').replace(/\\\]/g, ']');
-            out.push({ pos: { col, row }, kind: 'LB', label });
+            out.push({ pos, kind: 'LB', label });
           }
         }
         continue;
@@ -241,11 +206,9 @@ export class SGFParser {
         if (!coords) continue;
         for (const coord of coords) {
           const clean = coord.slice(1, -1).toLowerCase();
-          if (clean.length !== 2) continue;
-          const col = clean.charCodeAt(0) - 97;
-          const row = clean.charCodeAt(1) - 97;
-          if (col < 0 || row < 0) continue;
-          out.push({ pos: { col, row }, kind });
+          const pos = sgfToPosition(clean);
+          if (!pos) continue;
+          out.push({ pos, kind });
         }
       }
     }
@@ -287,16 +250,12 @@ export class SGFParser {
 
     const initialBlack = state.problemDiagramSet ? state.problemDiagramBlack : state.handicapPositions;
     if (initialBlack.length > 0) {
-      const blackCoords = initialBlack
-        .map((pos: Position) => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-        .join('');
+      const blackCoords = initialBlack.map(positionToSgf).map(s => `[${s}]`).join('');
       sgf += `AB${blackCoords}`;
     }
 
     if (state.problemDiagramSet && state.problemDiagramWhite.length > 0) {
-      const whiteCoords = state.problemDiagramWhite
-        .map((pos: Position) => `[${String.fromCharCode(97 + pos.col)}${String.fromCharCode(97 + pos.row)}]`)
-        .join('');
+      const whiteCoords = state.problemDiagramWhite.map(positionToSgf).map(s => `[${s}]`).join('');
       sgf += `AW${whiteCoords}`;
     }
 
@@ -318,7 +277,7 @@ export class SGFParser {
     // 着手を記録（マーカーはその着手ノードのプロパティとして後に並べる）
     state.sgfMoves.forEach((move, idx) => {
       const color = move.color === 1 ? 'B' : 'W';
-      const coord = `${String.fromCharCode(97 + move.col)}${String.fromCharCode(97 + move.row)}`;
+      const coord = positionToSgf(move);
       sgf += `;${color}[${coord}]`;
       const nodeMarkers = state.nodeMarkers?.[idx] ?? [];
       sgf += this.markerPropsToString(nodeMarkers);
@@ -347,7 +306,7 @@ export class SGFParser {
         if (labels.length === 0) continue;
         const items = labels
           .map((m) => {
-            const coord = `${String.fromCharCode(97 + m.pos.col)}${String.fromCharCode(97 + m.pos.row)}`;
+            const coord = positionToSgf(m.pos);
             const safe = (m.label ?? '').replace(/\\/g, '\\\\').replace(/\]/g, '\\]');
             return `[${coord}:${safe}]`;
           })
@@ -357,9 +316,7 @@ export class SGFParser {
       }
       const points = groupedElist[kind];
       if (!points || points.length === 0) continue;
-      const coords = points
-        .map((p) => `[${String.fromCharCode(97 + p.col)}${String.fromCharCode(97 + p.row)}]`)
-        .join('');
+      const coords = points.map(positionToSgf).map(s => `[${s}]`).join('');
       out += `${kind}${coords}`;
     }
     return out;
