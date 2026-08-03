@@ -1,15 +1,22 @@
+// ============ FileMenuController (Facade) ============
+// ファイルメニュー (SGF 読み込み/書き出し/QR/Discord 共有) の
+// イベントバインドとフロー制御を担当する。
+// ヘッダー編集は HeaderEditor に分離。
 import { DropdownManager } from './dropdown-manager.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { QRManager } from '../../qr-manager.js';
-import { GameInfo, SGFParseResult } from '../../types.js';
+import { SGFParseResult } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
+import { HeaderEditor } from './file-menu/header-editor.js';
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
 
 export class FileMenuController {
+  private readonly headerEditor: HeaderEditor;
+
   constructor(
     private readonly dropdownManager: DropdownManager,
     private readonly sgfService: SGFService,
@@ -17,10 +24,12 @@ export class FileMenuController {
     private readonly qrManager: QRManager,
     private readonly store: GameStore,
     private readonly eventBus: UIEventBus
-  ) {}
+  ) {
+    this.headerEditor = new HeaderEditor(store, renderer, eventBus);
+  }
 
   syncHeaderEditor(): void {
-    this.populateHeaderFields();
+    this.headerEditor.populateFields();
   }
 
   initialize(): void {
@@ -34,20 +43,13 @@ export class FileMenuController {
     const fileQRBtn = document.getElementById('btn-file-qr');
     const fileDiscordBtn = document.getElementById('btn-file-discord');
     const sgfInput = document.getElementById('sgf-input') as HTMLInputElement | null;
-    const headerTitleInput = document.getElementById('header-title') as HTMLInputElement | null;
-    const headerBlackInput = document.getElementById('header-black') as HTMLInputElement | null;
-    const headerWhiteInput = document.getElementById('header-white') as HTMLInputElement | null;
-    const headerKomiInput = document.getElementById('header-komi') as HTMLInputElement | null;
-    const headerResultInput = document.getElementById('header-result') as HTMLInputElement | null;
-    const headerApplyBtn = document.getElementById('btn-header-apply') as HTMLButtonElement | null;
-    const headerResetBtn = document.getElementById('btn-header-reset') as HTMLButtonElement | null;
 
     fileBtn?.addEventListener('click', (event) => {
       event.stopPropagation();
       const featureDropdown = document.getElementById('feature-dropdown') as HTMLElement | null;
       const isOpen = fileDropdown?.classList.contains('show');
       this.dropdownManager.hide(featureDropdown);
-      this.populateHeaderFields();
+      this.headerEditor.populateFields();
       if (fileDropdown && fileBtn) {
         if (isOpen) {
           this.dropdownManager.hide(fileDropdown);
@@ -140,7 +142,7 @@ export class FileMenuController {
           sgfTextarea.value = applyResult.sgfText;
         }
         this.eventBus.emitUIUpdate();
-        this.populateHeaderFields();
+        this.headerEditor.populateFields();
         this.eventBus.emitSgfApplied(applyResult.sgfText);
         this.eventBus.emitAnswerButtonUpdate();
         this.renderer.showMessage('SGF を確定しました（編集モードへ移行）');
@@ -173,60 +175,16 @@ export class FileMenuController {
       this.qrManager.createDiscordShareLink(this.sgfService.state);
     });
 
-    headerApplyBtn?.addEventListener('click', () => {
-      const patch: Partial<GameInfo> = {
-        title: headerTitleInput?.value.trim() ?? '',
-        playerBlack: headerBlackInput?.value.trim() || null,
-        playerWhite: headerWhiteInput?.value.trim() || null,
-        result: headerResultInput?.value.trim() || null,
-      };
-
-      const komiRaw = headerKomiInput?.value.trim();
-      if (komiRaw) {
-        const parsed = parseFloat(komiRaw);
-        if (!Number.isNaN(parsed)) {
-          patch.komi = parsed;
-        }
-      }
-
-      this.store.updateGameInfo(patch);
-      this.eventBus.emitUIUpdate();
-      this.renderer.showMessage('対局情報を更新しました');
-      this.populateHeaderFields();
-    });
-
-    headerResetBtn?.addEventListener('click', () => {
-      this.populateHeaderFields();
-    });
-
-    this.populateHeaderFields();
+    this.headerEditor.bindEvents();
+    this.headerEditor.populateFields();
   }
 
   private applySgf(result: SGFParseResult): void {
     const applyResult = this.sgfService.apply(result);
     this.renderer.updateBoardSize();
     this.eventBus.emitUIUpdate();
-    this.populateHeaderFields();
+    this.headerEditor.populateFields();
     this.eventBus.emitSgfApplied(applyResult.sgfText);
     this.eventBus.emitAnswerButtonUpdate();
-  }
-
-  private populateHeaderFields(): void {
-    const headerTitleInput = document.getElementById('header-title') as HTMLInputElement | null;
-    const headerBlackInput = document.getElementById('header-black') as HTMLInputElement | null;
-    const headerWhiteInput = document.getElementById('header-white') as HTMLInputElement | null;
-    const headerKomiInput = document.getElementById('header-komi') as HTMLInputElement | null;
-    const headerResultInput = document.getElementById('header-result') as HTMLInputElement | null;
-
-    if (!headerTitleInput || !headerBlackInput || !headerWhiteInput || !headerKomiInput || !headerResultInput) {
-      return;
-    }
-
-    const info = this.store.getGameInfo();
-    headerTitleInput.value = info.title ?? '';
-    headerBlackInput.value = info.playerBlack ?? '';
-    headerWhiteInput.value = info.playerWhite ?? '';
-    headerKomiInput.value = info.komi !== null && info.komi !== undefined ? String(info.komi) : '';
-    headerResultInput.value = info.result ?? '';
   }
 }
