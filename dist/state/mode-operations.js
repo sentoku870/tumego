@@ -101,9 +101,33 @@ export class ModeOperations {
         this.state.history = [];
         this.cache.invalidate();
     }
-    /** 解答モードから空盤面の編集モードへ戻す */
-    exitSolveModeToEmptyBoard() {
-        this.resetToEmptyEditState({ preserveProblemDiagram: true });
+    /**
+     * 解答モードから問題図を盤面に展開して編集モードへ戻す。
+     *
+     * - 問題図が設定されていれば、それを盤面に復元して編集モード（numberMode=false）に戻る
+     * - 問題図が未設定なら、従来どおり空盤面の編集モードへ戻る
+     * - 解答中の手順（sgfMoves）は破棄される
+     */
+    exitSolveModeForEditing() {
+        if (!this.state.problemDiagramSet) {
+            this.resetToEmptyEditState({ preserveProblemDiagram: false });
+            return;
+        }
+        if (this.state.sgfMoves.length > 0) {
+            this.saveToHistory(`解答中断前（${this.state.sgfMoves.length}手）`);
+        }
+        this.state.board = this.cache.applyInitialSetup();
+        this.state.history = [];
+        this.state.turn = 0;
+        this.state.sgfMoves = [];
+        this.state.sgfIndex = 0;
+        this.state.numberStartIndex = 0;
+        this.state.capturedCounts = createInitialCapturedCounts();
+        this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+        this.state.numberMode = false;
+        this.state.eraseMode = false;
+        this.state.mode = "alt";
+        this.cache.invalidate();
     }
     /** 現 state に問題図が設定されているか */
     hasProblemDiagram() {

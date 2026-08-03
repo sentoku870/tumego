@@ -44,7 +44,7 @@ export class ToolbarState {
         if (this.buttons.exitSolveBtn) {
             if (state.numberMode) {
                 this.buttons.exitSolveBtn.textContent = '編集に戻る';
-                this.buttons.exitSolveBtn.title = '解答を終了して編集モードに戻ります';
+                this.buttons.exitSolveBtn.title = '解答を中断して問題図の配置を編集モードで開きます';
             }
             else {
                 this.buttons.exitSolveBtn.textContent = 'SGF配置';
