@@ -69,7 +69,7 @@ describe('Core consistency: GameStore state alignment', () => {
     store = new GameStore(state, engine, createHistoryMock());
   });
 
-  test('Test1: 初期状態の一貫性（clear直後）', () => {
+  test('Test1: initial state consistency (right after clear)', () => {
     expect(state.sgfMoves).toEqual([]);
     expect(state.sgfIndex).toBe(0);
     expectBoardState(state, createBoard(state.boardSize));
@@ -77,7 +77,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectCurrentColorFromTurn(state, store);
   });
 
-  test('Test2: playMove 1回での整合性', () => {
+  test('Test2: playMove single integration', () => {
     const move = { col: 0, row: 0, color: 1 };
     const success = store.tryMove(move);
 
@@ -90,7 +90,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectCurrentColorFromTurn(state, store);
   });
 
-  test('Test3: playMove 複数 → undo で1手戻る', () => {
+  test('Test3: multiple playMove -> undo returns one move', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -109,7 +109,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectCurrentColorFromTurn(state, store);
   });
 
-  test('Test4: setMoveIndex による手数ジャンプ', () => {
+  test('Test4: move index jump via setMoveIndex', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -133,7 +133,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectCurrentColorFromTurn(state, store);
   });
 
-  test('Test5: SGF 読み込み → setMoveIndex の組み合わせ', () => {
+  test('Test5: SGF load -> setMoveIndex combination', () => {
     const parser = new SGFParser();
     const service = new SGFService(parser, store, new SGFIO(parser), new SGFShare(parser));
     const sgf = '(;GM[1]SZ[9];B[aa];W[ab];B[ba])';
@@ -166,7 +166,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectCurrentColorFromTurn(state, store);
   });
 
-  test('Test6: 通常モードの undo は sgfIndex を変更しない', () => {
+  test('Test6: normal mode undo does not change sgfIndex', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -186,7 +186,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expect(state.turn).toBe(3);
   });
 
-  test('Test7: undo 後に setMoveIndex を呼ぶと “redo 的” に全手が復元される', () => {
+  test('Test7: setMoveIndex after undo restores all moves like redo', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -205,7 +205,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expectBoardState(state, buildBoardFromMoves(state.boardSize, moves));
   });
 
-  test('Test8: 解答モードから問題図を展開して編集に戻す', () => {
+  test('Test8: expand problem diagram from solve mode to edit', () => {
     store.directPlace({ col: 0, row: 0 }, 1);
     store.directPlace({ col: 1, row: 0 }, 2);
     store.setProblemDiagram();
@@ -245,7 +245,7 @@ describe('Core consistency: GameStore state alignment', () => {
     expect(state.problemDiagramWhite).toEqual(problemDiagramWhite);
   });
 
-  test('Test9: 解答モード中に全消去で編集初期状態へ戻す', () => {
+  test('Test9: clear all in solve mode returns to initial edit state', () => {
     store.directPlace({ col: 0, row: 0 }, 1);
     store.directPlace({ col: 1, row: 0 }, 2);
     store.setProblemDiagram();

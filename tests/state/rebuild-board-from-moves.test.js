@@ -55,7 +55,7 @@ describe('rebuildBoardFromMoves', () => {
     store = new GameStore(state, engine, createHistoryMock());
   });
 
-  describe('主要盤サイズの検証', () => {
+  describe('main board sizes verification', () => {
     const moves = [
       { col: 0, row: 0, color: 1 },
       { col: 1, row: 0, color: 2 },
@@ -91,7 +91,7 @@ describe('rebuildBoardFromMoves', () => {
     });
   });
 
-  test('分岐棋譜の途中までを再現する', () => {
+  test('replays up to a branching point', () => {
     const moves = [
       { col: 4, row: 4, color: 1 },
       { col: 5, row: 4, color: 2 },
@@ -119,7 +119,7 @@ describe('rebuildBoardFromMoves', () => {
     });
   });
 
-  test('自殺手が含まれる棋譜をスキップする', () => {
+  test('skips moves with suicide in the record', () => {
     state.sgfMoves = [
       { col: 1, row: 0, color: 1 },
       { col: 0, row: 0, color: 2 },

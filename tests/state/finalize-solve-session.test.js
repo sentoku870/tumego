@@ -68,8 +68,8 @@ const setupSolveModeWithMoves = (state, size = 9) => {
 };
 
 describe('SGFService.applyGeneratedSgf', () => {
-  describe('正常系: SGF配置+解答後の確定', () => {
-    test('numberMode が false になる', () => {
+  describe('happy path: SGF placement + finalize after solving', () => {
+    test('sets numberMode to false', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -79,7 +79,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       if (state.numberMode !== false) throw new Error('numberMode should be false');
     });
 
-    test('sgfLoadedFromExternal が true になる', () => {
+    test('sets sgfLoadedFromExternal to true', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -91,7 +91,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       }
     });
 
-    test('sgfMoves が保持される', () => {
+    test('preserves sgfMoves', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -101,7 +101,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       if (state.sgfMoves.length !== 2) throw new Error('sgfMoves should have 2');
     });
 
-    test('problemDiagram が保持される', () => {
+    test('preserves problemDiagram', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -117,7 +117,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       }
     });
 
-    test('盤サイズが保持される (13路)', () => {
+    test('preserves board size (13x13)', () => {
       const state = createState(13);
       setupSolveModeWithMoves(state, 13);
       const service = createService(state);
@@ -128,7 +128,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       if (state.board.length !== 13) throw new Error('board should be 13x13');
     });
 
-    test('apply 結果に sgfText が含まれる', () => {
+    test('includes sgfText in apply result', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -142,8 +142,8 @@ describe('SGFService.applyGeneratedSgf', () => {
     });
   });
 
-  describe('履歴スナップショット', () => {
-    test('履歴に SGF確定前 ラベルで保存される', () => {
+  describe('history snapshot', () => {
+    test('saves history with "before finalize" label', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const engine = new GoEngine();
@@ -167,7 +167,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       }
     });
 
-    test('手順がない場合は「問題図のみ」のラベルになる', () => {
+    test('uses "problem-diagram-only" label when no moves', () => {
       const state = createState();
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];
@@ -194,7 +194,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       }
     });
 
-    test('SGF読み込み (apply) では従来通り「SGF読み込み前」ラベル', () => {
+    test('uses "before-load" label for normal SGF apply', () => {
       const state = createState();
       const engine = new GoEngine();
       const history = new HistoryManager();
@@ -218,8 +218,8 @@ describe('SGFService.applyGeneratedSgf', () => {
     });
   });
 
-  describe('確定後の検討耐性', () => {
-    test('確定後に盤面の直接編集を行っても sgfMoves は破壊されない', () => {
+  describe('post-finalize robustness', () => {
+    test('sgfMoves not destroyed by direct edits after finalize', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);
@@ -244,7 +244,7 @@ describe('SGFService.applyGeneratedSgf', () => {
       }
     });
 
-    test('確定後の状態は apply() 直後と sgfLoadedFromExternal が一致する', () => {
+    test('sgfLoadedFromExternal matches apply() output', () => {
       const state1 = createState();
       setupSolveModeWithMoves(state1);
       const service1 = createService(state1);
@@ -270,8 +270,8 @@ describe('SGFService.applyGeneratedSgf', () => {
     });
   });
 
-  describe('round-trip: 確定 → SGF 文字列化 → 読み込みで手順復元', () => {
-    test('確定で生成された SGF を再読み込みすると元の手順が復元される', () => {
+  describe('round-trip: finalize -> export -> re-import restores moves', () => {
+    test('re-importing generated SGF restores original moves', () => {
       const state = createState();
       setupSolveModeWithMoves(state);
       const service = createService(state);

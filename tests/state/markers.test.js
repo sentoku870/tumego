@@ -242,8 +242,8 @@ describe('GameStore markers', () => {
     });
   });
 
-  describe('LB auto-advance (配置時に次の文字へ)', () => {
-    test('LB 配置ごとに activeMarkerLabel が A→B→C→D→E→A と進む', () => {
+  describe('LB auto-advance (next letter on placement)', () => {
+    test('LB placement advances activeMarkerLabel A→B→C→D→E→A', () => {
       store.setMarkerMode('LB', 'A');
       store.addMarker({ col: 0, row: 0 }, 'LB', 'A');
       expect(state.activeMarkerLabel).toBe('B');
@@ -257,7 +257,7 @@ describe('GameStore markers', () => {
       expect(state.activeMarkerLabel).toBe('A');
     });
 
-    test('CR/TR/SQ/MA 配置では activeMarkerLabel は変化しない', () => {
+    test('CR/TR/SQ/MA placement does not change activeMarkerLabel', () => {
       store.setMarkerMode('CR');
       store.addMarker({ col: 0, row: 0 }, 'CR');
       expect(state.activeMarkerLabel).toBe(null);
@@ -265,7 +265,7 @@ describe('GameStore markers', () => {
       expect(state.activeMarkerLabel).toBe(null);
     });
 
-    test('toggleMarker で LB 配置した場合も自動進行する', () => {
+    test('LB via toggleMarker also auto-advances', () => {
       store.setMarkerMode('LB', 'A');
       // toggleMarker はアクティブ種別の現在ラベルを使う
       store.toggleMarker({ col: 0, row: 0 });

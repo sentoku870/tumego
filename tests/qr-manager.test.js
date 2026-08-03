@@ -1,5 +1,6 @@
 import { QRManager } from '../dist/qr-manager.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
+import { mockGlobals } from './helpers/global-mocks.js';
 
 const createBoard = (size) =>
   Array.from({ length: size }, () => Array.from({ length: size }, () => 0));
@@ -39,11 +40,19 @@ const stubPrompt = (returnValue) => {
 
 describe('QRManager', () => {
   let manager;
+  let restoreGlobals;
 
   beforeEach(() => {
     manager = new QRManager();
     document.body.innerHTML = '';
-    stubAlert();
+    restoreGlobals = mockGlobals({
+      alert: () => {},
+      prompt: () => null
+    });
+  });
+
+  afterEach(() => {
+    if (restoreGlobals) restoreGlobals();
   });
 
   describe('createSGFQRCode()', () => {
@@ -184,25 +193,25 @@ describe('QRManager', () => {
   });
 
   describe('buildDefaultDiscordLabel()', () => {
-    test('uses 黒先 for default answerMode', () => {
+    test('uses black-first prefix for default answerMode', () => {
       const state = createState({ problemDiagramSet: false, sgfMoves: [] });
       const label = manager['buildDefaultDiscordLabel'](state);
       expect(label).toContain('黒先');
     });
 
-    test('uses 白先 for answerMode=white', () => {
+    test('uses white-first prefix for answerMode=white', () => {
       const state = createState({ answerMode: 'white' });
       const label = manager['buildDefaultDiscordLabel'](state);
       expect(label).toContain('白先');
     });
 
-    test('prefix is 問題図 when problemDiagramSet', () => {
+    test('prefix is problem-diagram label when problemDiagramSet', () => {
       const state = createState({ problemDiagramSet: true });
       const label = manager['buildDefaultDiscordLabel'](state);
       expect(label).toContain('問題図');
     });
 
-    test('prefix is 詰碁 when not problemDiagramSet', () => {
+    test('prefix is tsumego label when not problemDiagramSet', () => {
       const state = createState({ problemDiagramSet: false });
       const label = manager['buildDefaultDiscordLabel'](state);
       expect(label).toContain('詰碁');

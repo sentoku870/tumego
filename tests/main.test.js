@@ -1,5 +1,6 @@
 import { initializeApp } from '../dist/main.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
+import { mockGlobals } from './helpers/global-mocks.js';
 
 const setupRequiredDOM = () => {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -85,10 +86,18 @@ const setupSgfInfoTabsDOM = () => {
 };
 
 describe('initializeApp()', () => {
+  let restoreGlobals;
   beforeEach(() => {
     document.body.innerHTML = '';
-    global.alert = () => {};
+    restoreGlobals = mockGlobals({
+      alert: () => {},
+      window: { ...window, tumego: undefined }
+    });
     delete window.tumego;
+  });
+
+  afterEach(() => {
+    if (restoreGlobals) restoreGlobals();
   });
 
   test('creates the global tumego debug API after init', () => {
@@ -161,10 +170,18 @@ describe('initializeApp()', () => {
 });
 
 describe('SGF info tabs (setupSgfInfoTabs via initializeApp)', () => {
+  let restoreGlobals;
   beforeEach(() => {
     document.body.innerHTML = '';
-    global.alert = () => {};
+    restoreGlobals = mockGlobals({
+      alert: () => {},
+      window: { ...window, tumego: undefined }
+    });
     delete window.tumego;
+  });
+
+  afterEach(() => {
+    if (restoreGlobals) restoreGlobals();
   });
 
   test('activates basic tab by default', () => {

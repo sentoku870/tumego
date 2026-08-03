@@ -160,8 +160,8 @@ describe('ToolbarButtons', () => {
     });
   });
 
-  describe('問題図ボタン (SGF テキスト欄更新)', () => {
-    test('問題図確定時に sgf-text の textarea が現在状態で更新される (Issue 5 fix)', () => {
+  describe('Problem diagram button (SGF textarea update)', () => {
+    test('updates sgf-text textarea with current state when problem diagram is set (Issue 5 fix)', () => {
       const sgfTextarea = document.createElement('textarea');
       sgfTextarea.id = 'sgf-text';
       document.body.appendChild(sgfTextarea);
@@ -182,7 +182,7 @@ describe('ToolbarButtons', () => {
     });
   });
 
-  describe('マーカー統合ボタン (palette)', () => {
+  describe('Marker palette button', () => {
     const setupMarkerDOM = () => {
       const trigger = document.createElement('button');
       trigger.id = 'btn-marker';

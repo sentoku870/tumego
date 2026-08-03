@@ -191,7 +191,7 @@ describe('GameStore problem diagram', () => {
       expect(state.turn).toBe(0);
     });
 
-    test('clears sgfMoves so 1手進む does not replay moves (Issue 1 fix)', () => {
+    test('clears sgfMoves so next-move button does not replay moves (Issue 1 fix)', () => {
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];
       state.problemDiagramWhite = [];

@@ -528,7 +528,7 @@ describe('SGF Core Consistency', () => {
     return { state, store, parser, service };
   };
 
-  test('Test8: SGF 読み込み → 初期盤面構築の正しさ', () => {
+  test('Test8: SGF load builds correct initial board', () => {
     const { state, parser, service } = setupService();
     const sgf = '(;GM[1]SZ[9]KM[6.5]AB[cc][ee]AW[dd])';
 
@@ -553,7 +553,7 @@ describe('SGF Core Consistency', () => {
     expect(state.board[3][3]).toBe(2);
   });
 
-  test('Test9: SGF 読み込み後の sgfMoves / sgfIndex / turn の整合', () => {
+  test('Test9: sgfMoves/sgfIndex/turn consistency after SGF load', () => {
     const { state, parser, service, store } = setupService();
     const sgf = '(;GM[1]SZ[9];B[aa];W[bb];B[cc])';
 
@@ -575,7 +575,7 @@ describe('SGF Core Consistency', () => {
     expect(state.turn).toBe(3);
   });
 
-  test('Test10: SGF 読み込み → setMoveIndex(0) → setMoveIndex(n) の roundtrip', () => {
+  test('Test10: SGF load -> setMoveIndex(0) -> setMoveIndex(n) roundtrip', () => {
     const { state, parser, service, store } = setupService();
     const sgf = '(;GM[1]SZ[9];B[aa];W[ab];B[ba])';
 
@@ -595,7 +595,7 @@ describe('SGF Core Consistency', () => {
     expect(rebuilt).toEqual(boardAfterSet);
   });
 
-  test('Test11: SGF の export が parse → apply した内容と一致（roundtrip）', () => {
+  test('Test11: SGF export matches parse -> apply content (roundtrip)', () => {
     const { state, parser, service } = setupService();
     const sgf = '(;GM[1]SZ[9]KM[5.5]AB[cc];B[aa];W[bb])';
 
@@ -634,7 +634,7 @@ describe('SGF Core Consistency', () => {
     }).toEqual(initialSnapshot);
   });
 
-  test('Test12: HA + AB の特殊パターン（置石 vs 問題図の解釈）', () => {
+  test('Test12: HA + AB special pattern (handicap vs problem diagram interpretation)', () => {
     const { state, parser, service, store } = setupService();
     const sgf = '(;GM[1]SZ[9]KM[0]HA[2]AB[dd][pp])';
 
