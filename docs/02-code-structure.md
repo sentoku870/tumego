@@ -122,7 +122,7 @@ state/ ← services/, ui/（Facade 経由）
 | 状態参照 | `snapshot`, `currentColor`, `historyManager`, `getGameInfo` | state |
 | 着手・石操作 | `tryMove`, `removeStone`, `directPlace`, `placeWithRulesInEdit`, `directRemove` | engine + state |
 | 履歴復元 | `undo`, `restoreHistorySnapshot`, `setMoveIndex`, `rebuildBoardFromMoves` | history + cache |
-| モード遷移 | `startNumberMode`, `setProblemDiagram`, `restoreProblemDiagram`, `enterSolveMode`, `exitSolveModeToEmptyBoard`, `resetForClearAll`, `hasProblemDiagram` | modeOps |
+| モード遷移 | `startNumberMode`, `setProblemDiagram`, `restoreProblemDiagram`, `enterSolveMode`, `exitSolveModeForEditing`, `resetForClearAll`, `hasProblemDiagram` | modeOps |
 | 単純 setter | `setMode`, `setEraseMode`, `setStartColor`, `setAnswerMode`, `resetInteractionModes` | state |
 | 置石 | `setHandicap` | handicap |
 | SGF 適用 | `resetForSgfLoad`, `applySgfMeta`, `updateGameInfoFromSgf`, `setSgfMoves` | modeOps |

@@ -311,8 +311,8 @@ export class GameStore {
     this.modeOps.enterSolveMode();
   }
 
-  exitSolveModeToEmptyBoard(): void {
-    this.modeOps.exitSolveModeToEmptyBoard();
+  exitSolveModeForEditing(): void {
+    this.modeOps.exitSolveModeForEditing();
   }
 
   resetForClearAll(): void {
