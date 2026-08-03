@@ -1,35 +1,41 @@
 // ============ GameStore (Facade) ============
-// 盤面キャッシュ・置石・モード遷移・計測・マーカーを内部の専用クラスへ委譲するファサード。
-// 公開API（既存呼び出し側との互換性）は維持する。
-// 内部の modeOps / cache / handicap / monitor / markers は private であり、
-// 外部コード（services, controllers）は GameStore の公開メソッド経由でのみ
-// 状態書込を行う。直接アクセスが必要な操作は本クラスにラッパーを追加すること。
+// 盤面キャッシュ・置石・モード遷移・計測・マーカー・ゲーム情報を
+// 内部の専用クラスへ委譲するファサード。
+// 公開 API (既存呼び出し側との互換性) は維持する。
+//
+// 内部クラス:
+//   - BoardCacheManager: 盤面タイムラインキャッシュ
+//   - HandicapSetter: 置石の適用
+//   - MarkerStore: マーカー配置
+//   - ModeOperations: 編集⇄解答モード遷移 / SGF 適用
+//   - ModeController: 単純なモード setMode/setEraseMode/...
+//   - GameInfoStore: 対局情報 (タイトル/対局者/コミ/結果)
+//   - PerformanceMonitor: 計測
 import {
-  AnswerMode,
   Board,
   BoardMarker,
   CapturedCounts,
-  DEFAULT_CONFIG,
-  GameInfo,
   GameState,
   MarkerKind,
   Move,
   PlayMode,
   Position,
   SGFGameInfo,
-  StoneColor,
-} from "../types.js";
-import { GoEngine } from "../go-engine.js";
-import { HistoryManager } from "../history-manager.js";
-import { BoardCacheManager } from "./board-cache-manager.js";
-import { HandicapSetter } from "./handicap-setter.js";
-import { MarkerStore } from "./marker-store.js";
-import { ModeOperations } from "./mode-operations.js";
+  StoneColor
+} from '../types.js';
+import { GoEngine } from '../go-engine.js';
+import { HistoryManager } from '../history-manager.js';
+import { BoardCacheManager } from './board-cache-manager.js';
+import { GameInfoStore } from './game-info-store.js';
+import { HandicapSetter } from './handicap-setter.js';
+import { MarkerStore } from './marker-store.js';
+import { ModeController } from './mode-controller.js';
+import { ModeOperations } from './mode-operations.js';
 import {
   PerformanceMetrics,
-  PerformanceMonitor,
-} from "./performance-monitor.js";
-import { cloneBoard, createInitialCapturedCounts, isValidPosition } from "./board-utils.js";
+  PerformanceMonitor
+} from './performance-monitor.js';
+import { cloneBoard, createInitialCapturedCounts, isValidPosition } from './board-utils.js';
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
@@ -37,6 +43,8 @@ export class GameStore {
   private readonly handicap: HandicapSetter;
   private readonly monitor: PerformanceMonitor;
   private readonly markers: MarkerStore;
+  private readonly modeController: ModeController;
+  private readonly gameInfoStore: GameInfoStore;
 
   constructor(
     private readonly state: GameState,
@@ -48,25 +56,15 @@ export class GameStore {
     this.modeOps = new ModeOperations(state, history, this.cache);
     this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
     this.markers = new MarkerStore(state);
+    this.modeController = new ModeController(state);
+    this.gameInfoStore = new GameInfoStore(state);
 
     if (!this.state.capturedCounts) {
       this.state.capturedCounts = createInitialCapturedCounts();
     }
 
     this.markers.ensureDefaults();
-
-    if (!this.state.gameInfo) {
-      this.state.gameInfo = this.createDefaultGameInfo();
-    } else {
-      this.state.gameInfo = {
-        ...this.createDefaultGameInfo(),
-        ...this.state.gameInfo,
-        komi:
-          this.state.gameInfo.komi ??
-          this.state.komi ??
-          DEFAULT_CONFIG.DEFAULT_KOMI,
-      };
-    }
+    this.gameInfoStore.ensureDefaults();
   }
 
   // ============================================================
@@ -82,59 +80,19 @@ export class GameStore {
   }
 
   get currentColor(): StoneColor {
-    if (this.state.numberMode) {
-      return this.state.turn % 2 === 0
-        ? this.state.startColor
-        : ((3 - this.state.startColor) as StoneColor);
-    }
-
-    if (this.state.mode === "alt") {
-      return this.state.turn % 2 === 0
-        ? this.state.startColor
-        : ((3 - this.state.startColor) as StoneColor);
-    }
-
-    return this.state.mode === "black" ? 1 : 2;
+    return this.modeController.currentColor;
   }
 
   // ============================================================
-  // 公開: ゲーム情報
+  // 公開: ゲーム情報 (GameInfoStore への委譲)
   // ============================================================
 
-  getGameInfo(): GameInfo {
-    const info = this.state.gameInfo ?? this.createDefaultGameInfo();
-
-    return {
-      title: info.title ?? "",
-      playerBlack: info.playerBlack ?? null,
-      playerWhite: info.playerWhite ?? null,
-      komi:
-        info.komi ?? this.state.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
-      result: info.result ?? null,
-    };
+  getGameInfo() {
+    return this.gameInfoStore.getGameInfo();
   }
 
-  updateGameInfo(patch: Partial<GameInfo>): void {
-    const current = this.getGameInfo();
-    const next: GameInfo = {
-      ...current,
-      ...patch,
-    };
-
-    if (patch.komi !== undefined) {
-      if (typeof patch.komi === "number" && Number.isFinite(patch.komi)) {
-        this.state.komi = patch.komi;
-        next.komi = patch.komi;
-      } else {
-        next.komi = current.komi;
-      }
-    }
-
-    this.state.gameInfo = {
-      ...this.state.gameInfo,
-      ...next,
-      komi: next.komi,
-    };
+  updateGameInfo(patch: Parameters<GameInfoStore['updateGameInfo']>[0]): void {
+    this.gameInfoStore.updateGameInfo(patch);
   }
 
   // ============================================================
@@ -311,61 +269,54 @@ export class GameStore {
   }
 
   // ============================================================
-  // 公開: 単純な状態書込 setter
+  // 公開: 単純な状態書込 setter (ModeController への委譲)
   // ============================================================
 
-  /** 配置モード（black/white/alt）を切り替える */
+  /** 配置モード (black/white/alt) を切り替える */
   setMode(mode: PlayMode): void {
-    this.state.mode = mode;
+    this.modeController.setMode(mode);
   }
 
   /** 消去モードをオン／オフする */
   setEraseMode(enabled: boolean): void {
-    this.state.eraseMode = enabled;
+    this.modeController.setEraseMode(enabled);
   }
 
-  /** 先手色（黒/白）を切り替える */
+  /** 先手色 (黒/白) を切り替える */
   setStartColor(color: StoneColor): void {
-    this.state.startColor = color;
+    this.modeController.setStartColor(color);
   }
 
-  /** 解答モードでの先手色（黒先/白先）を切り替える */
-  setAnswerMode(mode: AnswerMode): void {
-    this.state.answerMode = mode;
+  /** 解答モードでの先手色 (黒先/白先) を切り替える */
+  setAnswerMode(mode: Parameters<ModeController['setAnswerMode']>[0]): void {
+    this.modeController.setAnswerMode(mode);
   }
 
   /** バインド時の初期化: 編集モード・解答モード・消去モードを既定値に戻す */
   resetInteractionModes(): void {
-    this.state.mode = 'alt';
-    this.state.numberMode = false;
-    this.state.eraseMode = false;
+    this.modeController.resetInteractionModes();
   }
 
   // ============================================================
   // 公開: マーカー (MarkerStore への委譲)
   // ============================================================
 
-  /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
   setMarkerMode(kind: MarkerKind | null, label: string | null = null): void {
     this.markers.setMarkerMode(kind, label);
   }
 
-  /** アクティブ種別のマーカーを pos にトグル配置する。 */
   toggleMarker(pos: Position, allowMulti = false): boolean {
     return this.markers.toggleMarker(pos, allowMulti);
   }
 
-  /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
   addMarker(pos: Position, kind: MarkerKind, label?: string): boolean {
     return this.markers.addMarker(pos, kind, label);
   }
 
-  /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
   removeMarker(pos: Position, kind?: MarkerKind, label?: string): boolean {
     return this.markers.removeMarker(pos, kind, label);
   }
 
-  /** 表示中ノードのマーカーを全消去 */
   clearMarkers(): void {
     this.markers.clearMarkers();
   }
@@ -382,32 +333,26 @@ export class GameStore {
   // 公開: SGF 適用（ModeOperations への委譲ラッパー）
   // ============================================================
 
-  /** SGF 読み込み前に盤サイズと盤面を初期化を委譲 */
   prepareBoardForSgf(newSize?: number): void {
     this.modeOps.prepareBoardForSgf(newSize);
   }
 
-  /** SGF 読み込み時の状態初期化を委譲 */
   resetForSgfLoad(sgfMovesCountBeforeLoad: number, customLabel?: string): void {
     this.modeOps.resetForSgfLoad(sgfMovesCountBeforeLoad, customLabel);
   }
 
-  /** SGF メタ情報（先手色/置石/問題図）の適用を委譲 */
   applySgfMeta(gameInfo: SGFGameInfo): void {
     this.modeOps.applySgfMeta(gameInfo);
   }
 
-  /** SGF メタ情報から gameInfo を更新（boardSize/handicap 系）を委譲 */
   updateGameInfoFromSgf(sgfGameInfo: SGFGameInfo): void {
     this.modeOps.updateGameInfoFromSgf(sgfGameInfo);
   }
 
-  /** SGF 手順のセットを委譲 */
   setSgfMoves(moves: Move[]): void {
     this.modeOps.setSgfMoves(moves);
   }
 
-  /** SGF パース結果から復元した問題図レベル/着手ノード別のマーカーをセット */
   setNodeMarkers(rootMarkers: BoardMarker[], nodeMarkers: BoardMarker[][]): void {
     this.markers.setNodeMarkers(rootMarkers, nodeMarkers);
   }
@@ -431,24 +376,6 @@ export class GameStore {
   // ============================================================
   // Internal
   // ============================================================
-
-  private createDefaultGameInfo(): SGFGameInfo {
-    return {
-      title: "",
-      playerBlack: null,
-      playerWhite: null,
-      komi: this.state.komi ?? DEFAULT_CONFIG.DEFAULT_KOMI,
-      result: null,
-      handicap: null,
-      handicapStones: 0,
-      handicapPositions: [],
-      boardSize: this.state.boardSize,
-      startColor: this.state.startColor,
-      problemDiagramSet: false,
-      problemDiagramBlack: [],
-      problemDiagramWhite: [],
-    };
-  }
 
   private applyRebuildResult(result: {
     board: Board;
@@ -481,14 +408,7 @@ export class GameStore {
     this.state.capturedCounts = result.counts;
 
     this.markers.syncToCurrentNode();
-    this.syncKomiToGameInfo();
-  }
-
-  private syncKomiToGameInfo(): void {
-    this.state.gameInfo = {
-      ...this.state.gameInfo,
-      komi: this.state.komi,
-    };
+    this.gameInfoStore.syncKomiToGameInfo();
   }
 
   private cloneBoard(): Board {
