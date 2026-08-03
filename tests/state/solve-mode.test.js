@@ -144,10 +144,10 @@ describe('GameStore solve mode', () => {
     });
   });
 
-  describe('exitSolveModeToEmptyBoard', () => {
+  describe('exitSolveModeForEditing', () => {
     test('clears sgf moves', () => {
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
-      store.exitSolveModeToEmptyBoard();
+      store.exitSolveModeForEditing();
       expect(state.sgfMoves).toEqual([]);
       expect(state.sgfIndex).toBe(0);
     });
@@ -156,29 +156,42 @@ describe('GameStore solve mode', () => {
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];
       state.problemDiagramWhite = [{ col: 1, row: 1 }];
-      store.exitSolveModeToEmptyBoard();
+      store.exitSolveModeForEditing();
       expect(state.problemDiagramSet).toBe(true);
       expect(state.problemDiagramBlack).toEqual([{ col: 0, row: 0 }]);
       expect(state.problemDiagramWhite).toEqual([{ col: 1, row: 1 }]);
     });
 
-    test('clears board', () => {
+    test('restores problem diagram stones onto the board when set', () => {
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 0, row: 0 }];
+      state.problemDiagramWhite = [{ col: 1, row: 1 }];
+      state.board[2][2] = 1;
+      state.board[3][3] = 2;
+      store.exitSolveModeForEditing();
+      expect(state.board[0][0]).toBe(1);
+      expect(state.board[1][1]).toBe(2);
+      expect(state.board[2][2]).toBe(0);
+      expect(state.board[3][3]).toBe(0);
+    });
+
+    test('clears board when problem diagram is not set', () => {
       state.board[0][0] = 1;
       state.board[1][1] = 2;
-      store.exitSolveModeToEmptyBoard();
+      store.exitSolveModeForEditing();
       const allEmpty = state.board.every((row) => row.every((cell) => cell === 0));
       expect(allEmpty).toBe(true);
     });
 
     test('disables number mode', () => {
       state.numberMode = true;
-      store.exitSolveModeToEmptyBoard();
+      store.exitSolveModeForEditing();
       expect(state.numberMode).toBe(false);
     });
 
     test('resets mode to alt', () => {
       state.mode = 'black';
-      store.exitSolveModeToEmptyBoard();
+      store.exitSolveModeForEditing();
       expect(state.mode).toBe('alt');
     });
   });

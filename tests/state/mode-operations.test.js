@@ -142,7 +142,7 @@ describe('ModeOperations', () => {
     });
   });
 
-  describe('enterSolveMode / exitSolveModeToEmptyBoard', () => {
+  describe('enterSolveMode / exitSolveModeForEditing', () => {
     test('enterSolveMode enables number mode and clears moves', () => {
       const { history, calls } = trackHistory();
       const ops = new ModeOperations(state, history, cache);
@@ -162,14 +162,26 @@ describe('ModeOperations', () => {
       expect(state.capturedCounts).toEqual({ black: 0, white: 0 });
     });
 
-    test('exitSolveModeToEmptyBoard preserves problem diagram', () => {
+    test('exitSolveModeForEditing preserves problem diagram', () => {
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];
       state.numberMode = true;
-      modeOps.exitSolveModeToEmptyBoard();
+      modeOps.exitSolveModeForEditing();
       expect(state.problemDiagramSet).toBe(true);
       expect(state.numberMode).toBe(false);
       expect(state.mode).toBe('alt');
+    });
+
+    test('exitSolveModeForEditing restores problem diagram stones onto board', () => {
+      state.problemDiagramSet = true;
+      state.problemDiagramBlack = [{ col: 2, row: 2 }];
+      state.problemDiagramWhite = [{ col: 5, row: 5 }];
+      state.board[3][3] = 1;
+      state.numberMode = true;
+      modeOps.exitSolveModeForEditing();
+      expect(state.board[2][2]).toBe(1);
+      expect(state.board[5][5]).toBe(2);
+      expect(state.board[3][3]).toBe(0);
     });
   });
 

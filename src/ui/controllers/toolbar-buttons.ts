@@ -247,7 +247,7 @@ export class ToolbarButtons {
         this.store.setAnswerMode('black');
         this.store.setStartColor(1);
       } else {
-        this.store.exitSolveModeToEmptyBoard();
+        this.store.exitSolveModeForEditing();
       }
 
       this.eventBus.emitUIUpdate();
@@ -280,9 +280,10 @@ export class ToolbarButtons {
       if (!state.numberMode) {
         this.store.setProblemDiagram();
         this.store.setAnswerMode('black');
+        this.store.enterSolveMode();
         this.refreshSgfTextarea();
         this.eventBus.emitUIUpdate();
-        this.renderer.showMessage('問題図を確定しました');
+        this.renderer.showMessage('問題図を確定して解答を開始しました');
       } else {
         if (!this.store.hasProblemDiagram()) {
           this.renderer.showMessage('問題図が設定されていません');
