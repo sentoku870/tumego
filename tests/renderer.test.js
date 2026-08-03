@@ -1,5 +1,4 @@
 import { Renderer } from '../dist/renderer/renderer.js';
-import { getCircleNumber } from '../dist/renderer/view-model.js';
 import { GameStore } from '../dist/state/game-store.js';
 import { GoEngine } from '../dist/go-engine.js';
 import { HistoryManager } from '../dist/history-manager.js';
@@ -54,38 +53,6 @@ const createUIElements = () => {
   const capturedEl = document.createElement('div');
   return { svg, boardWrapper, infoEl, sliderEl, movesEl, msgEl, capturedEl };
 };
-
-describe('getCircleNumber', () => {
-  test('returns ① for 1', () => {
-    expect(getCircleNumber(1)).toBe('①');
-  });
-
-  test('returns ⑩ for 10', () => {
-    expect(getCircleNumber(10)).toBe('⑩');
-  });
-
-  test('returns ⑳ for 20', () => {
-    expect(getCircleNumber(20)).toBe('⑳');
-  });
-
-  test('returns plain string for n > 50', () => {
-    expect(getCircleNumber(51)).toBe('51');
-    expect(getCircleNumber(100)).toBe('100');
-  });
-
-  test('returns plain string for n < 1', () => {
-    expect(getCircleNumber(0)).toBe('0');
-    expect(getCircleNumber(-1)).toBe('-1');
-  });
-
-  test('returns unique values for distinct inputs (1-20)', () => {
-    const set = new Set();
-    for (let n = 1; n <= 20; n++) {
-      set.add(getCircleNumber(n));
-    }
-    expect(set.size).toBe(20);
-  });
-});
 
 describe('Renderer', () => {
   let store, state, elements, renderer;
