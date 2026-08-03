@@ -42,21 +42,8 @@ export interface Move {
 }
 
 // ============ SGFノードとゲームツリー ============
-export interface SGFNode {
-  id: string;
-  move?: Move;
-  comment?: string;
-  label?: string;
-  mainLine?: boolean;
-  parent?: SGFNode;
-  children: SGFNode[];
-}
-
-export interface GameTree {
-  rootNode: SGFNode;
-  currentNode: SGFNode;
-  currentPath: SGFNode[];
-}
+// ver4以降の変化図(分岐図)機能の布石として SGFNode / GameTree 型を保持していたが、
+// 2026-08-03 のコード整理で削除。必要になったタイミングで再導入する。
 
 // ============ 設定定数 ============
 export interface GameConfig {
@@ -126,7 +113,6 @@ export interface GameState {
   problemDiagramSet: boolean;
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
-  gameTree: GameTree | null;
   sgfLoadedFromExternal: boolean;
   gameInfo: SGFGameInfo;
   capturedCounts: CapturedCounts;

@@ -35,7 +35,6 @@ const createState = (overrides = {}) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
   sgfLoadedFromExternal: false,
   capturedCounts: { black: 0, white: 0 },
   ...overrides,
@@ -115,7 +114,12 @@ describe('ToolbarButtons', () => {
       const pre = document.createElement('button');
       pre.id = 'btn-clear';
       document.body.appendChild(pre);
-      buttons.clearBtn = pre;
+      buttons.ensureButtonRefs();
+      expect(buttons.clearBtn).toBe(pre);
+      // 同じ DOM 要素を差し替えても、内部で保持している参照は維持されることを確認
+      const next = document.createElement('button');
+      next.id = 'btn-clear';
+      document.body.replaceChild(next, pre);
       buttons.ensureButtonRefs();
       expect(buttons.clearBtn).toBe(pre);
     });

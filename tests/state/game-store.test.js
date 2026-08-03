@@ -23,7 +23,6 @@ const createState = (size = 5) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
   sgfLoadedFromExternal: false
 });
 

@@ -25,7 +25,6 @@ const createState = (size = 9) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
   sgfLoadedFromExternal: false,
   capturedCounts: { black: 0, white: 0 }
 });
@@ -219,7 +218,6 @@ describe('GameStore game info', () => {
         problemDiagramSet: false,
         problemDiagramBlack: [],
         problemDiagramWhite: [],
-        gameTree: null,
         sgfLoadedFromExternal: false,
         capturedCounts: { black: 0, white: 0 }
       };

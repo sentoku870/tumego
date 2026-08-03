@@ -32,7 +32,6 @@ const createState = (overrides = {}) => {
     problemDiagramSet: overrides.problemDiagramSet ?? false,
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
-    gameTree: overrides.gameTree ?? null,
     sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? true,
     gameInfo: overrides.gameInfo ?? {
       title: overrides.title ?? '',
@@ -196,7 +195,6 @@ describe('Integration: history snapshot restore after SGF and handicap', () => {
       problemDiagramSet: true,
       problemDiagramBlack: [{ col: 3, row: 3 }],
       problemDiagramWhite: [{ col: 4, row: 4 }],
-      gameTree: null,
       sgfLoadedFromExternal: true,
       gameInfo: {
         title: '',
@@ -303,7 +301,6 @@ describe('Integration: SGF header editing via GameStore', () => {
       problemDiagramSet: false,
       problemDiagramBlack: [],
       problemDiagramWhite: [],
-      gameTree: null,
       sgfLoadedFromExternal: false,
       gameInfo: {
         title: '',

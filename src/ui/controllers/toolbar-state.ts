@@ -116,9 +116,7 @@ export class ToolbarState {
   }
 
   updateFullResetVisibility(): void {
-    if (!this.buttons.clearBtn) {
-      this.buttons.clearBtn = document.getElementById('btn-clear') as HTMLButtonElement | null;
-    }
+    this.buttons.ensureButtonRefs();
     if (!this.buttons.clearBtn) {
       return;
     }
@@ -159,9 +157,7 @@ export class ToolbarState {
   }
 
   private updateProblemButtonState(): void {
-    if (!this.buttons.problemBtn) {
-      this.buttons.problemBtn = document.getElementById('btn-problem') as HTMLButtonElement | null;
-    }
+    this.buttons.ensureButtonRefs();
     if (!this.buttons.problemBtn) {
       return;
     }

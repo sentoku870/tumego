@@ -26,7 +26,6 @@ const createState = (overrides = {}) => {
     problemDiagramSet: overrides.problemDiagramSet ?? false,
     problemDiagramBlack: overrides.problemDiagramBlack ?? [],
     problemDiagramWhite: overrides.problemDiagramWhite ?? [],
-    gameTree: overrides.gameTree ?? null,
     sgfLoadedFromExternal: overrides.sgfLoadedFromExternal ?? false,
     markers: overrides.markers ?? [],
     markerMode: overrides.markerMode ?? false,
