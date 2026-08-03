@@ -5,6 +5,7 @@ import { QRManager } from '../qr-manager.js';
 import { HistoryManager } from '../history-manager.js';
 import { GameStore } from '../state/game-store.js';
 import { Renderer } from '../renderer/renderer.js';
+import { RendererSnapshotAdapter } from '../renderer/renderer-snapshot.js';
 import { BoardCaptureService } from '../services/board-capture-service.js';
 import { SGFService } from '../services/sgf-service.js';
 import { SGFIO } from '../services/sgf-io.js';
@@ -18,6 +19,7 @@ import { FeatureMenuController } from '../ui/controllers/feature-menu-controller
 import { FileMenuController } from '../ui/controllers/file-menu-controller.js';
 import { SettingsController } from '../ui/controllers/settings-controller.js';
 import { UIEventBus } from './event-bus.js';
+import { UIUpdateCoordinator } from './ui-update-coordinator.js';
 
 export interface AppContext {
   store: GameStore;
@@ -53,7 +55,12 @@ export function compositionRoot(
   const store = new GameStore(state, engine, historyManager);
 
   const renderer = new Renderer(store, elements, () => preferences.state);
-  const boardCapture = new BoardCaptureService(elements.svg, renderer);
+  const renderSnapshot = new RendererSnapshotAdapter(renderer);
+  const boardCapture = new BoardCaptureService(
+    elements.svg,
+    renderSnapshot,
+    (msg) => renderer.showMessage(msg)
+  );
   const sgfIO = new SGFIO(sgfParser);
   const sgfShare = new SGFShare(sgfParser);
   const qrManager = new QRManager(sgfParser, sgfShare);
@@ -98,16 +105,14 @@ export function compositionRoot(
   // EventBus と Renderer の接続:
   // emitUIUpdate() が呼ばれたときに盤面を再描画する。
   // 過去の UIController.updateUI() メソッドの動作を復元する形。
-  eventBus.onUIUpdate(() => {
-    renderer.render();
-    renderer.updateInfo();
-    renderer.updateSlider();
-    renderer.updateCapturedStones(
-      preferences.state.solve.showCapturedStones
-    );
-    feature.updateMenuState();
-    toolbar.updateToolbarState();
-  });
+  // 更新手順は UIUpdateCoordinator に集約。
+  const uiUpdateCoordinator = new UIUpdateCoordinator(
+    renderer,
+    feature,
+    toolbar,
+    preferences
+  );
+  eventBus.onUIUpdate(() => uiUpdateCoordinator.applyUIUpdate());
 
   return {
     store,
