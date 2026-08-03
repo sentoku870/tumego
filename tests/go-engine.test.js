@@ -20,7 +20,6 @@ const createState = (board) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null
 });
 
 const emptyBoard = (size) => Array.from({ length: size }, () => Array(size).fill(0));

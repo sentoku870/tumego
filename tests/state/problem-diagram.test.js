@@ -25,7 +25,6 @@ const createState = (size = 9) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null,
   sgfLoadedFromExternal: false,
   capturedCounts: { black: 0, white: 0 }
 });
@@ -129,12 +128,6 @@ describe('GameStore problem diagram', () => {
       expect(state.problemDiagramSet).toBe(true);
       expect(state.problemDiagramBlack).toEqual([]);
       expect(state.problemDiagramWhite).toEqual([]);
-    });
-
-    test('clears gameTree', () => {
-      state.gameTree = { root: { children: [] } };
-      store.setProblemDiagram();
-      expect(state.gameTree).toBe(null);
     });
 
     test('resets turn and history', () => {

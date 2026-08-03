@@ -9,7 +9,7 @@ import {
   Position,
   StoneColor
 } from './domain.js';
-import { GameTree, SGFGameInfo } from './sgf.js';
+import { SGFGameInfo } from './sgf.js';
 
 export interface CapturedCounts {
   black: number;
@@ -35,7 +35,6 @@ export interface GameState {
   problemDiagramSet: boolean;
   problemDiagramBlack: Position[];
   problemDiagramWhite: Position[];
-  gameTree: GameTree | null;
   sgfLoadedFromExternal: boolean;
   gameInfo: SGFGameInfo;
   capturedCounts: CapturedCounts;

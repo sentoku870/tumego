@@ -2,22 +2,8 @@
 import { BoardMarker, Move, Position, StoneColor } from './domain.js';
 
 // ============ SGFノードとゲームツリー ============
-// ver4以降の変化図(分岐図)機能の布石として SGFNode / GameTree 型を保持。
-export interface SGFNode {
-  id: string;
-  move?: Move;
-  comment?: string;
-  label?: string;
-  mainLine?: boolean;
-  parent?: SGFNode;
-  children: SGFNode[];
-}
-
-export interface GameTree {
-  rootNode: SGFNode;
-  currentNode: SGFNode;
-  currentPath: SGFNode[];
-}
+// SGFNode / GameTree 型は 2026-08-03 の P0 コード整理で削除。
+// ver4以降の変化図(分岐図)機能が必要になったタイミングで再導入する。
 
 // ============ SGF パース結果と対局情報 ============
 export interface GameInfo {

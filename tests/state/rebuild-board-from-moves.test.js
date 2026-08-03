@@ -23,7 +23,6 @@ const createState = (size = DEFAULT_CONFIG.DEFAULT_BOARD_SIZE) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
-  gameTree: null
 });
 
 const createHistoryMock = () => ({

@@ -26,7 +26,6 @@ function createInitialState(): GameState {
     problemDiagramSet: false,
     problemDiagramBlack: [],
     problemDiagramWhite: [],
-    gameTree: null,
     sgfLoadedFromExternal: false,
     gameInfo: {
       title: '',

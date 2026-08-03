@@ -20,22 +20,41 @@ const MARKER_GLYPHS: Record<MarkerKind, string> = {
 };
 
 export class ToolbarButtons {
-  public clearBtn: HTMLButtonElement | null = null;
-  public problemBtn: HTMLButtonElement | null = null;
-  public answerBtn: HTMLButtonElement | null = null;
-  public prevMoveBtn: HTMLButtonElement | null = null;
-  public nextMoveBtn: HTMLButtonElement | null = null;
-  public blackBtn: HTMLButtonElement | null = null;
-  public whiteBtn: HTMLButtonElement | null = null;
-  public eraseBtn: HTMLButtonElement | null = null;
-  public altBtn: HTMLButtonElement | null = null;
-  public undoBtn: HTMLButtonElement | null = null;
-  public exitSolveBtn: HTMLButtonElement | null = null;
-  public markerBtn: HTMLButtonElement | null = null;
-  public markerDropdown: HTMLElement | null = null;
-  public markerPaletteBtns: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
-  public markerLetterBtn: HTMLButtonElement | null = null;
-  public markerClearBtn: HTMLButtonElement | null = null;
+  private _clearBtn: HTMLButtonElement | null = null;
+  private _problemBtn: HTMLButtonElement | null = null;
+  private _answerBtn: HTMLButtonElement | null = null;
+  private _prevMoveBtn: HTMLButtonElement | null = null;
+  private _nextMoveBtn: HTMLButtonElement | null = null;
+  private _blackBtn: HTMLButtonElement | null = null;
+  private _whiteBtn: HTMLButtonElement | null = null;
+  private _eraseBtn: HTMLButtonElement | null = null;
+  private _altBtn: HTMLButtonElement | null = null;
+  private _undoBtn: HTMLButtonElement | null = null;
+  private _exitSolveBtn: HTMLButtonElement | null = null;
+  private _markerBtn: HTMLButtonElement | null = null;
+  private _markerDropdown: HTMLElement | null = null;
+  private _markerPaletteBtns: Partial<Record<MarkerKind, HTMLButtonElement | null>> = {};
+  private _markerLetterBtn: HTMLButtonElement | null = null;
+  private _markerClearBtn: HTMLButtonElement | null = null;
+
+  // ============ ボタン参照の読み取り専用ゲッター ============
+  // 外部からの直接 DOM 操作を防ぐため、書き込みはメソッド経由のみとする。
+  get clearBtn(): HTMLButtonElement | null { return this._clearBtn; }
+  get problemBtn(): HTMLButtonElement | null { return this._problemBtn; }
+  get answerBtn(): HTMLButtonElement | null { return this._answerBtn; }
+  get prevMoveBtn(): HTMLButtonElement | null { return this._prevMoveBtn; }
+  get nextMoveBtn(): HTMLButtonElement | null { return this._nextMoveBtn; }
+  get blackBtn(): HTMLButtonElement | null { return this._blackBtn; }
+  get whiteBtn(): HTMLButtonElement | null { return this._whiteBtn; }
+  get eraseBtn(): HTMLButtonElement | null { return this._eraseBtn; }
+  get altBtn(): HTMLButtonElement | null { return this._altBtn; }
+  get undoBtn(): HTMLButtonElement | null { return this._undoBtn; }
+  get exitSolveBtn(): HTMLButtonElement | null { return this._exitSolveBtn; }
+  get markerBtn(): HTMLButtonElement | null { return this._markerBtn; }
+  get markerDropdown(): HTMLElement | null { return this._markerDropdown; }
+  get markerPaletteBtns(): Partial<Record<MarkerKind, HTMLButtonElement | null>> { return this._markerPaletteBtns; }
+  get markerLetterBtn(): HTMLButtonElement | null { return this._markerLetterBtn; }
+  get markerClearBtn(): HTMLButtonElement | null { return this._markerClearBtn; }
 
   private unsubscribeFromEventBus: (() => void) | null = null;
   private unsubscribeMarkerDocument: (() => void) | null = null;
@@ -77,25 +96,25 @@ export class ToolbarButtons {
   }
 
   ensureButtonRefs(): void {
-    this.clearBtn = this.clearBtn ?? (document.getElementById('btn-clear') as HTMLButtonElement | null);
-    this.problemBtn = this.problemBtn ?? (document.getElementById('btn-problem') as HTMLButtonElement | null);
-    this.answerBtn = this.answerBtn ?? (document.getElementById('btn-answer') as HTMLButtonElement | null);
-    this.prevMoveBtn = this.prevMoveBtn ?? (document.getElementById('btn-prev-move') as HTMLButtonElement | null);
-    this.nextMoveBtn = this.nextMoveBtn ?? (document.getElementById('btn-next-move') as HTMLButtonElement | null);
-    this.blackBtn = this.blackBtn ?? (document.getElementById('btn-black') as HTMLButtonElement | null);
-    this.whiteBtn = this.whiteBtn ?? (document.getElementById('btn-white') as HTMLButtonElement | null);
-    this.eraseBtn = this.eraseBtn ?? (document.getElementById('btn-erase') as HTMLButtonElement | null);
-    this.altBtn = this.altBtn ?? (document.getElementById('btn-alt') as HTMLButtonElement | null);
-    this.undoBtn = this.undoBtn ?? (document.getElementById('btn-undo') as HTMLButtonElement | null);
-    this.exitSolveBtn = this.exitSolveBtn ?? (document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null);
-    this.markerBtn = this.markerBtn ?? (document.getElementById('btn-marker') as HTMLButtonElement | null);
-    this.markerDropdown = this.markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
-    this.markerClearBtn = this.markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
-    this.markerLetterBtn = this.markerLetterBtn ?? (document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null);
+    this._clearBtn = this._clearBtn ?? (document.getElementById('btn-clear') as HTMLButtonElement | null);
+    this._problemBtn = this._problemBtn ?? (document.getElementById('btn-problem') as HTMLButtonElement | null);
+    this._answerBtn = this._answerBtn ?? (document.getElementById('btn-answer') as HTMLButtonElement | null);
+    this._prevMoveBtn = this._prevMoveBtn ?? (document.getElementById('btn-prev-move') as HTMLButtonElement | null);
+    this._nextMoveBtn = this._nextMoveBtn ?? (document.getElementById('btn-next-move') as HTMLButtonElement | null);
+    this._blackBtn = this._blackBtn ?? (document.getElementById('btn-black') as HTMLButtonElement | null);
+    this._whiteBtn = this._whiteBtn ?? (document.getElementById('btn-white') as HTMLButtonElement | null);
+    this._eraseBtn = this._eraseBtn ?? (document.getElementById('btn-erase') as HTMLButtonElement | null);
+    this._altBtn = this._altBtn ?? (document.getElementById('btn-alt') as HTMLButtonElement | null);
+    this._undoBtn = this._undoBtn ?? (document.getElementById('btn-undo') as HTMLButtonElement | null);
+    this._exitSolveBtn = this._exitSolveBtn ?? (document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null);
+    this._markerBtn = this._markerBtn ?? (document.getElementById('btn-marker') as HTMLButtonElement | null);
+    this._markerDropdown = this._markerDropdown ?? (document.getElementById('marker-dropdown') as HTMLElement | null);
+    this._markerClearBtn = this._markerClearBtn ?? (document.getElementById('btn-marker-clear') as HTMLButtonElement | null);
+    this._markerLetterBtn = this._markerLetterBtn ?? (document.getElementById('btn-marker-select-LB') as HTMLButtonElement | null);
     for (const kind of MARKER_KINDS) {
       if (kind === 'LB') continue; // LB は単一の cycling ボタン
-      if (this.markerPaletteBtns[kind]) continue;
-      this.markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
+      if (this._markerPaletteBtns[kind]) continue;
+      this._markerPaletteBtns[kind] = document.getElementById(`btn-marker-select-${kind}`) as HTMLButtonElement | null;
     }
   }
 
@@ -131,7 +150,7 @@ export class ToolbarButtons {
   }
 
   private bindBasicButtons(): void {
-    this.clearBtn = document.getElementById('btn-clear') as HTMLButtonElement | null;
+    this._clearBtn = document.getElementById('btn-clear') as HTMLButtonElement | null;
     if (this.clearBtn) {
       this.clearBtn.title = '盤面の石と履歴をすべて消して新しい盤面にします（Undoはできません）';
     }
@@ -144,7 +163,7 @@ export class ToolbarButtons {
       (document.getElementById('sgf-text') as HTMLTextAreaElement).value = '';
     });
 
-    this.undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
+    this._undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
     if (this.undoBtn) {
       this.undoBtn.title = '編集・解答の履歴から1つ前の状態に戻ります（履歴ダイアログと同じ履歴を使用）';
     }
@@ -156,7 +175,7 @@ export class ToolbarButtons {
       this.eventBus.emitUIUpdate();
     });
 
-    this.eraseBtn = document.getElementById('btn-erase') as HTMLButtonElement | null;
+    this._eraseBtn = document.getElementById('btn-erase') as HTMLButtonElement | null;
     if (this.eraseBtn) {
       this.eraseBtn.title = '任意の石だけを消すモードをオン／オフします（盤面の他の状態は変わりません）';
     }
@@ -172,17 +191,17 @@ export class ToolbarButtons {
       }
     });
 
-    this.blackBtn = document.getElementById('btn-black') as HTMLButtonElement | null;
+    this._blackBtn = document.getElementById('btn-black') as HTMLButtonElement | null;
     this.blackBtn?.addEventListener('click', () => {
       if (this.blackBtn) this.setMode('black', this.blackBtn);
     });
 
-    this.whiteBtn = document.getElementById('btn-white') as HTMLButtonElement | null;
+    this._whiteBtn = document.getElementById('btn-white') as HTMLButtonElement | null;
     this.whiteBtn?.addEventListener('click', () => {
       if (this.whiteBtn) this.setMode('white', this.whiteBtn);
     });
 
-    this.altBtn = document.getElementById('btn-alt') as HTMLButtonElement | null;
+    this._altBtn = document.getElementById('btn-alt') as HTMLButtonElement | null;
     if (this.altBtn) {
       this.altBtn.title = '黒白交互に石を連続配置するモードです（先手色は黒先ボタンと連動）';
     }
@@ -194,7 +213,7 @@ export class ToolbarButtons {
   }
 
   private bindGameButtons(): void {
-    this.prevMoveBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
+    this._prevMoveBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     if (this.prevMoveBtn) {
       this.prevMoveBtn.title = '読み上げ用の手順を1手戻ります（Undoとは別の1手戻る）';
     }
@@ -206,7 +225,7 @@ export class ToolbarButtons {
       }
     });
 
-    this.nextMoveBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
+    this._nextMoveBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     if (this.nextMoveBtn) {
       this.nextMoveBtn.title = '読み上げ用の手順を1手進めます';
     }
@@ -218,7 +237,7 @@ export class ToolbarButtons {
       }
     });
 
-    this.answerBtn = document.getElementById('btn-answer') as HTMLButtonElement | null;
+    this._answerBtn = document.getElementById('btn-answer') as HTMLButtonElement | null;
     this.answerBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
       const state = this.store.snapshot;
@@ -238,7 +257,7 @@ export class ToolbarButtons {
       this.eventBus.emitUIUpdate();
     });
 
-    this.exitSolveBtn = document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null;
+    this._exitSolveBtn = document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null;
     this.exitSolveBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
 
@@ -272,7 +291,7 @@ export class ToolbarButtons {
       );
     });
 
-    this.problemBtn = document.getElementById('btn-problem') as HTMLButtonElement | null;
+    this._problemBtn = document.getElementById('btn-problem') as HTMLButtonElement | null;
     this.problemBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
       const state = this.store.snapshot;
