@@ -269,8 +269,8 @@ describe('FileMenuController', () => {
     });
   });
 
-  describe('SGF確定ボタン (btn-file-finalize)', () => {
-    test('解答モード中は numberMode=false に遷移し sgfLoadedFromExternal=true になる', () => {
+  describe('SGF finalize button (btn-file-finalize)', () => {
+    test('in number mode, transitions to numberMode=false and sets sgfLoadedFromExternal=true', () => {
       state.numberMode = true;
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];
@@ -290,7 +290,7 @@ describe('FileMenuController', () => {
       }
     });
 
-    test('編集モード中は確定されず、メッセージが表示される', () => {
+    test('in edit mode, finalize is not applied and a message is shown', () => {
       state.numberMode = false;
       const beforeMoves = state.sgfMoves.slice();
       controller.initialize();
@@ -307,7 +307,7 @@ describe('FileMenuController', () => {
       }
     });
 
-    test('確定後の状態は apply() 直後と一致する', () => {
+    test('state after finalize matches state immediately after apply()', () => {
       state.numberMode = true;
       state.problemDiagramSet = true;
       state.problemDiagramBlack = [{ col: 0, row: 0 }];

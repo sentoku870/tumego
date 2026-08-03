@@ -219,7 +219,7 @@ describe('ToolbarController', () => {
       expect(hasClass).toBe(false);
     });
 
-    test('shows "編集に戻る" when in number mode', () => {
+    test('shows back-to-edit label when in number mode', () => {
       const answerBtn = document.createElement('button');
       answerBtn.id = 'btn-answer';
       document.body.appendChild(answerBtn);
@@ -232,7 +232,7 @@ describe('ToolbarController', () => {
       expect(isEdit).toBe(true);
     });
 
-    test('shows "SGF配置" when not in number mode', () => {
+    test('shows SGF-placement label when not in number mode', () => {
       const answerBtn = document.createElement('button');
       answerBtn.id = 'btn-answer';
       document.body.appendChild(answerBtn);

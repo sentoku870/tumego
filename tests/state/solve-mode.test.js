@@ -123,7 +123,7 @@ describe('GameStore solve mode', () => {
       expect(state.sgfIndex).toBe(0);
     });
 
-    test('does not save duplicate "問題図確定" history when auto-promoting', () => {
+    test('does not save duplicate problem-diagram-finalize history when auto-promoting', () => {
       const saveCalls = [];
       history.save = (label, s) => saveCalls.push({ label, s });
       state.problemDiagramSet = false;

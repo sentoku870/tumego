@@ -169,7 +169,7 @@ describe('RendererViewModelBuilder', () => {
       expect(info.infoText).toContain('モード:自由配置');
     });
 
-    test('shows 解答モード when numberMode is on', () => {
+    test('shows solve-mode indicator when numberMode is on', () => {
       state.numberMode = true;
       const builder = new RendererViewModelBuilder(store, noPrefs);
       const info = builder.buildInfoModel();

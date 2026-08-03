@@ -101,14 +101,14 @@ describe('ToolbarState', () => {
   });
 
   describe('updateAnswerButtonDisplay', () => {
-    test('shows 白先 when answerMode is white', () => {
+    test('shows white-first label when answerMode is white', () => {
       state.answerMode = 'white';
       stateCtl.updateAnswerButtonDisplay();
       expect(buttons.answerBtn?.textContent).toBe('⚪ 白先');
       expect(buttons.answerBtn?.classList.contains('white-mode')).toBe(true);
     });
 
-    test('shows 黒先 when answerMode is black', () => {
+    test('shows black-first label when answerMode is black', () => {
       state.answerMode = 'black';
       stateCtl.updateAnswerButtonDisplay();
       expect(buttons.answerBtn?.textContent).toBe('🔥 黒先');
@@ -167,7 +167,7 @@ describe('ToolbarState', () => {
       expect(buttons.nextMoveBtn?.disabled).toBe(true);
     });
 
-    test('shows 黒配置/白配置 and hides 1手戻る/1手進む in edit mode', () => {
+    test('shows black/white place buttons and hides undo/redo in edit mode', () => {
       state.numberMode = false;
       stateCtl.updateToolbarState();
       expect(buttons.blackBtn?.style.display).not.toBe('none');
@@ -176,7 +176,7 @@ describe('ToolbarState', () => {
       expect(buttons.nextMoveBtn?.style.display).toBe('none');
     });
 
-    test('shows 1手戻る/1手進む and hides 黒配置/白配置 in solve mode', () => {
+    test('shows undo/redo and hides black/white place buttons in solve mode', () => {
       state.numberMode = true;
       stateCtl.updateToolbarState();
       expect(buttons.blackBtn?.style.display).toBe('none');
