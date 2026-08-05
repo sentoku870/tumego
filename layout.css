@@ -80,11 +80,10 @@ body.horizontal .moves {
 /* ===== 要素の並び順 ===== */
 #controls { order: 1; }
 .info { order: 2; }
-#branch-info { order: 3; }
-#move-slider { order: 4; }
-#board-wrapper { order: 5; }
-.moves { order: 6; }
-#captured-stones { order: 7; }
+#move-slider { order: 3; }
+#board-wrapper { order: 4; }
+.moves { order: 5; }
+#captured-stones { order: 6; }
 #sgf-controls { order: 8; }
 #msg { order: 9; }
 #sgf-info-panel { order: 10; }
@@ -102,7 +101,6 @@ body.horizontal #ui { order: 2; }
 /* ===== 縦レイアウト時の幅同期 ===== */
 body:not(.horizontal) #controls,
 body:not(.horizontal) .info,
-body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #captured-stones,
@@ -506,7 +504,6 @@ body.horizontal #ui {
 /* 縦レイアウト時の幅同期はそのまま使う */
 body:not(.horizontal) #controls,
 body:not(.horizontal) .info,
-body:not(.horizontal) #branch-info,
 body:not(.horizontal) #move-slider,
 body:not(.horizontal) .moves,
 body:not(.horizontal) #sgf-controls,
@@ -850,7 +847,6 @@ body.device-tablet #layout {
 
 body.device-tablet:not(.horizontal) #controls,
 body.device-tablet:not(.horizontal) .info,
-body.device-tablet:not(.horizontal) #branch-info,
 body.device-tablet:not(.horizontal) #move-slider,
 body.device-tablet:not(.horizontal) .moves,
 body.device-tablet:not(.horizontal) #captured-stones,

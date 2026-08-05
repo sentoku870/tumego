@@ -144,78 +144,6 @@ svg.rotated .marker {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* ===== 分岐情報表示 ===== */
-.branch-info {
-  margin-block: 4px;
-  background: rgba(255, 235, 59, 0.95);
-  border: 1px solid #f57f17;
-  padding: 8px;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #333;
-  text-align: center;
-  width: 100%;
-  max-width: 95vmin;
-  box-shadow: var(--shadow-soft);
-}
-
-.branch-info-text {
-  margin-block: 4px;
-  background: rgba(76, 175, 80, 0.08);
-  border: 1px solid #4caf50;
-  padding: 6px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #2e7d32;
-  text-align: center;
-}
-
-.branch-btn {
-  display: inline-block;
-  margin: 2px;
-  padding: 4px 10px;
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.branch-btn:hover {
-  background: #f0f0f0;
-}
-
-.branch-btn.current {
-  background: #2196f3;
-  color: #fff;
-  border-color: #1976d2;
-  box-shadow: 0 1px 3px rgba(25, 118, 210, 0.4);
-}
-
-/* 盤面上の候補手・分岐表示 */
-.next-move-candidate {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-.branch-marker-bg {
-  transition: all 0.2s ease;
-}
-
-.branch-marker-bg:hover {
-  transform: scale(1.1);
-}
-
-.branch-click-area:hover + .branch-marker-bg {
-  transform: scale(1.1);
-}
-
 /* ===== 手順スライダー ===== */
 #move-slider {
   display: block;
@@ -252,11 +180,7 @@ body.device-phone #board-wrapper {
 }
 
 body.device-tablet .info,
-body.device-tablet .branch-info,
-body.device-tablet .branch-info-text,
-body.device-phone .info,
-body.device-phone .branch-info,
-body.device-phone .branch-info-text {
+body.device-phone .info {
   max-width: calc(100vw - 24px);
   margin-inline: auto;
 }
