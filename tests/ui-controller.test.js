@@ -324,6 +324,27 @@ describe('UIController', () => {
     });
   });
 
+  describe('private applyPanelPositionClass (tested via type cast)', () => {
+    test('does not add panel-right for board-left', () => {
+      controller = new UIController(state, elements);
+      controller.applyPanelPositionClass('board-left');
+      expect(document.body.classList.contains('panel-right')).toBe(false);
+    });
+
+    test('adds panel-right class for board-right', () => {
+      controller = new UIController(state, elements);
+      controller.applyPanelPositionClass('board-right');
+      expect(document.body.classList.contains('panel-right')).toBe(true);
+    });
+
+    test('removes panel-right when switching back to board-left', () => {
+      controller = new UIController(state, elements);
+      controller.applyPanelPositionClass('board-right');
+      controller.applyPanelPositionClass('board-left');
+      expect(document.body.classList.contains('panel-right')).toBe(false);
+    });
+  });
+
   describe('integration: initialize runs without errors', () => {
     test('full initialization completes', () => {
       controller = new UIController(state, elements);

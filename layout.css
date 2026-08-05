@@ -96,7 +96,11 @@ body.horizontal .moves {
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
 
-/* 横レイアウト時にパネルを左に置く（既定はボード左・パネル右） */
+/* 横レイアウト時にパネルを左に置く（既定はボード左・パネル右）。
+   row-reverse + order の合わせ技で確実に左右を入れ替える。 */
+body.horizontal.panel-right #layout {
+  flex-direction: row-reverse;
+}
 body.horizontal.panel-right #board-wrapper { order: 2; }
 body.horizontal.panel-right #ui { order: 1; }
 
@@ -419,10 +423,26 @@ body.horizontal #sgf-controls .sgf-row {
     max-width: 100vw;
     max-height: 100vh;
   }
-  
-  body.horizontal #board-wrapper {
-    max-height: 95vh;
+
+  /* 横レイアウト時のボード max-height:95vh を打ち消す
+     （JS 側で正確計算するため CSS 側は上限を設けない） */
+  body.device-desktop.horizontal #board-wrapper {
+    max-height: none;
   }
+  body.device-tablet.horizontal #board-wrapper,
+  body.device-phone.horizontal #board-wrapper {
+    max-height: none;
+  }
+}
+
+/* 横レイアウト時は desktop の #layout max-width:1100px を打ち消す
+   （より高い specificity で上書き） */
+body.device-desktop.horizontal #layout {
+  max-width: calc(100vw - 32px);
+}
+body.device-tablet.horizontal #layout,
+body.device-phone.horizontal #layout {
+  max-width: calc(100vw - 32px);
 }
 
 /* ===== UI デザイン追加ここから ===== */
@@ -822,12 +842,18 @@ body.device-desktop #layout {
   max-width: 1100px;
 }
 
-body.device-desktop #board-wrapper {
-  max-width: min(95vmin, calc(100vw - 140px));
-}
-
 body.device-desktop #settings-panel {
   max-width: 640px;
+}
+
+/* 横レイアウト時はボードサイズを JS 側で制御するため、
+   desktop の board-wrapper max-width を打ち消す */
+body.device-desktop.horizontal #board-wrapper {
+  max-width: none;
+}
+body.device-tablet.horizontal #board-wrapper,
+body.device-phone.horizontal #board-wrapper {
+  max-width: none;
 }
 
 /* Tablet layout overrides */

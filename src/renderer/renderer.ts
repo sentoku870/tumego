@@ -110,14 +110,17 @@ export class Renderer {
     const state = this.store.snapshot;
     const isHorizontal = document.body.classList.contains('horizontal');
     const isMobile = window.innerWidth <= 768;
+    const viewportW = window.innerWidth;
+    const viewportH =
+      document.documentElement.clientHeight || window.innerHeight;
 
     if (isHorizontal) {
       const panelWidth = isMobile ? 250 : 320;
       const layoutGap = 16;
-      const bodyPaddingX = 16;
+      const bodyPaddingX = 32;
       const bodyPaddingY = 16;
-      const availableWidth = window.innerWidth - panelWidth - layoutGap - bodyPaddingX;
-      const availableHeight = window.innerHeight - bodyPaddingY;
+      const availableWidth = viewportW - panelWidth - layoutGap - bodyPaddingX;
+      const availableHeight = viewportH - bodyPaddingY;
       const maxSize = Math.max(0, Math.min(availableWidth, availableHeight));
 
       this.elements.boardWrapper.style.width = maxSize + 'px';
