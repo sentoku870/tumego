@@ -613,7 +613,7 @@ body:not(.horizontal) .msg {
 /* スライダーの見た目改善 */
 #move-slider {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   width: var(--board-width);
   max-width: var(--board-width);
   height: 14px;
