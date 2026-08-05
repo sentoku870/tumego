@@ -34,6 +34,8 @@ export interface GameConfig {
   readonly MOBILE_HORIZONTAL_RESERVED: number;
   /** 横レイアウト・デスクトップ時の予約幅 (px) */
   readonly DESKTOP_HORIZONTAL_RESERVED: number;
+  /** 横レイアウト時の盤面高さ係数（window.innerHeight に対する比率） */
+  readonly MOBILE_HORIZONTAL_HEIGHT_RATIO: number;
   /** QR データサイズしきい値 (SGF 文字数） */
   readonly QR_DATA_SMALL: number;
   readonly QR_DATA_MEDIUM: number;
@@ -93,6 +95,7 @@ export const DEFAULT_CONFIG: GameConfig = {
   MOBILE_BREAKPOINT: 768,
   MOBILE_HORIZONTAL_RESERVED: 250,
   DESKTOP_HORIZONTAL_RESERVED: 350,
+  MOBILE_HORIZONTAL_HEIGHT_RATIO: 0.95,
   QR_DATA_SMALL: 800,
   QR_DATA_MEDIUM: 1500,
   QR_DATA_LARGE: 2500,
