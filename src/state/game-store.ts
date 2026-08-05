@@ -294,7 +294,7 @@ export class GameStore {
   // ============================================================
 
   setMarkerMode(kind: MarkerKind | null, label: string | null = null): void {
-    this.markers.setMarkerMode(kind, label);
+    this.markers.setMarkerModeDisablingErase(kind, label);
   }
 
   toggleMarker(pos: Position, allowMulti = false): boolean {
