@@ -153,6 +153,18 @@ describe('ModeOperations', () => {
       expect(state.problemDiagramBlack).toEqual([]);
       expect(state.sgfLoadedFromExternal).toBe(false);
     });
+
+    test('resetForClearAll は state.startColor を黒番 (1) に戻す（バグ修正回帰テスト）', () => {
+      // 置石 4 子 → 白番 (2) になるシナリオ
+      state.handicapStones = 4;
+      state.startColor = 2;
+
+      modeOps.resetForClearAll();
+
+      // 全消去はページ更新相当 → 先手は黒番に戻る
+      expect(state.handicapStones).toBe(0);
+      expect(state.startColor).toBe(1);
+    });
   });
 
   describe('setProblemDiagram / restoreProblemDiagram', () => {
