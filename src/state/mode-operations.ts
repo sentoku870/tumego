@@ -8,7 +8,7 @@ import {
   SGFGameInfo,
   StoneColor,
 } from "../types.js";
-import { createEmptyBoard, createInitialCapturedCounts, hasGameData } from "./board-utils.js";
+import { createEmptyBoard, createInitialCapturedCounts, hasGameData, cloneMarkers } from "./board-utils.js";
 import { HistoryManager } from "../history-manager.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
 
@@ -85,7 +85,7 @@ export class ModeOperations {
     this.state.sgfIndex = 0;
     this.state.sgfMoves = [];
     this.state.nodeMarkers = [];
-    this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+    this.state.markers = cloneMarkers(this.state.rootMarkers);
     const baseBoard = this.cache.applyInitialSetup();
     this.state.board = baseBoard;
     const counts = this.cache.resetCapturedCountsTimeline();
@@ -116,7 +116,7 @@ export class ModeOperations {
     this.state.sgfMoves = [];
     this.state.sgfIndex = 0;
     this.state.nodeMarkers = [];
-    this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+    this.state.markers = cloneMarkers(this.state.rootMarkers);
 
     this.state.numberMode = true;
     this.state.numberStartIndex = 0;
@@ -152,7 +152,7 @@ export class ModeOperations {
     this.state.sgfIndex = 0;
     this.state.numberStartIndex = 0;
     this.state.capturedCounts = createInitialCapturedCounts();
-    this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+    this.state.markers = cloneMarkers(this.state.rootMarkers);
     this.state.numberMode = false;
     this.state.eraseMode = false;
     this.state.mode = "alt";
@@ -330,11 +330,6 @@ export class ModeOperations {
       title: "",
     };
     this.state.capturedCounts = createInitialCapturedCounts();
-  }
-
-  private cloneMarkers(markers: import("../types.js").BoardMarker[] | undefined): import("../types.js").BoardMarker[] {
-    if (!markers) return [];
-    return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
   }
 
   private hasGameData(): boolean {
