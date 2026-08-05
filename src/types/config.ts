@@ -1,5 +1,5 @@
 // ============ 設定定数 ============
-import { Board, BooleanPreference, DeviceProfile, Position, RulesMode } from './domain.js';
+import { Board, BooleanPreference, DeviceProfile, PanelPosition, Position, RulesMode } from './domain.js';
 
 // ============ エンジン関連 ============
 export interface MoveResult {
@@ -73,7 +73,11 @@ export interface Preferences {
     /** 同一交点に複数のマーカーを重ねられるか */
     allowMultiMarker: BooleanPreference;
   };
-  ui: { deviceProfile: DeviceProfile };
+  ui: {
+    deviceProfile: DeviceProfile;
+    /** 横レイアウト時のパネルと碁盤の左右配置 */
+    panelPosition: PanelPosition;
+  };
 }
 
 // ============ 定数 ============

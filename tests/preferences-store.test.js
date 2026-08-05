@@ -71,4 +71,50 @@ describe("PreferencesStore", () => {
     const store = new PreferencesStore(memoryStorage);
     expect(store.state.solve.showCapturedStones).toBe(true);
   });
+
+  describe("panelPosition", () => {
+    test("defaults to 'board-left'", () => {
+      const store = new PreferencesStore(memoryStorage);
+      expect(store.state.ui.panelPosition).toBe("board-left");
+    });
+
+    test("setPanelPosition updates state and persists", () => {
+      const store = new PreferencesStore(memoryStorage);
+      store.setPanelPosition("board-right");
+      expect(store.state.ui.panelPosition).toBe("board-right");
+      const stored = JSON.parse(memoryStorage.getItem(STORAGE_KEY));
+      expect(stored.ui.panelPosition).toBe("board-right");
+    });
+
+    test("setPanelPosition ignores invalid values", () => {
+      const store = new PreferencesStore(memoryStorage);
+      store.setPanelPosition("invalid");
+      expect(store.state.ui.panelPosition).toBe("board-left");
+    });
+
+    test("normalizes legacy storage missing panelPosition to default", () => {
+      memoryStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ ui: { deviceProfile: "desktop" } })
+      );
+      const store = new PreferencesStore(memoryStorage);
+      expect(store.state.ui.panelPosition).toBe("board-left");
+    });
+
+    test("normalizes invalid stored panelPosition to default", () => {
+      memoryStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ ui: { panelPosition: "side" } })
+      );
+      const store = new PreferencesStore(memoryStorage);
+      expect(store.state.ui.panelPosition).toBe("board-left");
+    });
+
+    test("reset restores default panelPosition", () => {
+      const store = new PreferencesStore(memoryStorage);
+      store.setPanelPosition("board-right");
+      store.reset();
+      expect(store.state.ui.panelPosition).toBe("board-left");
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import { DeviceProfile, Preferences, RulesMode } from "../../types.js";
+import { DeviceProfile, PanelPosition, Preferences, RulesMode } from "../../types.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
 
 export class SettingsController {
@@ -8,6 +8,7 @@ export class SettingsController {
   private tabContents: Record<string, HTMLElement | null> = {};
   private rulesSelect: HTMLSelectElement | null = null;
   private deviceProfileSelect: HTMLSelectElement | null = null;
+  private panelPositionSelect: HTMLSelectElement | null = null;
   private showCapturedCheckbox: HTMLInputElement | null = null;
   private fullResetCheckbox: HTMLInputElement | null = null;
   private highlightLastMoveCheckbox: HTMLInputElement | null = null;
@@ -30,6 +31,7 @@ export class SettingsController {
     };
     this.rulesSelect = document.getElementById("setting-edit-rules-mode") as HTMLSelectElement | null;
     this.deviceProfileSelect = document.getElementById("settings-device-profile") as HTMLSelectElement | null;
+    this.panelPositionSelect = document.getElementById("setting-panel-position") as HTMLSelectElement | null;
     this.showCapturedCheckbox = document.getElementById("setting-show-captured") as HTMLInputElement | null;
     this.fullResetCheckbox = document.getElementById("setting-enable-reset") as HTMLInputElement | null;
     this.highlightLastMoveCheckbox = document.getElementById("setting-highlight-last-move") as HTMLInputElement | null;
@@ -98,6 +100,11 @@ export class SettingsController {
       this.preferences.setDeviceProfile(value);
     });
 
+    this.panelPositionSelect?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLSelectElement).value as PanelPosition;
+      this.preferences.setPanelPosition(value);
+    });
+
     this.resetButton?.addEventListener("click", () => {
       this.preferences.reset();
       this.syncUI(this.preferences.state);
@@ -128,6 +135,9 @@ export class SettingsController {
     }
     if (this.deviceProfileSelect) {
       this.deviceProfileSelect.value = prefs.ui.deviceProfile;
+    }
+    if (this.panelPositionSelect) {
+      this.panelPositionSelect.value = prefs.ui.panelPosition;
     }
   }
 

@@ -13,6 +13,12 @@ export type AnswerMode = 'black' | 'white';
 export type RulesMode = 'standard' | 'free';
 export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
 export type BooleanPreference = boolean;
+/**
+ * 横レイアウト時のパネルと碁盤の左右配置。
+ * 'board-left'  : 碁盤が左、パネルが右（既定）
+ * 'board-right' : パネルが左、碁盤が右
+ */
+export type PanelPosition = 'board-left' | 'board-right';
 
 /** 盤面マーカーの種類。SGF FF4 の CR/TR/SQ/MA/LB に対応。 */
 export type MarkerKind = 'CR' | 'TR' | 'SQ' | 'MA' | 'LB';

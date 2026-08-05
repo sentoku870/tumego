@@ -36,6 +36,11 @@ body {
   gap: 12px;
 }
 
+body.horizontal {
+  /* 横レイアウト時は上下paddingを縮めて、ボードに使える高さを最大化する */
+  padding-block: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-bottom));
+}
+
 body.horizontal #layout {
   flex-direction: row;
   align-items: flex-start;
@@ -90,6 +95,10 @@ body.horizontal .moves {
 
 body.horizontal #board-wrapper { order: 1; }
 body.horizontal #ui { order: 2; }
+
+/* 横レイアウト時にパネルを左に置く（既定はボード左・パネル右） */
+body.horizontal.panel-right #board-wrapper { order: 2; }
+body.horizontal.panel-right #ui { order: 1; }
 
 .moves,
 .captured-stones {
@@ -451,6 +460,11 @@ body {
            calc(8px + env(safe-area-inset-left));
   min-height: 100vh;
   min-height: -webkit-fill-available;
+}
+
+body.horizontal {
+  /* 横レイアウト時は上下paddingを縮めて、ボードに使える高さを最大化する */
+  padding-block: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-bottom));
 }
 
 /* レイアウトの最大幅・中央寄せ */

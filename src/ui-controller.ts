@@ -1,5 +1,5 @@
 // ============ UI制御エンジン ============
-import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
+import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile, PanelPosition } from './types.js';
 import { AppContext, compositionRoot } from './app/composition-root.js';
 
 /** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
@@ -98,6 +98,7 @@ export class UIController {
       prefs.solve.showCapturedStones
     );
     this.applyDeviceProfileClass(prefs.ui.deviceProfile);
+    this.applyPanelPositionClass(prefs.ui.panelPosition);
   }
 
   private getEffectiveDeviceProfile(preference: DeviceProfile): DeviceProfile {
@@ -116,5 +117,10 @@ export class UIController {
     const body = document.body;
     body.classList.remove('device-desktop', 'device-phone', 'device-tablet');
     body.classList.add(`device-${effectiveProfile}`);
+  }
+
+  private applyPanelPositionClass(position: PanelPosition): void {
+    const body = document.body;
+    body.classList.toggle('panel-right', position === 'board-right');
   }
 }

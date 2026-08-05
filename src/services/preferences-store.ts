@@ -1,4 +1,4 @@
-import { BooleanPreference, DeviceProfile, Preferences, RulesMode } from "../types.js";
+import { BooleanPreference, DeviceProfile, PanelPosition, Preferences, RulesMode } from "../types.js";
 
 const STORAGE_KEY = "tumego.preferences";
 
@@ -12,7 +12,7 @@ const DEFAULT_PREFERENCES: Preferences = {
     showMarkers: true,
     allowMultiMarker: false,
   },
-  ui: { deviceProfile: "auto" },
+  ui: { deviceProfile: "auto", panelPosition: "board-left" },
 };
 
 function clonePreferences(prefs: Preferences): Preferences {
@@ -25,6 +25,10 @@ function isRulesMode(value: unknown): value is RulesMode {
 
 function isDeviceProfile(value: unknown): value is DeviceProfile {
   return value === "auto" || value === "desktop" || value === "phone" || value === "tablet";
+}
+
+function isPanelPosition(value: unknown): value is PanelPosition {
+  return value === "board-left" || value === "board-right";
 }
 
 function isBooleanPreference(value: unknown): value is BooleanPreference {
@@ -92,6 +96,9 @@ function normalizePreferences(raw: unknown): Preferences {
     const deviceProfile =
       readField(ui, 'deviceProfile', isDeviceProfile) ??
       DEFAULT_PREFERENCES.ui.deviceProfile;
+    const panelPosition =
+      readField(ui, 'panelPosition', isPanelPosition) ??
+      DEFAULT_PREFERENCES.ui.panelPosition;
 
     return {
       edit: { rulesMode },
@@ -103,7 +110,7 @@ function normalizePreferences(raw: unknown): Preferences {
         showMarkers,
         allowMultiMarker,
       },
-      ui: { deviceProfile },
+      ui: { deviceProfile, panelPosition },
     };
   } catch (error) {
     console.warn("Failed to normalize preferences", error);
@@ -168,6 +175,11 @@ export class PreferencesStore {
   setDeviceProfile(value: DeviceProfile): void {
     if (!isDeviceProfile(value)) return;
     this.updatePrefs({ ui: { deviceProfile: value } });
+  }
+
+  setPanelPosition(value: PanelPosition): void {
+    if (!isPanelPosition(value)) return;
+    this.updatePrefs({ ui: { panelPosition: value } });
   }
 
   reset(): void {

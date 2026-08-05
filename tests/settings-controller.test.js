@@ -51,6 +51,15 @@ const setupSettingsDOM = () => {
   });
   panel.appendChild(deviceProfileSelect);
 
+  const panelPositionSelect = document.createElement('select');
+  panelPositionSelect.id = 'setting-panel-position';
+  ['board-left', 'board-right'].forEach((value) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    panelPositionSelect.appendChild(opt);
+  });
+  panel.appendChild(panelPositionSelect);
+
   const showCaptured = document.createElement('input');
   showCaptured.type = 'checkbox';
   showCaptured.id = 'setting-show-captured';
@@ -78,7 +87,7 @@ const setupSettingsDOM = () => {
   return {
     panel, toggle, tabBasic, tabAdvanced,
     tabBasicContent, tabAdvancedContent,
-    rulesSelect, deviceProfileSelect,
+    rulesSelect, deviceProfileSelect, panelPositionSelect,
     showCaptured, enableReset, highlightLast, showSolutionMoveNumbers,
     resetBtn
   };
@@ -220,6 +229,12 @@ describe('SettingsController', () => {
       elements.deviceProfileSelect.dispatchEvent(new Event('change'));
       expect(prefs.state.ui.deviceProfile).toBe('desktop');
     });
+
+    test('changing panel position updates preferences', () => {
+      elements.panelPositionSelect.value = 'board-right';
+      elements.panelPositionSelect.dispatchEvent(new Event('change'));
+      expect(prefs.state.ui.panelPosition).toBe('board-right');
+    });
   });
 
   describe('reset button', () => {
@@ -262,6 +277,12 @@ describe('SettingsController', () => {
       controller.initialize();
       prefs.setEditRulesMode('free');
       expect(elements.rulesSelect.value).toBe('free');
+    });
+
+    test('external change to panel position updates UI', () => {
+      controller.initialize();
+      prefs.setPanelPosition('board-right');
+      expect(elements.panelPositionSelect.value).toBe('board-right');
     });
   });
 });
