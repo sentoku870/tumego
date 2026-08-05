@@ -1,5 +1,6 @@
 import { ModeOperations } from '../../dist/state/mode-operations.js';
 import { BoardCacheManager } from '../../dist/state/board-cache-manager.js';
+import { GameInfoStore } from '../../dist/state/game-info-store.js';
 import { GameStore } from '../../dist/state/game-store.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
@@ -49,7 +50,7 @@ describe('ModeOperations SGF-related methods', () => {
     state = createState();
     history = new HistoryManager();
     cache = new BoardCacheManager(state, engine);
-    modeOps = new ModeOperations(state, history, cache);
+    modeOps = new ModeOperations(state, history, cache, new GameInfoStore(state));
     store = new GameStore(state, engine, history);
   });
 

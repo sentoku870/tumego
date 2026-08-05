@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { BoardCacheManager } from '../../dist/state/board-cache-manager.js';
+import { GameInfoStore } from '../../dist/state/game-info-store.js';
 import { HandicapSetter } from '../../dist/state/handicap-setter.js';
 import { HistoryManager } from '../../dist/history-manager.js';
 import { ModeOperations } from '../../dist/state/mode-operations.js';
@@ -48,7 +49,7 @@ describe('HandicapSetter', () => {
     history = new HistoryManager();
     state = createState(9);
     cache = new BoardCacheManager(state, engine);
-    modeOps = new ModeOperations(state, silentHistory(), cache);
+    modeOps = new ModeOperations(state, silentHistory(), cache, new GameInfoStore(state));
     setter = new HandicapSetter(state, engine, history, modeOps, cache);
   });
 

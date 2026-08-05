@@ -40,7 +40,21 @@ export class HeaderEditor {
     const headerResetBtn = document.getElementById('btn-header-reset') as HTMLButtonElement | null;
 
     headerApplyBtn?.addEventListener('click', () => this.applyFromFields());
-    headerResetBtn?.addEventListener('click', () => this.populateFields());
+    headerResetBtn?.addEventListener('click', () => this.resetGameInfo());
+  }
+
+  /**
+   * 「対局情報リセット」ボタン: store の対局情報をクリアし、DOM も再描画する。
+   *
+   * 旧実装は populateFields() を呼ぶだけだったため、store の値を DOM に
+   * 書き戻す「再表示」になり、リセットになっていなかった。
+   * SGF 棋譜を読込んだ後に押しても対局情報が消えないバグの修正。
+   */
+  private resetGameInfo(): void {
+    this.store.resetGameInfo();
+    this.populateFields();
+    this.eventBus.emitUIUpdate();
+    this.renderer.showMessage('対局情報をリセットしました');
   }
 
   /** DOM フィールドから読み取って store.updateGameInfo() に反映する */
