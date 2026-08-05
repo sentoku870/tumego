@@ -21,6 +21,7 @@ import { ToolbarController } from '../ui/controllers/toolbar-controller.js';
 import { FeatureMenuController } from '../ui/controllers/feature-menu-controller.js';
 import { FileMenuController } from '../ui/controllers/file-menu-controller.js';
 import { SettingsController } from '../ui/controllers/settings-controller.js';
+import { HandicapDialog } from '../ui/controllers/feature-menu/handicap-dialog.js';
 import { UIEventBus } from './event-bus.js';
 import { UIUpdateCoordinator } from './ui-update-coordinator.js';
 
@@ -87,6 +88,8 @@ export class AppFactory {
     const qrManager = new QRManager(sgfParser, sgfShare);
     const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
 
+    const handicapDialog = new HandicapDialog(store, renderer, eventBus);
+
     const toolbar = new ToolbarController(
       store,
       renderer,
@@ -95,7 +98,8 @@ export class AppFactory {
       elements,
       eventBus,
       preferences,
-      dropdownManager
+      dropdownManager,
+      handicapDialog
     );
     const board = new BoardInteractionController(
       store,

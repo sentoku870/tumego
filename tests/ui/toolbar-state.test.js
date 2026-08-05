@@ -12,6 +12,7 @@ import { SGFParser } from '../../dist/sgf-parser.js';
 import { SGFIO } from '../../dist/services/sgf-io.js';
 import { SGFShare } from '../../dist/services/sgf-share.js';
 import { DropdownManager } from '../../dist/ui/controllers/dropdown-manager.js';
+import { HandicapDialog } from '../../dist/ui/controllers/feature-menu/handicap-dialog.js';
 import { UIInteractionState } from '../../dist/ui/state/ui-interaction-state.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 
@@ -89,7 +90,8 @@ describe('ToolbarState', () => {
     const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
     const uiState = new UIInteractionState();
     const dropdownManager = new DropdownManager(uiState);
-    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager);
+    const handicapDialog = new HandicapDialog(store, renderer, eventBus);
+    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog);
     stateCtl = new ToolbarState(store, renderer, preferences, eventBus, buttons);
   });
 

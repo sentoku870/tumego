@@ -11,6 +11,7 @@ import { SGFIO } from '../../dist/services/sgf-io.js';
 import { SGFShare } from '../../dist/services/sgf-share.js';
 import { UIEventBus } from '../../dist/app/event-bus.js';
 import { DropdownManager } from '../../dist/ui/controllers/dropdown-manager.js';
+import { HandicapDialog } from '../../dist/ui/controllers/feature-menu/handicap-dialog.js';
 import { UIInteractionState } from '../../dist/ui/state/ui-interaction-state.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 
@@ -65,8 +66,9 @@ const setupController = () => {
   const renderer = new Renderer(store, elements, () => preferences.state);
   const boardCapture = new BoardCaptureService(elements.svg, renderer);
   const sgfService = new SGFService(new SGFParser(), store, new SGFIO(new SGFParser()), new SGFShare(new SGFParser()));
+  const handicapDialog = new HandicapDialog(store, renderer, eventBus);
   const controller = new ToolbarController(
-    store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager
+    store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog
   );
   controller.initialize();
   return { controller, store, state, renderer, eventBus, preferences, sgfService };

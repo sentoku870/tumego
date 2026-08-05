@@ -11,6 +11,7 @@ import { UIEventBus } from '../../app/event-bus.js';
 import { HistoryView } from '../views/history-view.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { ToolbarMarkerPalette } from './toolbar/toolbar-marker-palette.js';
+import { HandicapDialog } from './feature-menu/handicap-dialog.js';
 
 export class ToolbarButtons {
   private _clearBtn: HTMLButtonElement | null = null;
@@ -54,7 +55,8 @@ export class ToolbarButtons {
     private readonly sgfService: SGFService,
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus,
-    private readonly dropdownManager: DropdownManager
+    private readonly dropdownManager: DropdownManager,
+    private readonly handicapDialog: HandicapDialog
   ) {
     this._markerPalette = new ToolbarMarkerPalette(
       store,
@@ -71,6 +73,7 @@ export class ToolbarButtons {
     this.bindBasicButtons();
     this.bindGameButtons();
     this.bindBoardSaveButton();
+    this.bindHandicapButton();
     this._markerPalette.bindEvents();
 
     this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
@@ -333,6 +336,13 @@ export class ToolbarButtons {
         const message = error instanceof Error ? error.message : String(error);
         alert(`盤面保存に失敗しました: ${message}`);
       });
+    });
+  }
+
+  private bindHandicapButton(): void {
+    const handicapBtn = document.getElementById('btn-handicap');
+    handicapBtn?.addEventListener('click', () => {
+      this.handicapDialog.show();
     });
   }
 

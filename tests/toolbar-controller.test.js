@@ -10,6 +10,7 @@ import { SGFParser } from '../dist/sgf-parser.js';
 import { SGFIO } from '../dist/services/sgf-io.js';
 import { SGFShare } from '../dist/services/sgf-share.js';
 import { UIEventBus } from '../dist/app/event-bus.js';
+import { HandicapDialog } from '../dist/ui/controllers/feature-menu/handicap-dialog.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
 const createBoard = (size) =>
@@ -77,7 +78,9 @@ describe('ToolbarController', () => {
       sgfService,
       elements,
       eventBus,
-      preferences
+      preferences,
+      null,
+      new HandicapDialog(store, renderer, eventBus)
     );
   });
 
