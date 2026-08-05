@@ -22,6 +22,7 @@ import { FeatureMenuController } from '../ui/controllers/feature-menu-controller
 import { FileMenuController } from '../ui/controllers/file-menu-controller.js';
 import { SettingsController } from '../ui/controllers/settings-controller.js';
 import { HandicapDialog } from '../ui/controllers/feature-menu/handicap-dialog.js';
+import { HeaderEditor } from '../ui/controllers/file-menu/header-editor.js';
 import { UIEventBus } from './event-bus.js';
 import { UIUpdateCoordinator } from './ui-update-coordinator.js';
 
@@ -90,6 +91,11 @@ export class AppFactory {
 
     const handicapDialog = new HandicapDialog(store, renderer, eventBus);
 
+    // HeaderEditor は FileMenuController と Toolbar の両方から使われるため
+    // app-factory で 1 つだけ生成し、共有する（btn-clear 等から
+    // 対局情報 DOM を即時再描画できるようにする）。
+    const headerEditor = new HeaderEditor(store, renderer, eventBus);
+
     const toolbar = new ToolbarController(
       store,
       renderer,
@@ -99,7 +105,8 @@ export class AppFactory {
       eventBus,
       preferences,
       dropdownManager,
-      handicapDialog
+      handicapDialog,
+      headerEditor
     );
     const board = new BoardInteractionController(
       store,
@@ -123,7 +130,8 @@ export class AppFactory {
       renderer,
       qrManager,
       store,
-      eventBus
+      eventBus,
+      headerEditor
     );
     const settings = new SettingsController(preferences);
 
