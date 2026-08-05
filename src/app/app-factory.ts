@@ -138,6 +138,10 @@ export class AppFactory {
     );
     eventBus.onUIUpdate(() => uiUpdateCoordinator.applyUIUpdate());
 
+    // 解答ボタン更新イベント: emitAnswerButtonUpdate() 時に
+    // 解答ボタンのラベル / disabled / title を更新する。
+    eventBus.onAnswerButtonUpdate(() => toolbar.updateAnswerButtonDisplay());
+
     return {
       store,
       renderer,
