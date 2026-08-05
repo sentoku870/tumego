@@ -122,5 +122,8 @@ export class UIController {
   private applyPanelPositionClass(position: PanelPosition): void {
     const body = document.body;
     body.classList.toggle('panel-right', position === 'board-right');
+
+    // 設定変更時に即時反映（CSS 読み込み状況に依存しない）
+    this.app.renderer.updateBoardSize();
   }
 }

@@ -114,6 +114,19 @@ export class Renderer {
     const viewportH =
       document.documentElement.clientHeight || window.innerHeight;
 
+    // 横レイアウト時のパネル左右入れ替え。
+    // CSSキャッシュや読み込み遅延で body.horizontal.panel-right のセレクタが
+    // 効かないケースに備え、JS で #layout の flex-direction を直接制御する。
+    const layoutEl = document.getElementById('layout');
+    const isPanelRight = document.body.classList.contains('panel-right');
+    if (layoutEl) {
+      if (isHorizontal && isPanelRight) {
+        layoutEl.style.flexDirection = 'row-reverse';
+      } else {
+        layoutEl.style.flexDirection = '';
+      }
+    }
+
     if (isHorizontal) {
       const panelWidth = isMobile ? 250 : 320;
       const layoutGap = 16;

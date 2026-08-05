@@ -176,6 +176,7 @@ const setupAllDOM = () => {
 
 const cleanupDOM = () => {
   document.body.innerHTML = '';
+  document.body.className = '';
 };
 
 describe('UIController', () => {
@@ -342,6 +343,106 @@ describe('UIController', () => {
       controller.applyPanelPositionClass('board-right');
       controller.applyPanelPositionClass('board-left');
       expect(document.body.classList.contains('panel-right')).toBe(false);
+    });
+  });
+
+  describe('end-to-end: changing panel-position select triggers body class', () => {
+    const setupSelect = () => {
+      const select = document.createElement('select');
+      select.id = 'setting-panel-position';
+      ['board-left', 'board-right'].forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        select.appendChild(opt);
+      });
+      document.getElementById('settings-panel').appendChild(select);
+      return select;
+    };
+
+    test('selecting board-right adds panel-right class to body', () => {
+      const select = setupSelect();
+      controller = new UIController(state, elements);
+      controller.initialize();
+
+      expect(document.body.classList.contains('panel-right')).toBe(false);
+
+      select.value = 'board-right';
+      select.dispatchEvent(new Event('change'));
+
+      expect(document.body.classList.contains('panel-right')).toBe(true);
+    });
+
+    test('selecting board-left removes panel-right class from body', () => {
+      const select = setupSelect();
+      controller = new UIController(state, elements);
+      controller.initialize();
+
+      select.value = 'board-right';
+      select.dispatchEvent(new Event('change'));
+      expect(document.body.classList.contains('panel-right')).toBe(true);
+
+      select.value = 'board-left';
+      select.dispatchEvent(new Event('change'));
+      expect(document.body.classList.contains('panel-right')).toBe(false);
+    });
+
+    test('board-right preference on init adds panel-right class', () => {
+      setupSelect();
+      controller = new UIController(state, elements);
+      controller.applyPanelPositionClass('board-right');
+      expect(document.body.classList.contains('panel-right')).toBe(true);
+    });
+  });
+
+  describe('renderer sets inline flex-direction on layout for panel-right', () => {
+    const setupLayout = () => {
+      const layout = document.createElement('div');
+      layout.id = 'layout';
+      document.body.appendChild(layout);
+      return layout;
+    };
+
+    const setupSelect = () => {
+      const select = document.createElement('select');
+      select.id = 'setting-panel-position';
+      ['board-left', 'board-right'].forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        select.appendChild(opt);
+      });
+      document.getElementById('settings-panel').appendChild(select);
+      return select;
+    };
+
+    test('renderer.updateBoardSize sets flex-direction: row-reverse when board-right + horizontal', () => {
+      setupLayout();
+      setupSelect();
+      controller = new UIController(state, elements);
+      // 横レイアウトを擬似的に有効化
+      document.body.classList.add('horizontal');
+      controller.applyPanelPositionClass('board-right');
+      const layout = document.getElementById('layout');
+      expect(layout.style.flexDirection).toBe('row-reverse');
+    });
+
+    test('renderer.updateBoardSize clears flex-direction when switching back to board-left', () => {
+      setupLayout();
+      setupSelect();
+      controller = new UIController(state, elements);
+      document.body.classList.add('horizontal');
+      controller.applyPanelPositionClass('board-right');
+      expect(document.getElementById('layout').style.flexDirection).toBe('row-reverse');
+      controller.applyPanelPositionClass('board-left');
+      expect(document.getElementById('layout').style.flexDirection).toBe('');
+    });
+
+    test('renderer.updateBoardSize does not set row-reverse when vertical layout', () => {
+      setupLayout();
+      setupSelect();
+      controller = new UIController(state, elements);
+      // horizontal なし、panel-right だけ付与
+      controller.applyPanelPositionClass('board-right');
+      expect(document.getElementById('layout').style.flexDirection).toBe('');
     });
   });
 
