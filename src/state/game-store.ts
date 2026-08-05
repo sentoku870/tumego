@@ -57,11 +57,11 @@ export class GameStore {
     this.monitor = new PerformanceMonitor();
     this.cache = new BoardCacheManager(state, engine, this.monitor);
     this.editor = new EditorOps(state, engine, this.cache);
-    this.modeOps = new ModeOperations(state, history, this.cache);
+    this.gameInfoStore = new GameInfoStore(state);
+    this.modeOps = new ModeOperations(state, history, this.cache, this.gameInfoStore);
     this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
     this.markers = new MarkerStore(state);
     this.modeController = new ModeController(state);
-    this.gameInfoStore = new GameInfoStore(state);
 
     if (!this.state.capturedCounts) {
       this.state.capturedCounts = createInitialCapturedCounts();
@@ -97,6 +97,14 @@ export class GameStore {
 
   updateGameInfo(patch: Parameters<GameInfoStore['updateGameInfo']>[0]): void {
     this.gameInfoStore.updateGameInfo(patch);
+  }
+
+  /**
+   * 対局情報（タイトル・対局者・コミ・結果・SGFSGF 拡張フィールド）を
+   * 既定値にリセットする。「全消去」「対局情報リセット」ボタンから呼ばれる。
+   */
+  resetGameInfo(): void {
+    this.gameInfoStore.resetToDefault();
   }
 
   // ============================================================

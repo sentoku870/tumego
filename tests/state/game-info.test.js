@@ -228,4 +228,88 @@ describe('GameStore game info', () => {
       expect(freshState.gameInfo.title).toBe('');
     });
   });
+
+  describe('resetGameInfo（SGF 読込後の対局情報クリア）', () => {
+    test('SGF で読み込んだ title / playerBlack / playerWhite / komi / result が全て消える', () => {
+      state.gameInfo = {
+        title: 'SGF棋譜のタイトル',
+        playerBlack: '黒・棋士',
+        playerWhite: '白・棋士',
+        komi: 7.5,
+        result: 'B+R',
+        handicap: null,
+        handicapStones: 0,
+        handicapPositions: [],
+        boardSize: 9,
+        startColor: 1,
+        problemDiagramSet: false,
+        problemDiagramBlack: [],
+        problemDiagramWhite: []
+      };
+      state.komi = 7.5;
+
+      store.resetGameInfo();
+
+      expect(state.gameInfo.title).toBe('');
+      expect(state.gameInfo.playerBlack).toBeNull();
+      expect(state.gameInfo.playerWhite).toBeNull();
+      expect(state.gameInfo.result).toBeNull();
+      expect(state.gameInfo.komi).toBe(DEFAULT_CONFIG.DEFAULT_KOMI);
+      expect(state.komi).toBe(DEFAULT_CONFIG.DEFAULT_KOMI);
+    });
+
+    test('SGF 拡張フィールド（handicap / handicapStones / handicapPositions / problemDiagram）もクリア', () => {
+      state.gameInfo = {
+        title: 'T',
+        playerBlack: 'B',
+        playerWhite: 'W',
+        komi: 6.5,
+        result: 'W+2.5',
+        handicap: 5,
+        handicapStones: 5,
+        handicapPositions: [{ col: 2, row: 2 }, { col: 6, row: 6 }],
+        boardSize: 13,
+        startColor: 2,
+        problemDiagramSet: true,
+        problemDiagramBlack: [{ col: 3, row: 3 }],
+        problemDiagramWhite: [{ col: 4, row: 4 }]
+      };
+
+      store.resetGameInfo();
+
+      expect(state.gameInfo.handicap).toBeNull();
+      expect(state.gameInfo.handicapStones).toBe(0);
+      expect(state.gameInfo.handicapPositions).toEqual([]);
+      expect(state.problemDiagramSet).toBe(false);
+      expect(state.problemDiagramBlack).toEqual([]);
+      expect(state.problemDiagramWhite).toEqual([]);
+    });
+
+    test('resetGameInfo 後にも getGameInfo() で空が返る', () => {
+      state.gameInfo = {
+        title: 'before',
+        playerBlack: 'A',
+        playerWhite: 'B',
+        komi: 7.5,
+        result: 'B+R',
+        handicap: null,
+        handicapStones: 0,
+        handicapPositions: [],
+        boardSize: 9,
+        startColor: 1,
+        problemDiagramSet: false,
+        problemDiagramBlack: [],
+        problemDiagramWhite: []
+      };
+
+      store.resetGameInfo();
+      const info = store.getGameInfo();
+
+      expect(info.title).toBe('');
+      expect(info.playerBlack).toBeNull();
+      expect(info.playerWhite).toBeNull();
+      expect(info.result).toBeNull();
+      expect(info.komi).toBe(DEFAULT_CONFIG.DEFAULT_KOMI);
+    });
+  });
 });

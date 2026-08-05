@@ -11,12 +11,14 @@ import {
 import { createEmptyBoard, createInitialCapturedCounts, hasGameData, cloneMarkers } from "./board-utils.js";
 import { HistoryManager } from "../history-manager.js";
 import { BoardCacheManager } from "./board-cache-manager.js";
+import { GameInfoStore } from "./game-info-store.js";
 
 export class ModeOperations {
   constructor(
     private readonly state: GameState,
     private readonly history: HistoryManager,
-    private readonly cache: BoardCacheManager
+    private readonly cache: BoardCacheManager,
+    private readonly gameInfoStore: GameInfoStore
   ) {}
 
   // ============================================================
@@ -324,12 +326,13 @@ export class ModeOperations {
     this.state.problemDiagramBlack = [];
     this.state.problemDiagramWhite = [];
     this.state.sgfLoadedFromExternal = false;
-    this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-    this.state.gameInfo = {
-      ...this.state.gameInfo,
-      title: "",
-    };
     this.state.capturedCounts = createInitialCapturedCounts();
+
+    // 対局情報（タイトル・対局者・コミ・結果・SGF拡張フィールド）を
+    // 既定値に戻す。SGF 読込後のタイトル等を残さないため。
+    // GameInfoStore.resetToDefault() に委譲し、createDefault() を
+    // 正しく経由することで型と整合性を保つ。
+    this.gameInfoStore.resetToDefault();
   }
 
   private hasGameData(): boolean {

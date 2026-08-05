@@ -2,6 +2,7 @@ import { DEFAULT_CONFIG } from '../../dist/types.js';
 import { GoEngine } from '../../dist/go-engine.js';
 import { HistoryManager } from '../../dist/history-manager.js';
 import { BoardCacheManager } from '../../dist/state/board-cache-manager.js';
+import { GameInfoStore } from '../../dist/state/game-info-store.js';
 import { ModeOperations } from '../../dist/state/mode-operations.js';
 
 const createBoard = (size) =>
@@ -57,7 +58,7 @@ describe('ModeOperations', () => {
     engine = new GoEngine();
     state = createState(9);
     cache = new BoardCacheManager(state, engine);
-    modeOps = new ModeOperations(state, silentHistory(), cache);
+    modeOps = new ModeOperations(state, silentHistory(), cache, new GameInfoStore(state));
   });
 
   describe('initBoard', () => {
@@ -72,7 +73,7 @@ describe('ModeOperations', () => {
 
     test('saves history by default when data exists', () => {
       const { history, calls } = trackHistory();
-      const ops = new ModeOperations(state, history, cache);
+      const ops = new ModeOperations(state, history, cache, new GameInfoStore(state));
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
       ops.initBoard(13);
       const label = calls.length > 0 ? calls[0].label : '';
@@ -81,7 +82,7 @@ describe('ModeOperations', () => {
 
     test('skipHistory suppresses history save', () => {
       const { history, calls } = trackHistory();
-      const ops = new ModeOperations(state, history, cache);
+      const ops = new ModeOperations(state, history, cache, new GameInfoStore(state));
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
       ops.initBoard(13, { skipHistory: true });
       expect(calls).toHaveLength(0);
@@ -91,7 +92,7 @@ describe('ModeOperations', () => {
   describe('resetForClearAll', () => {
     test('clears board and history when data exists', () => {
       const { history, calls } = trackHistory();
-      const ops = new ModeOperations(state, history, cache);
+      const ops = new ModeOperations(state, history, cache, new GameInfoStore(state));
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
       ops.resetForClearAll();
       expect(state.sgfMoves).toEqual([]);
@@ -100,9 +101,57 @@ describe('ModeOperations', () => {
 
     test('does not save when no data', () => {
       const { history, calls } = trackHistory();
-      const ops = new ModeOperations(state, history, cache);
+      const ops = new ModeOperations(state, history, cache, new GameInfoStore(state));
       ops.resetForClearAll();
       expect(calls).toHaveLength(0);
+    });
+
+    test('SGF 読込後の resetForClearAll で対局情報が全て消える（バグ修正回帰テスト）', () => {
+      // SGF 棋譜から読み込まれた対局情報をセットアップ
+      state.gameInfo = {
+        ...state.gameInfo,
+        title: 'テスト棋譜',
+        playerBlack: '黒テスト',
+        playerWhite: '白テスト',
+        result: 'B+R',
+      };
+      state.komi = 7.5;
+      state.handicapStones = 3;
+
+      modeOps.resetForClearAll();
+
+      // 全ての対局情報がリセットされる
+      expect(state.gameInfo.title).toBe('');
+      expect(state.gameInfo.playerBlack).toBeNull();
+      expect(state.gameInfo.playerWhite).toBeNull();
+      expect(state.gameInfo.result).toBeNull();
+      expect(state.komi).toBe(DEFAULT_CONFIG.DEFAULT_KOMI);
+      expect(state.handicapStones).toBe(0);
+    });
+
+    test('resetForClearAll 後に SGF 拡張フィールド（handicap/boardSize/startColor）も既定値に戻る', () => {
+      state.gameInfo = {
+        ...state.gameInfo,
+        title: 'タイトル',
+        handicap: 5,
+        handicapStones: 5,
+        handicapPositions: [{ col: 0, row: 0 }],
+        boardSize: 13,
+        startColor: 2,
+        problemDiagramSet: true,
+        problemDiagramBlack: [{ col: 3, row: 3 }],
+      };
+      state.sgfLoadedFromExternal = true;
+
+      modeOps.resetForClearAll();
+
+      expect(state.gameInfo.title).toBe('');
+      expect(state.gameInfo.handicap).toBeNull();
+      expect(state.gameInfo.handicapStones).toBe(0);
+      expect(state.gameInfo.handicapPositions).toEqual([]);
+      expect(state.problemDiagramSet).toBe(false);
+      expect(state.problemDiagramBlack).toEqual([]);
+      expect(state.sgfLoadedFromExternal).toBe(false);
     });
   });
 
@@ -144,7 +193,7 @@ describe('ModeOperations', () => {
   describe('enterSolveMode / exitSolveModeForEditing', () => {
     test('enterSolveMode enables number mode and clears moves', () => {
       const { history, calls } = trackHistory();
-      const ops = new ModeOperations(state, history, cache);
+      const ops = new ModeOperations(state, history, cache, new GameInfoStore(state));
       state.sgfMoves = [{ col: 0, row: 0, color: 1 }];
       ops.enterSolveMode();
       expect(state.numberMode).toBe(true);
