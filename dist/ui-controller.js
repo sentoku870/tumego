@@ -1,6 +1,7 @@
 // ============ UI制御エンジン ============
 import { DEFAULT_CONFIG } from './types.js';
 import { compositionRoot } from './app/composition-root.js';
+import { getSgfTextarea } from './utils/dom-elements.js';
 /** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
 const PHONE_BREAKPOINT = 640;
 /** 自動プロファイル判定でタブレットと判定する window.innerWidth の上限 (px) */
@@ -13,7 +14,7 @@ export class UIController {
         this.app.eventBus.onSgfApplied((sgfText) => this.syncSgfTextarea(sgfText));
     }
     syncSgfTextarea(text) {
-        const sgfTextarea = document.getElementById('sgf-text');
+        const sgfTextarea = getSgfTextarea();
         if (sgfTextarea) {
             sgfTextarea.value = text;
         }
@@ -38,7 +39,6 @@ export class UIController {
         }, 100);
         eventBus.emitUIUpdate();
         eventBus.emitAnswerButtonUpdate();
-        controllers.toolbar.updateAnswerButtonDisplay();
         store.historyManager.clear();
         const urlResult = sgfService.loadFromURL();
         if (urlResult) {

@@ -6,7 +6,7 @@
 // マーカー配置/削除の副作用として、アクティブラベル (LB) の自動進行と
 // 消去モードの自動解除を行う。
 import { nextMarkerLetter } from '../types/index.js';
-import { isValidPosition } from './board-utils.js';
+import { isValidPosition, cloneMarkers } from './board-utils.js';
 export class MarkerStore {
     constructor(state) {
         this.state = state;
@@ -32,12 +32,19 @@ export class MarkerStore {
     // ============================================================
     // 公開: マーカーモードとアクティブ種別の制御
     // ============================================================
-    /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
-    setMarkerMode(kind, label = null) {
+    /**
+     * マーカーモードのオン/オフとアクティブ種別をまとめて切り替える。
+     *
+     * 副作用: \`state.eraseMode\` が true の場合は自動的に false へ戻す
+     * （マーカーモードと消去モードは排他。両方 ON は UI 不整合になるため）。
+     */
+    setMarkerModeDisablingErase(kind, label = null) {
         this.state.activeMarkerKind = kind;
         this.state.activeMarkerLabel = kind === 'LB' ? label : null;
         this.state.markerMode = kind !== null;
-        this.dispatchDisableEraseModeIfActive();
+        if (this.state.eraseMode) {
+            this.state.eraseMode = false;
+        }
     }
     // ============================================================
     // 公開: マーカーの配置・削除
@@ -48,7 +55,7 @@ export class MarkerStore {
         const kind = this.state.activeMarkerKind;
         if (!kind)
             return false;
-        if (!this.isValidPosition(pos))
+        if (!isValidPosition(this.state.boardSize, pos))
             return false;
         const label = (_a = this.state.activeMarkerLabel) !== null && _a !== void 0 ? _a : undefined;
         const existing = this.findMarkerAt(pos, kind, label);
@@ -67,13 +74,13 @@ export class MarkerStore {
     }
     /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
     addMarker(pos, kind, label) {
-        if (!this.isValidPosition(pos))
+        if (!isValidPosition(this.state.boardSize, pos))
             return false;
         return this.addMarkerAt(pos, kind, label);
     }
     /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
     removeMarker(pos, kind, label) {
-        if (!this.isValidPosition(pos))
+        if (!isValidPosition(this.state.boardSize, pos))
             return false;
         if (kind === undefined) {
             const before = this.state.markers.length;
@@ -101,12 +108,12 @@ export class MarkerStore {
      */
     syncToCurrentNode() {
         if (this.state.sgfIndex === 0) {
-            this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+            this.state.markers = cloneMarkers(this.state.rootMarkers);
         }
         else {
             const slot = this.state.sgfIndex - 1;
             const slotMarkers = this.state.nodeMarkers[slot];
-            this.state.markers = slotMarkers ? this.cloneMarkers(slotMarkers) : [];
+            this.state.markers = slotMarkers ? cloneMarkers(slotMarkers) : [];
         }
     }
     /** SGF パース結果から復元した問題図レベル/着手ノード別のマーカーをセット */
@@ -124,6 +131,14 @@ export class MarkerStore {
             (kind === undefined || m.kind === kind) &&
             (label === undefined || m.label === label));
     }
+    /**
+     * 指定種別のマーカーを pos に追加する。
+     *
+     * 副作用:
+     * - 永続スロット (rootMarkers / nodeMarkers) へ書き戻す
+     * - LB 種別のとき \`activeMarkerLabel\` を次の文字へ自動進行
+     *   （同じ文字の連続配置を防ぐ）
+     */
     addMarkerAt(pos, kind, label) {
         const exists = this.state.markers.some((m) => m.pos.col === pos.col &&
             m.pos.row === pos.row &&
@@ -136,7 +151,6 @@ export class MarkerStore {
             marker.label = label;
         this.state.markers.push(marker);
         this.persistMarkersToCurrentNode();
-        // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
         if (kind === 'LB' && label) {
             this.state.activeMarkerLabel = nextMarkerLetter(label);
         }
@@ -158,26 +172,13 @@ export class MarkerStore {
      * sgfIndex === 0 は問題図レベル（rootMarkers）、それ以降は nodeMarkers[sgfIndex - 1]。
      */
     persistMarkersToCurrentNode() {
-        const clone = this.cloneMarkers(this.state.markers);
+        const clone = cloneMarkers(this.state.markers);
         if (this.state.sgfIndex === 0) {
             this.state.rootMarkers = clone;
         }
         else {
             const slot = this.state.sgfIndex - 1;
             this.state.nodeMarkers[slot] = clone;
-        }
-    }
-    cloneMarkers(markers) {
-        return markers.map((m) => {
-            const clone = { pos: { ...m.pos }, kind: m.kind };
-            if (m.label !== undefined)
-                clone.label = m.label;
-            return clone;
-        });
-    }
-    dispatchDisableEraseModeIfActive() {
-        if (this.state.eraseMode) {
-            this.state.eraseMode = false;
         }
     }
     isValidPosition(pos) {

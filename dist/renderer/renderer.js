@@ -1,3 +1,7 @@
+// ============ Renderer (Facade) ============
+// SVG DOM 描画のエントリポイント。ViewModelBuilder が生成した中間オブジェクトを
+// 各 drawer に委譲して SVG 要素に変換する。
+import { DEFAULT_CONFIG } from '../types.js';
 import { RendererViewModelBuilder } from './view-model.js';
 import { SvgElementFactory } from './drawers/svg-helpers.js';
 import { BoardDrawer } from './drawers/board-drawer.js';
@@ -83,10 +87,10 @@ export class Renderer {
             return;
         const state = this.store.snapshot;
         const isHorizontal = document.body.classList.contains('horizontal');
-        const isMobile = window.innerWidth <= 768;
+        const isMobile = window.innerWidth <= DEFAULT_CONFIG.MOBILE_BREAKPOINT;
         if (isHorizontal) {
-            const availableWidth = window.innerWidth - (isMobile ? 250 : 350);
-            const availableHeight = window.innerHeight * 0.95;
+            const availableWidth = window.innerWidth - (isMobile ? DEFAULT_CONFIG.MOBILE_HORIZONTAL_RESERVED : DEFAULT_CONFIG.DESKTOP_HORIZONTAL_RESERVED);
+            const availableHeight = window.innerHeight * DEFAULT_CONFIG.MOBILE_HORIZONTAL_HEIGHT_RATIO;
             const maxSize = Math.min(availableWidth, availableHeight);
             this.elements.boardWrapper.style.width = maxSize + 'px';
             this.elements.boardWrapper.style.height = maxSize + 'px';
@@ -101,7 +105,7 @@ export class Renderer {
                 this.elements.boardWrapper.style.maxHeight = 'none';
             }
             else {
-                const baseSize = DEFAULT_CONFIG_CELL_SIZE;
+                const baseSize = DEFAULT_CONFIG.CELL_SIZE;
                 const sizePx = baseSize * state.boardSize;
                 this.elements.boardWrapper.style.width = sizePx + 'px';
                 this.elements.boardWrapper.style.height = 'auto';
@@ -134,6 +138,4 @@ export class Renderer {
         defs.appendChild(shadow);
     }
 }
-// 循環依存を避けるため CELL_SIZE はローカル定数で参照
-const DEFAULT_CONFIG_CELL_SIZE = 60;
 //# sourceMappingURL=renderer.js.map

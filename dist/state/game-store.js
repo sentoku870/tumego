@@ -1,4 +1,5 @@
 import { BoardCacheManager } from './board-cache-manager.js';
+import { EditorOps } from './editor-ops.js';
 import { GameInfoStore } from './game-info-store.js';
 import { HandicapSetter } from './handicap-setter.js';
 import { MarkerStore } from './marker-store.js';
@@ -13,11 +14,12 @@ export class GameStore {
         this.history = history;
         this.monitor = new PerformanceMonitor();
         this.cache = new BoardCacheManager(state, engine, this.monitor);
-        this.modeOps = new ModeOperations(state, history, this.cache);
+        this.editor = new EditorOps(state, engine, this.cache);
+        this.gameInfoStore = new GameInfoStore(state);
+        this.modeOps = new ModeOperations(state, history, this.cache, this.gameInfoStore);
         this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
         this.markers = new MarkerStore(state);
         this.modeController = new ModeController(state);
-        this.gameInfoStore = new GameInfoStore(state);
         if (!this.state.capturedCounts) {
             this.state.capturedCounts = createInitialCapturedCounts();
         }
@@ -45,6 +47,13 @@ export class GameStore {
     updateGameInfo(patch) {
         this.gameInfoStore.updateGameInfo(patch);
     }
+    /**
+     * 対局情報（タイトル・対局者・コミ・結果・SGFSGF 拡張フィールド）を
+     * 既定値にリセットする。「全消去」「対局情報リセット」ボタンから呼ばれる。
+     */
+    resetGameInfo() {
+        this.gameInfoStore.resetToDefault();
+    }
     // ============================================================
     // 公開: 着手・石操作
     // ============================================================
@@ -68,7 +77,7 @@ export class GameStore {
         return true;
     }
     removeStone(pos) {
-        if (!this.isValidPosition(pos)) {
+        if (!isValidPosition(this.state.boardSize, pos)) {
             return false;
         }
         const currentStone = this.state.board[pos.row][pos.col];
@@ -96,38 +105,15 @@ export class GameStore {
     }
     /** 編集モード専用: ルール無視で直接配置 */
     directPlace(pos, color) {
-        if (!this.isValidPosition(pos))
-            return false;
-        const board = this.cloneBoard();
-        board[pos.row][pos.col] = color;
-        this.state.board = board;
-        this.state.turn++;
-        this.cache.invalidate();
-        return true;
+        return this.editor.directPlace(pos, color);
     }
     /** 編集モード専用: ルール適用して配置 */
     placeWithRulesInEdit(pos, color) {
-        const result = this.engine.playMove(this.state, pos, color);
-        if (!result) {
-            return false;
-        }
-        this.state.board = result.board;
-        this.state.turn++;
-        this.cache.invalidate();
-        return true;
+        return this.editor.placeWithRulesInEdit(pos, color);
     }
     /** 編集モード専用: 石を直接削除 */
     directRemove(pos) {
-        if (!this.isValidPosition(pos))
-            return false;
-        if (this.state.board[pos.row][pos.col] === 0)
-            return false;
-        const board = this.cloneBoard();
-        board[pos.row][pos.col] = 0;
-        this.state.board = board;
-        this.state.turn = Math.max(0, this.state.turn - 1);
-        this.cache.invalidate();
-        return true;
+        return this.editor.directRemove(pos);
     }
     /**
      * 編集モード専用: 石を別の交点へ移動する。
@@ -137,23 +123,7 @@ export class GameStore {
      * @returns 移動に成功したか
      */
     moveStone(from, to) {
-        if (!this.isValidPosition(from))
-            return false;
-        if (!this.isValidPosition(to))
-            return false;
-        if (from.col === to.col && from.row === to.row)
-            return false;
-        const color = this.state.board[from.row][from.col];
-        if (color === 0)
-            return false;
-        // 移動先で同色の石に上書きする場合は実質「無変化」だが、
-        // directPlace に揃えて上書き動作とする（仕様: 上書き）
-        const board = this.cloneBoard();
-        board[from.row][from.col] = 0;
-        board[to.row][to.col] = color;
-        this.state.board = board;
-        this.cache.invalidate();
-        return true;
+        return this.editor.moveStone(from, to);
     }
     // ============================================================
     // 公開: 盤面初期化・履歴復元・手数移動
@@ -240,7 +210,7 @@ export class GameStore {
     // 公開: マーカー (MarkerStore への委譲)
     // ============================================================
     setMarkerMode(kind, label = null) {
-        this.markers.setMarkerMode(kind, label);
+        this.markers.setMarkerModeDisablingErase(kind, label);
     }
     toggleMarker(pos, allowMulti = false) {
         return this.markers.toggleMarker(pos, allowMulti);
@@ -314,9 +284,6 @@ export class GameStore {
     }
     cloneBoard() {
         return cloneBoard(this.state.board);
-    }
-    isValidPosition(pos) {
-        return isValidPosition(this.state.boardSize, pos);
     }
 }
 //# sourceMappingURL=game-store.js.map

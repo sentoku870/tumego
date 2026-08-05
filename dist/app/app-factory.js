@@ -18,6 +18,7 @@ import { FeatureMenuController } from '../ui/controllers/feature-menu-controller
 import { FileMenuController } from '../ui/controllers/file-menu-controller.js';
 import { SettingsController } from '../ui/controllers/settings-controller.js';
 import { HandicapDialog } from '../ui/controllers/feature-menu/handicap-dialog.js';
+import { HeaderEditor } from '../ui/controllers/file-menu/header-editor.js';
 import { UIEventBus } from './event-bus.js';
 import { UIUpdateCoordinator } from './ui-update-coordinator.js';
 /**
@@ -58,16 +59,23 @@ export class AppFactory {
         const qrManager = new QRManager(sgfParser, sgfShare);
         const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
         const handicapDialog = new HandicapDialog(store, renderer, eventBus);
-        const toolbar = new ToolbarController(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog);
+        // HeaderEditor は FileMenuController と Toolbar の両方から使われるため
+        // app-factory で 1 つだけ生成し、共有する（btn-clear 等から
+        // 対局情報 DOM を即時再描画できるようにする）。
+        const headerEditor = new HeaderEditor(store, renderer, eventBus);
+        const toolbar = new ToolbarController(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog, headerEditor);
         const board = new BoardInteractionController(store, elements, uiState, eventBus, preferences, () => toolbar.closeMarkerPalette());
         const feature = new FeatureMenuController(dropdownManager, renderer, elements, store, sgfService, eventBus);
-        const file = new FileMenuController(dropdownManager, sgfService, renderer, qrManager, store, eventBus);
+        const file = new FileMenuController(dropdownManager, sgfService, renderer, qrManager, store, eventBus, headerEditor);
         const settings = new SettingsController(preferences);
         // EventBus と Renderer の接続:
         // emitUIUpdate() が呼ばれたときに盤面を再描画する。
         // 更新手順は UIUpdateCoordinator に集約。
         const uiUpdateCoordinator = new UIUpdateCoordinator(renderer, feature, toolbar, preferences);
         eventBus.onUIUpdate(() => uiUpdateCoordinator.applyUIUpdate());
+        // 解答ボタン更新イベント: emitAnswerButtonUpdate() 時に
+        // 解答ボタンのラベル / disabled / title を更新する。
+        eventBus.onAnswerButtonUpdate(() => toolbar.updateAnswerButtonDisplay());
         return {
             store,
             renderer,

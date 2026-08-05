@@ -1,7 +1,7 @@
 import { ToolbarButtons } from './toolbar-buttons.js';
 import { ToolbarState } from './toolbar/toolbar-state.js';
 export class ToolbarController {
-    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog, headerEditor) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
@@ -10,7 +10,7 @@ export class ToolbarController {
         this.eventBus = eventBus;
         this.preferences = preferences;
         this.dropdownManager = dropdownManager;
-        this.buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog);
+        this.buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog, headerEditor);
         this.state = new ToolbarState(store, renderer, preferences, eventBus, this.buttons);
     }
     initialize() {

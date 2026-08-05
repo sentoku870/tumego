@@ -1,3 +1,4 @@
+import { OutsideClickListener } from '../../services/outside-click-listener.js';
 import { AnswerCopy } from './feature-menu/answer-copy.js';
 export class FeatureMenuController {
     constructor(dropdownManager, renderer, elements, store, sgfService, eventBus) {
@@ -8,6 +9,7 @@ export class FeatureMenuController {
         this.eventBus = eventBus;
         this.isHorizontal = document.body.classList.contains('horizontal');
         this.copyAnswerButton = null;
+        this.unsubscribeOutsideClick = null;
         this.answerCopy = new AnswerCopy(store, renderer, sgfService);
     }
     initialize() {
@@ -34,9 +36,10 @@ export class FeatureMenuController {
                 }
             }
         });
-        document.addEventListener('click', () => {
-            this.dropdownManager.hide(featureDropdown);
-        });
+        if (featureDropdown) {
+            const listener = new OutsideClickListener();
+            this.unsubscribeOutsideClick = listener.subscribe([featureDropdown], () => this.dropdownManager.hide(featureDropdown));
+        }
         featureDropdown === null || featureDropdown === void 0 ? void 0 : featureDropdown.addEventListener('click', (event) => {
             event.stopPropagation();
         });

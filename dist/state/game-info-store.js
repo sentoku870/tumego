@@ -78,5 +78,20 @@ export class GameInfoStore {
             };
         }
     }
+    /**
+     * state.gameInfo を既定値（タイトル空・対局者 null・コミ既定・結果 null）
+     * にリセットする。「全消去」「対局情報リセット」ボタンから呼ばれる。
+     *
+     * 注: handicap / boardSize / startColor 等の SGFGameInfo 拡張フィールドも
+     * createDefault() が既定化するため、SGF 読込後に呼ばれても元のメタ情報を
+     * 綺麗に消せる。
+     *
+     * state.komi も DEFAULT_CONFIG.DEFAULT_KOMI に戻し、createDefault() と
+     * 一貫した値にする。
+     */
+    resetToDefault() {
+        this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
+        this.state.gameInfo = this.createDefault();
+    }
 }
 //# sourceMappingURL=game-info-store.js.map

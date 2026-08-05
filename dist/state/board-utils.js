@@ -18,4 +18,19 @@ export function hasGameData(state) {
         state.handicapStones > 0 ||
         state.board.some((row) => row.some((cell) => cell !== 0)));
 }
+/**
+ * BoardMarker 配列の深いクローン。
+ * - `undefined` 入力は空配列として扱う（mode-operations.ts の呼び出し互換）
+ * - `label`（LB のテキスト）も含めてコピー（marker-store.ts の呼び出し互換）
+ */
+export function cloneMarkers(markers) {
+    if (!markers)
+        return [];
+    return markers.map((m) => {
+        const clone = { pos: { ...m.pos }, kind: m.kind };
+        if (m.label !== undefined)
+            clone.label = m.label;
+        return clone;
+    });
+}
 //# sourceMappingURL=board-utils.js.map

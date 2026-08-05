@@ -2,12 +2,13 @@
 // 編集モード ⇄ 解答モードの切り替え、問題図の確定・復元、初期化などを行う。
 // 盤面タイムラインキャッシュの制御は BoardCacheManager に委譲する。
 import { DEFAULT_CONFIG, } from "../types.js";
-import { createEmptyBoard, createInitialCapturedCounts, hasGameData } from "./board-utils.js";
+import { createEmptyBoard, createInitialCapturedCounts, hasGameData, cloneMarkers } from "./board-utils.js";
 export class ModeOperations {
-    constructor(state, history, cache) {
+    constructor(state, history, cache, gameInfoStore) {
         this.state = state;
         this.history = history;
         this.cache = cache;
+        this.gameInfoStore = gameInfoStore;
     }
     // ============================================================
     // 公開操作
@@ -65,7 +66,7 @@ export class ModeOperations {
         this.state.sgfIndex = 0;
         this.state.sgfMoves = [];
         this.state.nodeMarkers = [];
-        this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+        this.state.markers = cloneMarkers(this.state.rootMarkers);
         const baseBoard = this.cache.applyInitialSetup();
         this.state.board = baseBoard;
         const counts = this.cache.resetCapturedCountsTimeline();
@@ -91,7 +92,7 @@ export class ModeOperations {
         this.state.sgfMoves = [];
         this.state.sgfIndex = 0;
         this.state.nodeMarkers = [];
-        this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+        this.state.markers = cloneMarkers(this.state.rootMarkers);
         this.state.numberMode = true;
         this.state.numberStartIndex = 0;
         this.state.eraseMode = false;
@@ -122,7 +123,7 @@ export class ModeOperations {
         this.state.sgfIndex = 0;
         this.state.numberStartIndex = 0;
         this.state.capturedCounts = createInitialCapturedCounts();
-        this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+        this.state.markers = cloneMarkers(this.state.rootMarkers);
         this.state.numberMode = false;
         this.state.eraseMode = false;
         this.state.mode = "alt";
@@ -274,17 +275,12 @@ export class ModeOperations {
         this.state.problemDiagramBlack = [];
         this.state.problemDiagramWhite = [];
         this.state.sgfLoadedFromExternal = false;
-        this.state.komi = DEFAULT_CONFIG.DEFAULT_KOMI;
-        this.state.gameInfo = {
-            ...this.state.gameInfo,
-            title: "",
-        };
         this.state.capturedCounts = createInitialCapturedCounts();
-    }
-    cloneMarkers(markers) {
-        if (!markers)
-            return [];
-        return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
+        // 対局情報（タイトル・対局者・コミ・結果・SGF拡張フィールド）を
+        // 既定値に戻す。SGF 読込後のタイトル等を残さないため。
+        // GameInfoStore.resetToDefault() に委譲し、createDefault() を
+        // 正しく経由することで型と整合性を保つ。
+        this.gameInfoStore.resetToDefault();
     }
     hasGameData() {
         return hasGameData(this.state);

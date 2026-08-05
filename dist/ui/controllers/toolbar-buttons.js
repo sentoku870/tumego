@@ -1,5 +1,6 @@
 import { HistoryView } from '../views/history-view.js';
 import { ToolbarMarkerPalette } from './toolbar/toolbar-marker-palette.js';
+import { getSgfTextarea } from '../../utils/dom-elements.js';
 export class ToolbarButtons {
     // ============ ボタン参照の読み取り専用ゲッター ============
     // 外部からの直接 DOM 操作を防ぐため、書き込みはメソッド経由のみとする。
@@ -19,7 +20,7 @@ export class ToolbarButtons {
     get markerPaletteBtns() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerPaletteBtns) !== null && _b !== void 0 ? _b : {}; }
     get markerLetterBtn() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerLetterBtn) !== null && _b !== void 0 ? _b : null; }
     get markerClearBtn() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerClearBtn) !== null && _b !== void 0 ? _b : null; }
-    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog, headerEditor) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
@@ -28,6 +29,7 @@ export class ToolbarButtons {
         this.eventBus = eventBus;
         this.dropdownManager = dropdownManager;
         this.handicapDialog = handicapDialog;
+        this.headerEditor = headerEditor;
         this._clearBtn = null;
         this._problemBtn = null;
         this._answerBtn = null;
@@ -46,7 +48,13 @@ export class ToolbarButtons {
         this.store.resetInteractionModes();
         this.bindSizeButtons();
         this.bindBasicButtons();
-        this.bindGameButtons();
+        this.bindPrevMoveBtn();
+        this.bindNextMoveBtn();
+        this.bindAnswerBtn();
+        this.bindExitSolveBtn();
+        this.bindHistoryBtn();
+        this.bindProblemBtn();
+        this.bindSliderInput();
         this.bindBoardSaveButton();
         this.bindHandicapButton();
         this._markerPalette.bindEvents();
@@ -131,9 +139,14 @@ export class ToolbarButtons {
         (_a = this.clearBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.dispatchDisableEraseMode();
             this.store.resetForClearAll();
+            // GameStore の gameInfo が resetForClearAll() でリセットされたため、
+            // 対局情報入力欄 (DOM) も即時クリアする。
+            this.headerEditor.populateFields();
             this.eventBus.emitUIUpdate();
             this.eventBus.emitAnswerButtonUpdate();
-            document.getElementById('sgf-text').value = '';
+            const sgfTextarea = getSgfTextarea();
+            if (sgfTextarea)
+                sgfTextarea.value = '';
         });
         this._undoBtn = document.getElementById('btn-undo');
         if (this.undoBtn) {
@@ -184,8 +197,8 @@ export class ToolbarButtons {
                 this.setMode('alt', this.altBtn);
         });
     }
-    bindGameButtons() {
-        var _a, _b, _c, _d, _e, _f;
+    bindPrevMoveBtn() {
+        var _a;
         this._prevMoveBtn = document.getElementById('btn-prev-move');
         if (this.prevMoveBtn) {
             this.prevMoveBtn.title = '読み上げ用の手順を1手戻ります（Undoとは別の1手戻る）';
@@ -197,19 +210,25 @@ export class ToolbarButtons {
                 this.eventBus.emitUIUpdate();
             }
         });
+    }
+    bindNextMoveBtn() {
+        var _a;
         this._nextMoveBtn = document.getElementById('btn-next-move');
         if (this.nextMoveBtn) {
             this.nextMoveBtn.title = '読み上げ用の手順を1手進めます';
         }
-        (_b = this.nextMoveBtn) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
+        (_a = this.nextMoveBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             const state = this.store.snapshot;
             if (state.sgfIndex < state.sgfMoves.length) {
                 this.store.setMoveIndex(state.sgfIndex + 1);
                 this.eventBus.emitUIUpdate();
             }
         });
+    }
+    bindAnswerBtn() {
+        var _a;
         this._answerBtn = document.getElementById('btn-answer');
-        (_c = this.answerBtn) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
+        (_a = this.answerBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.dispatchDisableEraseMode();
             const state = this.store.snapshot;
             if (!state.numberMode) {
@@ -225,8 +244,11 @@ export class ToolbarButtons {
             }
             this.eventBus.emitUIUpdate();
         });
+    }
+    bindExitSolveBtn() {
+        var _a;
         this._exitSolveBtn = document.getElementById('btn-exit-solve-edit');
-        (_d = this.exitSolveBtn) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => {
+        (_a = this.exitSolveBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.dispatchDisableEraseMode();
             if (!this.store.snapshot.numberMode) {
                 this.store.enterSolveMode();
@@ -238,6 +260,8 @@ export class ToolbarButtons {
             }
             this.eventBus.emitUIUpdate();
         });
+    }
+    bindHistoryBtn() {
         const historyBtn = document.getElementById('btn-history');
         if (historyBtn) {
             historyBtn.title = '編集・解答の履歴一覧を開き、任意の状態にジャンプします';
@@ -252,8 +276,11 @@ export class ToolbarButtons {
                 }
             }, () => this.store.historyManager.clear());
         });
+    }
+    bindProblemBtn() {
+        var _a;
         this._problemBtn = document.getElementById('btn-problem');
-        (_e = this.problemBtn) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+        (_a = this.problemBtn) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.dispatchDisableEraseMode();
             const state = this.store.snapshot;
             if (!state.numberMode) {
@@ -274,7 +301,10 @@ export class ToolbarButtons {
                 this.renderer.showMessage('問題図に戻しました');
             }
         });
-        (_f = this.elements.sliderEl) === null || _f === void 0 ? void 0 : _f.addEventListener('input', (event) => {
+    }
+    bindSliderInput() {
+        var _a;
+        (_a = this.elements.sliderEl) === null || _a === void 0 ? void 0 : _a.addEventListener('input', (event) => {
             const target = event.target;
             const value = parseInt(target.value, 10);
             if (Number.isFinite(value)) {
@@ -306,7 +336,7 @@ export class ToolbarButtons {
         this.eventBus.emitUIUpdate();
     }
     refreshSgfTextarea() {
-        const sgfTextarea = document.getElementById('sgf-text');
+        const sgfTextarea = getSgfTextarea();
         if (sgfTextarea) {
             sgfTextarea.value = this.sgfService.export();
         }

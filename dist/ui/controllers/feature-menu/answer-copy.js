@@ -1,4 +1,5 @@
 import { copyToClipboard } from '../../../utils/clipboard.js';
+import { getSgfTextarea } from '../../../utils/dom-elements.js';
 export class AnswerCopy {
     constructor(store, renderer, sgfService) {
         this.store = store;
@@ -31,7 +32,7 @@ export class AnswerCopy {
         catch (error) {
             // 失敗時は SGF テキスト欄にフォールバック
         }
-        const sgfTextarea = document.getElementById('sgf-text');
+        const sgfTextarea = getSgfTextarea();
         if (sgfTextarea) {
             sgfTextarea.value = spoilerText;
         }

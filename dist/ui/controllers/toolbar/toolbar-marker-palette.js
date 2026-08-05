@@ -1,4 +1,5 @@
 import { MARKER_LETTER_SEQUENCE } from '../../../types.js';
+import { OutsideClickListener } from '../../../services/outside-click-listener.js';
 const MARKER_KINDS = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 const MARKER_GLYPHS = {
     CR: '○',
@@ -62,24 +63,15 @@ export class ToolbarMarkerPalette {
             event.stopPropagation();
         });
         // パレット外クリックで閉じる
-        if (this.__markerBtn && !this.unsubscribeDocument) {
+        if (this.__markerBtn && this.__markerDropdown && !this.unsubscribeDocument) {
             const btn = this.__markerBtn;
             const dropdown = this.__markerDropdown;
-            const documentHandler = (event) => {
-                if (!dropdown)
-                    return;
+            const listener = new OutsideClickListener();
+            this.unsubscribeDocument = listener.subscribe([dropdown, btn], () => {
                 if (!dropdown.classList.contains('show'))
                     return;
-                const target = event.target;
-                if (target && (dropdown.contains(target) || btn.contains(target))) {
-                    return;
-                }
                 this.dropdownManager.hide(dropdown);
-            };
-            document.addEventListener('click', documentHandler);
-            this.unsubscribeDocument = () => {
-                document.removeEventListener('click', documentHandler);
-            };
+            });
         }
         // ○△□× を選んだとき: パレットは閉じず、選択種別だけ切り替える
         for (const kind of ['CR', 'TR', 'SQ', 'MA']) {
