@@ -10,6 +10,7 @@ import { SGFParseResult } from '../../types.js';
 import { GameStore } from '../../state/game-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HeaderEditor } from './file-menu/header-editor.js';
+import { getSgfTextarea } from '../../utils/dom-elements.js';
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
@@ -96,7 +97,7 @@ export class FileMenuController {
         this.applySgf(result);
         this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
       } catch (error) {
-        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
+        const sgfTextarea = getSgfTextarea();
         if (sgfTextarea?.value.trim()) {
           try {
             const parsed = this.sgfService.parse(sgfTextarea.value.trim());
@@ -115,7 +116,7 @@ export class FileMenuController {
     fileCopyBtn?.addEventListener('click', async () => {
       this.dropdownManager.hide(fileDropdown);
       const sgfData = this.sgfService.export();
-      const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
+      const sgfTextarea = getSgfTextarea();
       if (sgfTextarea) {
         sgfTextarea.value = sgfData;
       }
@@ -137,7 +138,7 @@ export class FileMenuController {
       try {
         const applyResult = this.sgfService.applyGeneratedSgf();
         this.renderer.updateBoardSize();
-        const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement;
+        const sgfTextarea = getSgfTextarea();
         if (sgfTextarea) {
           sgfTextarea.value = applyResult.sgfText;
         }

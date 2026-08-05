@@ -5,6 +5,7 @@ import { GameStore } from '../../../state/game-store.js';
 import { Renderer } from '../../../renderer/renderer.js';
 import { SGFService } from '../../../services/sgf-service.js';
 import { copyToClipboard } from '../../../utils/clipboard.js';
+import { getSgfTextarea } from '../../../utils/dom-elements.js';
 
 export class AnswerCopy {
   constructor(
@@ -43,7 +44,7 @@ export class AnswerCopy {
       // 失敗時は SGF テキスト欄にフォールバック
     }
 
-    const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+    const sgfTextarea = getSgfTextarea();
     if (sgfTextarea) {
       sgfTextarea.value = spoilerText;
     }

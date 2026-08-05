@@ -1,6 +1,7 @@
 // ============ UI制御エンジン ============
 import { GameState, UIElements, DEFAULT_CONFIG, DeviceProfile } from './types.js';
 import { AppContext, compositionRoot } from './app/composition-root.js';
+import { getSgfTextarea } from './utils/dom-elements.js';
 
 /** 自動プロファイル判定でスマートフォンと判定する window.innerWidth の上限 (px) */
 const PHONE_BREAKPOINT = 640;
@@ -20,7 +21,7 @@ export class UIController {
   private readonly app: AppContext;
 
   syncSgfTextarea(text: string): void {
-    const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+    const sgfTextarea = getSgfTextarea();
     if (sgfTextarea) {
       sgfTextarea.value = text;
     }
