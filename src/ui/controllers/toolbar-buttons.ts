@@ -71,7 +71,13 @@ export class ToolbarButtons {
 
     this.bindSizeButtons();
     this.bindBasicButtons();
-    this.bindGameButtons();
+    this.bindPrevMoveBtn();
+    this.bindNextMoveBtn();
+    this.bindAnswerBtn();
+    this.bindExitSolveBtn();
+    this.bindHistoryBtn();
+    this.bindProblemBtn();
+    this.bindSliderInput();
     this.bindBoardSaveButton();
     this.bindHandicapButton();
     this._markerPalette.bindEvents();
@@ -215,7 +221,7 @@ export class ToolbarButtons {
     });
   }
 
-  private bindGameButtons(): void {
+  private bindPrevMoveBtn(): void {
     this._prevMoveBtn = document.getElementById('btn-prev-move') as HTMLButtonElement | null;
     if (this.prevMoveBtn) {
       this.prevMoveBtn.title = '読み上げ用の手順を1手戻ります（Undoとは別の1手戻る）';
@@ -227,7 +233,9 @@ export class ToolbarButtons {
         this.eventBus.emitUIUpdate();
       }
     });
+  }
 
+  private bindNextMoveBtn(): void {
     this._nextMoveBtn = document.getElementById('btn-next-move') as HTMLButtonElement | null;
     if (this.nextMoveBtn) {
       this.nextMoveBtn.title = '読み上げ用の手順を1手進めます';
@@ -239,7 +247,9 @@ export class ToolbarButtons {
         this.eventBus.emitUIUpdate();
       }
     });
+  }
 
+  private bindAnswerBtn(): void {
     this._answerBtn = document.getElementById('btn-answer') as HTMLButtonElement | null;
     this.answerBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
@@ -259,7 +269,9 @@ export class ToolbarButtons {
 
       this.eventBus.emitUIUpdate();
     });
+  }
 
+  private bindExitSolveBtn(): void {
     this._exitSolveBtn = document.getElementById('btn-exit-solve-edit') as HTMLButtonElement | null;
     this.exitSolveBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
@@ -274,7 +286,9 @@ export class ToolbarButtons {
 
       this.eventBus.emitUIUpdate();
     });
+  }
 
+  private bindHistoryBtn(): void {
     const historyBtn = document.getElementById('btn-history') as HTMLButtonElement | null;
     if (historyBtn) {
       historyBtn.title = '編集・解答の履歴一覧を開き、任意の状態にジャンプします';
@@ -293,7 +307,9 @@ export class ToolbarButtons {
         () => this.store.historyManager.clear()
       );
     });
+  }
 
+  private bindProblemBtn(): void {
     this._problemBtn = document.getElementById('btn-problem') as HTMLButtonElement | null;
     this.problemBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
@@ -317,7 +333,9 @@ export class ToolbarButtons {
         this.renderer.showMessage('問題図に戻しました');
       }
     });
+  }
 
+  private bindSliderInput(): void {
     this.elements.sliderEl?.addEventListener('input', (event) => {
       const target = event.target as HTMLInputElement;
       const value = parseInt(target.value, 10);
