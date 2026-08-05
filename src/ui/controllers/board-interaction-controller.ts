@@ -254,7 +254,7 @@ export class BoardInteractionController {
       const dropPos = this.getPositionFromEvent(event);
       const grabbed = this.uiState.drag.grabbedStone;
       if (
-        this.isValidPosition(dropPos) &&
+        isValidPosition(this.state.boardSize, dropPos) &&
         (dropPos.col !== grabbed.pos.col || dropPos.row !== grabbed.pos.row)
       ) {
         const moved = this.store.moveStone(grabbed.pos, dropPos);
@@ -277,14 +277,10 @@ export class BoardInteractionController {
 
   private placeAtEvent(event: PointerEvent): void {
     const pos = this.position.fromEvent(event);
-    if (!this.isValidPosition(pos)) {
+    if (!isValidPosition(this.state.boardSize, pos)) {
       return;
     }
     this.pointerHandler.handleClick(pos);
-  }
-
-  private isValidPosition(pos: import("../../types.js").Position): boolean {
-    return isValidPosition(this.state.boardSize, pos);
   }
 
   private focusBoard(): void {
@@ -351,7 +347,7 @@ export class BoardInteractionController {
 
     // 押下座標が盤外なら判定しない
     const pos = this.getPositionFromEvent(event);
-    if (!this.isValidPosition(pos)) return;
+    if (!isValidPosition(this.state.boardSize, pos)) return;
 
     // 押下位置に石がなければ掴めない
     const cell = state.board[pos.row]?.[pos.col];

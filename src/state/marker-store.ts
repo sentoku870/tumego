@@ -57,7 +57,7 @@ export class MarkerStore {
   toggleMarker(pos: Position, allowMulti = false): boolean {
     const kind = this.state.activeMarkerKind;
     if (!kind) return false;
-    if (!this.isValidPosition(pos)) return false;
+    if (!isValidPosition(this.state.boardSize, pos)) return false;
     const label = this.state.activeMarkerLabel ?? undefined;
 
     const existing = this.findMarkerAt(pos, kind, label);
@@ -77,13 +77,13 @@ export class MarkerStore {
 
   /** 明示的にマーカーを追加（同種がすでにある場合は何もしない） */
   addMarker(pos: Position, kind: MarkerKind, label?: string): boolean {
-    if (!this.isValidPosition(pos)) return false;
+    if (!isValidPosition(this.state.boardSize, pos)) return false;
     return this.addMarkerAt(pos, kind, label);
   }
 
   /** 指定種別のマーカーを削除。kind を省略すると pos の全マーカーを削除 */
   removeMarker(pos: Position, kind?: MarkerKind, label?: string): boolean {
-    if (!this.isValidPosition(pos)) return false;
+    if (!isValidPosition(this.state.boardSize, pos)) return false;
     if (kind === undefined) {
       const before = this.state.markers.length;
       this.state.markers = this.state.markers.filter(
@@ -206,9 +206,5 @@ export class MarkerStore {
     if (this.state.eraseMode) {
       this.state.eraseMode = false;
     }
-  }
-
-  private isValidPosition(pos: Position): boolean {
-    return isValidPosition(this.state.boardSize, pos);
   }
 }
