@@ -429,7 +429,7 @@ body.horizontal #sgf-controls .sgf-row {
   }
   
   body.horizontal #board-wrapper {
-    max-height: 95vh;
+    max-height: calc(100vh - 32px);
   }
 }
 

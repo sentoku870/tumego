@@ -230,7 +230,7 @@ svg.rotated .move-num {
 
 /* ===== Device specific board sizing ===== */
 body.device-desktop #board-wrapper {
-  max-width: min(95vmin, calc(100vw - 140px));
+  max-width: min(calc(100vh - 40px), calc(100vw - 360px));
 }
 
 body.device-tablet #board-wrapper {
