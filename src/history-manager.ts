@@ -15,7 +15,7 @@ import {
   OperationHistory,
   Position,
 } from "./types.js";
-import { cloneBoard } from "./state/board-utils.js";
+import { cloneBoard, cloneMarkers } from "./state/board-utils.js";
 
 export class HistoryManager implements OperationHistory {
   private snapshots: HistorySnapshot[] = [];
@@ -88,8 +88,8 @@ export class HistoryManager implements OperationHistory {
       capturedCounts: state.capturedCounts
         ? { ...state.capturedCounts }
         : { black: 0, white: 0 },
-      markers: this.cloneMarkers(state.markers ?? []),
-      rootMarkers: this.cloneMarkers(state.rootMarkers ?? []),
+      markers: cloneMarkers(state.markers ?? []),
+      rootMarkers: cloneMarkers(state.rootMarkers ?? []),
       nodeMarkers: this.cloneNodeMarkers(state.nodeMarkers ?? []),
     };
   }
@@ -102,12 +102,8 @@ export class HistoryManager implements OperationHistory {
     return positions.map((pos) => ({ ...pos }));
   }
 
-  private cloneMarkers(markers: BoardMarker[]): BoardMarker[] {
-    return markers.map((m) => ({ pos: { ...m.pos }, kind: m.kind }));
-  }
-
   private cloneNodeMarkers(nodeMarkers: BoardMarker[][]): BoardMarker[][] {
-    return nodeMarkers.map((group) => this.cloneMarkers(group));
+    return nodeMarkers.map((group) => cloneMarkers(group));
   }
 
   private applySnapshot(saved: HistorySnapshotState, currentState: GameState): void {
@@ -138,8 +134,8 @@ export class HistoryManager implements OperationHistory {
     currentState.capturedCounts = saved.capturedCounts
       ? { ...saved.capturedCounts }
       : { black: 0, white: 0 };
-    currentState.markers = this.cloneMarkers(saved.markers ?? []);
-    currentState.rootMarkers = this.cloneMarkers(saved.rootMarkers ?? []);
+    currentState.markers = cloneMarkers(saved.markers ?? []);
+    currentState.rootMarkers = cloneMarkers(saved.rootMarkers ?? []);
     currentState.nodeMarkers = this.cloneNodeMarkers(saved.nodeMarkers ?? []);
   }
 }

@@ -12,7 +12,8 @@ import {
   nextMarkerLetter,
   Position
 } from '../types/index.js';
-import { isValidPosition } from './board-utils.js';
+import { isValidPosition, cloneMarkers } from './board-utils.js';
+
 
 export class MarkerStore {
   constructor(private readonly state: GameState) {}
@@ -113,11 +114,11 @@ export class MarkerStore {
    */
   syncToCurrentNode(): void {
     if (this.state.sgfIndex === 0) {
-      this.state.markers = this.cloneMarkers(this.state.rootMarkers);
+      this.state.markers = cloneMarkers(this.state.rootMarkers);
     } else {
       const slot = this.state.sgfIndex - 1;
       const slotMarkers = this.state.nodeMarkers[slot];
-      this.state.markers = slotMarkers ? this.cloneMarkers(slotMarkers) : [];
+      this.state.markers = slotMarkers ? cloneMarkers(slotMarkers) : [];
     }
   }
 
@@ -185,21 +186,13 @@ export class MarkerStore {
    * sgfIndex === 0 は問題図レベル（rootMarkers）、それ以降は nodeMarkers[sgfIndex - 1]。
    */
   private persistMarkersToCurrentNode(): void {
-    const clone = this.cloneMarkers(this.state.markers);
+    const clone = cloneMarkers(this.state.markers);
     if (this.state.sgfIndex === 0) {
       this.state.rootMarkers = clone;
     } else {
       const slot = this.state.sgfIndex - 1;
       this.state.nodeMarkers[slot] = clone;
     }
-  }
-
-  private cloneMarkers(markers: BoardMarker[]): BoardMarker[] {
-    return markers.map((m) => {
-      const clone: BoardMarker = { pos: { ...m.pos }, kind: m.kind };
-      if (m.label !== undefined) clone.label = m.label;
-      return clone;
-    });
   }
 
   private dispatchDisableEraseModeIfActive(): void {
