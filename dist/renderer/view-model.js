@@ -33,8 +33,9 @@ export class RendererViewModelBuilder {
         this.getPreferences = getPreferences;
     }
     // suppressLastMoveHighlight: true のときは「直前の手ハイライト」を出さない
+    // grabbedStone: 長押しで掴まれている石の交点（null なら未掴み）
     buildBoardModel(options) {
-        var _a;
+        var _a, _b;
         const state = this.store.snapshot;
         const geometry = new RendererGeometry(state.boardSize);
         const prefs = this.getPreferences();
@@ -46,7 +47,7 @@ export class RendererViewModelBuilder {
             geometry,
             stars: this.getStarPositions(state.boardSize),
             coordinates: this.buildCoordinateLabels(geometry),
-            stones: this.buildStoneModels(state.board, geometry),
+            stones: this.buildStoneModels(state.board, geometry, (_a = options === null || options === void 0 ? void 0 : options.grabbedStone) !== null && _a !== void 0 ? _a : null),
             moveNumbers: showMoveNumbers
                 ? this.buildMoveNumberModels(state, geometry, showCapturedStones)
                 : [],
@@ -54,7 +55,7 @@ export class RendererViewModelBuilder {
             lastMoveHighlight: enableLastMoveHighlight
                 ? this.buildLastMoveHighlight(state, geometry)
                 : undefined,
-            markers: showMarkers ? this.buildMarkerModels((_a = state.markers) !== null && _a !== void 0 ? _a : [], geometry) : [],
+            markers: showMarkers ? this.buildMarkerModels((_b = state.markers) !== null && _b !== void 0 ? _b : [], geometry) : [],
             showMarkers,
         };
     }
@@ -91,22 +92,30 @@ export class RendererViewModelBuilder {
             value: state.sgfIndex
         };
     }
-    buildStoneModels(board, geometry) {
+    buildStoneModels(board, geometry, grabbedStone) {
         const stones = [];
         for (let row = 0; row < geometry.boardSize; row++) {
             for (let col = 0; col < geometry.boardSize; col++) {
                 const cellValue = board[row][col];
                 if (cellValue === 0)
                     continue;
+                const isGrabbed = grabbedStone !== null &&
+                    grabbedStone !== undefined &&
+                    grabbedStone.col === col &&
+                    grabbedStone.row === row;
                 const { cx, cy } = geometry.toPixel({ col, row });
-                stones.push({
+                const stone = {
                     position: { col, row },
                     cx,
                     cy,
                     radius: DEFAULT_CONFIG.STONE_RADIUS,
                     fill: cellValue === 1 ? 'var(--black)' : 'var(--white)',
                     strokeWidth: cellValue === 1 ? 0 : 2
-                });
+                };
+                if (isGrabbed) {
+                    stone.grabbed = true;
+                }
+                stones.push(stone);
             }
         }
         return stones;

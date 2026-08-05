@@ -417,3 +417,62 @@ SGF配置で解答を入力したあと、軽く検討しようとすると「�
 ### 注記
 - 変化図・分岐は未実装（Lv4-5 相当のため別タスク）
 - 確定後の編集は SGF選択と完全に同じ挙動（盤面のみ更新、`sgfMoves` 不変）
+
+---
+
+## 2026-08-05 石の長押し移動機能の追加
+
+### 背景
+編集モードで石の置き間違いを修正する際、「消去 → 再配置」の 2 アクションが必要で、特に複数石を扱う局面では手間だった。
+ユーザーから「長押しで石を掴んで移動できるようにしてほしい」との要望があり、1 石単位の長押し移動機能を追加。
+
+### 実装内容
+
+**コア機能**
+- `src/state/game-store.ts`: `moveStone(from, to)` メソッド追加
+  - `directRemove` + `directPlace` の合成、移動先の上書きに対応
+  - 履歴は記録しない（既存方針「細かい編集は履歴に積まない」と整合）
+- `src/types/state.ts`: `DragState` に `grabbedStone: GrabbedStoneInfo | null` を追加
+- `src/ui/state/ui-interaction-state.ts`: `releaseGrabbedStone()` メソッド追加
+
+**長押し検出**
+- `src/ui/controllers/long-press-detector.ts`（新規）: タイマー管理 + 移動量しきい値判定（400ms / 10px）
+- `src/ui/controllers/board-input-state-machine.ts`: `evaluateLongPress()` を追加（編集モード・石がある交点でのみ `grabStone` 判定）
+- `src/ui/controllers/board-interaction-controller.ts`: 
+  - `pointerdown` 時に長押しタイマーを並行起動
+  - `pointermove` 中の距離超過でタイマーキャンセル（ドラッグ配置動作を優先）
+  - `pointerend` で掴みコミット / 掴みキャンセル
+  - ESC キーハンドラで掴みキャンセル
+
+**視覚フィードバック**
+- `src/types/render.ts`: `StoneRenderInfo` に `grabbed?: boolean` を追加
+- `src/renderer/view-model.ts`: `buildBoardModel` のオプションに `grabbedStone` を追加
+- `src/renderer/renderer.ts`: `UIInteractionState` をオプション受け取り、render 時に掴み石をハイライト
+- `src/renderer/drawers/stones-drawer.ts`: `.grabbed-stone` クラスを付与
+- `board.css`: `.grabbed-stone` スタイル（金色の枠線 + ドロップシャドウ）
+
+### 動作仕様
+
+| 条件 | 挙動 |
+|---|---|
+| 編集モード + 石がある交点 + 400ms 長押し + 移動 < 10px | 石を掴む（ハイライト表示） |
+| 掴んだ後に同じ交点にドロップ | 何もしない（キャンセル） |
+| 掴んだ後に別の交点にドロップ | `moveStone(from, to)` で移動コミット |
+| 掴んだ後に既存石がある交点にドロップ | 上書き（`directPlace` 相当） |
+| 盤外でドロップ | キャンセル（掴み解除） |
+| ESC キー | 掴みキャンセル |
+| 解答モード / erase / marker モード | 掴まない（既存動作を維持） |
+
+### テスト
+- `tests/ui/long-press-detector.test.js` (8 ケース): 閾値・キャンセル・距離監視
+- `tests/board-input-state-machine.test.js` (+7 ケース): `evaluateLongPress` の各条件
+- `tests/state/game-store-move-stone.test.js` (12 ケース): 移動の正常系・異常系
+- `tests/ui/board-interaction-controller.test.js` (+15 ケース): 統合シナリオ（pointerdown → 長押し → grab → drop → commit）
+
+### 検証結果
+- 937/937 テスト緑（前回 760 → 937、+44 新規テスト +133 拡張）
+- `npm run build` 緑
+
+### 注記
+- 複数石の同時移動は未実装（Lv5 相当のため別タスク）
+- 履歴には「移動」を記録しない（既存方針と整合）

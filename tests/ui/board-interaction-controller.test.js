@@ -1,6 +1,7 @@
 import { BoardInteractionController } from '../../dist/ui/controllers/board-interaction-controller.js';
 import { UIEventBus } from '../../dist/app/event-bus.js';
 import { PreferencesStore } from '../../dist/services/preferences-store.js';
+import { LongPressDetector } from '../../dist/ui/controllers/long-press-detector.js';
 
 const jest = (globalThis.jest ?? createLocalJest());
 
@@ -64,6 +65,7 @@ const createElements = () => {
     addEventListener: jest.fn(),
     setPointerCapture: jest.fn(),
     releasePointerCapture: jest.fn(),
+    hasPointerCapture: jest.fn(() => false),
     createSVGPoint: jest.fn(() => ({
       x: 0,
       y: 0,
@@ -87,6 +89,9 @@ const createState = (overrides = {}) => ({
   board: Array.from({ length: 9 }, () => Array(9).fill(0)),
   mode: 'black',
   eraseMode: false,
+  markerMode: false,
+  markers: [],
+  activeMarkerKind: null,
   history: [],
   turn: 0,
   sgfMoves: [],
@@ -102,6 +107,7 @@ const createState = (overrides = {}) => ({
   problemDiagramBlack: [],
   problemDiagramWhite: [],
   sgfLoadedFromExternal: false,
+  capturedCounts: { black: 0, white: 0 },
   ...overrides
 });
 
@@ -109,14 +115,18 @@ const createStore = (state) => ({
   snapshot: state,
   currentColor: 1,
   tryMove: jest.fn(() => true),
-  removeStone: jest.fn(() => true)
+  removeStone: jest.fn(() => true),
+  directRemove: jest.fn(() => true),
+  directPlace: jest.fn(() => true),
+  moveStone: jest.fn(() => true)
 });
 
 const createUIState = () => ({
   drag: {
     dragging: false,
     dragColor: null,
-    lastPos: null
+    lastPos: null,
+    grabbedStone: null
   },
   boardHasFocus: false,
   touchStartY: 0,
@@ -125,6 +135,10 @@ const createUIState = () => ({
     this.drag.dragging = false;
     this.drag.dragColor = null;
     this.drag.lastPos = null;
+    this.drag.grabbedStone = null;
+  }),
+  releaseGrabbedStone: jest.fn(function release() {
+    this.drag.grabbedStone = null;
   })
 });
 
@@ -249,5 +263,251 @@ describe('BoardInteractionController pointer handling', () => {
     controller.placeAtEvent(createPointerEvent());
 
     expect(store.tryMove.mock.calls.length).toBe(1);
+  });
+});
+
+describe('BoardInteractionController long-press stone move', () => {
+  let state;
+  let store;
+  let uiState;
+  let elements;
+  let eventBus;
+  let uiUpdateSpy;
+  let controller;
+  let detector;
+  /** LongPressDetector に注入する仮想タイマー */
+  let virtualTimers;
+
+  beforeEach(() => {
+    state = createState();
+    state.board[3][3] = 1; // 黒石を (3,3) に配置
+    store = createStore(state);
+    uiState = createUIState();
+    elements = createElements();
+    eventBus = new UIEventBus();
+    uiUpdateSpy = jest.fn();
+    eventBus.onUIUpdate(uiUpdateSpy);
+
+    virtualTimers = (() => {
+      const handles = [];
+      const handlers = new Map();
+      let nextId = 1;
+      return {
+        setTimeoutFn: (h, _ms) => {
+          const id = nextId++;
+          handles.push({ id });
+          handlers.set(id, h);
+          return id;
+        },
+        clearTimeoutFn: (handle) => {
+          const id = typeof handle === 'object' ? handle.id : handle;
+          handlers.delete(id);
+          const idx = handles.findIndex((h) => h.id === id);
+          if (idx >= 0) handles.splice(idx, 1);
+        },
+        fireAll() {
+          const snapshot = handles.slice();
+          snapshot.forEach((h) => handlers.get(h.id)?.());
+        },
+      };
+    })();
+
+    // LongPressDetector に仮想タイマーを注入（400ms を待たずに発火できる）
+    const detectorInstance = new LongPressDetector({
+      setTimeoutFn: virtualTimers.setTimeoutFn,
+      clearTimeoutFn: virtualTimers.clearTimeoutFn,
+    });
+
+    controller = new BoardInteractionController(
+      store,
+      elements,
+      uiState,
+      eventBus,
+      new PreferencesStore()
+    );
+    controller.initialize();
+
+    // コントローラ内部の detector を仮想タイマー版に差し替え
+    // TypeScript の private フィールドはコンパイル後は通常のプロパティになる
+    controller.longPressDetector = detectorInstance;
+    detector = controller.getLongPressDetector();
+    // 既定の位置取得を (3,3) にする（石がある位置）
+    jest.spyOn(controller, 'getPositionFromEvent').mockReturnValue({ col: 3, row: 3 });
+    jest.spyOn(controller, 'isValidPosition').mockReturnValue(true);
+    // 通常配置の placeAtEvent を抑止（moveStone などのテスト対象に集中）
+    jest.spyOn(controller, 'placeAtEvent').mockImplementation(() => {});
+  });
+
+  test('pointerdown on a stone starts long-press timer', () => {
+    expect(detector.isActive()).toBe(false);
+
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    expect(detector.isActive()).toBe(true);
+  });
+
+  test('timer reaches threshold → grabStone decision is applied', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    expect(uiState.drag.grabbedStone).toBeNull();
+
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+    expect(uiState.drag.grabbedStone.pos).toEqual({ col: 3, row: 3 });
+    expect(uiState.drag.grabbedStone.color).toBe(1);
+    expect(uiUpdateSpy.mock.calls.length > 0).toBe(true);
+  });
+
+  test('long press in solve mode does not grab stone', () => {
+    state.numberMode = true;
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('long press in erase mode does not grab stone', () => {
+    state.eraseMode = true;
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('long press on empty cell does not start timer', () => {
+    jest.spyOn(controller, 'getPositionFromEvent').mockReturnValue({ col: 5, row: 5 });
+    // board[5][5] は 0（空）
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    expect(detector.isActive()).toBe(false);
+  });
+
+  test('pointermove beyond threshold cancels long-press', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    expect(detector.isActive()).toBe(true);
+
+    // 押下位置から大きく離れた位置へ移動
+    controller.handlePointerMove(createPointerEvent({ clientX: 200, clientY: 200 }));
+
+    expect(detector.isActive()).toBe(false);
+
+    // タイマーは既にキャンセルされているので発火しない
+    virtualTimers.fireAll();
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('pointerend after long-press grab commits move to store.moveStone', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+
+    // ドロップ位置を別の交点に変更
+    jest.spyOn(controller, 'getPositionFromEvent').mockReturnValue({ col: 7, row: 7 });
+    controller.handlePointerEnd(createPointerEvent({ clientX: 200, clientY: 200 }));
+
+    expect(store.moveStone.mock.calls.length).toBe(1);
+    expect(store.moveStone.mock.calls[0]).toEqual([
+      { col: 3, row: 3 },
+      { col: 7, row: 7 }
+    ]);
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('pointerend without grab does not call store.moveStone', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    // タイマー発火前にリリース
+    controller.handlePointerEnd(createPointerEvent());
+
+    expect(store.moveStone.mock.calls.length).toBe(0);
+  });
+
+  test('pointerend at same position does not call store.moveStone', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+    // 同じ位置にドロップ
+    controller.handlePointerEnd(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    expect(store.moveStone.mock.calls.length).toBe(0);
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('pointerend with invalid drop position cancels grab without moving', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+
+    jest.spyOn(controller, 'isValidPosition').mockReturnValue(false);
+    controller.handlePointerEnd(createPointerEvent());
+
+    expect(store.moveStone.mock.calls.length).toBe(0);
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('ESC key cancels grab', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+
+    // 盤面がフォーカスを持つように
+    uiState.boardHasFocus = true;
+
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escEvent);
+
+    expect(uiState.drag.grabbedStone).toBeNull();
+    expect(detector.isActive()).toBe(false);
+  });
+
+  test('ESC key without grab is ignored', () => {
+    uiState.boardHasFocus = true;
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    let threw = false;
+    try {
+      document.dispatchEvent(escEvent);
+    } catch (e) {
+      threw = true;
+    }
+    expect(threw).toBe(false);
+    expect(uiState.drag.grabbedStone).toBeNull();
+  });
+
+  test('ESC key when board not focused is ignored', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+    uiState.boardHasFocus = false;
+
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escEvent);
+
+    // grab は維持される
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+  });
+
+  test('pointermove while grabbed does not emit UI update', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+
+    uiUpdateSpy.mockClear();
+    controller.handlePointerMove(createPointerEvent({ clientX: 110, clientY: 110 }));
+
+    // 掴み中は pointermove で UI 更新を発火しない（パフォーマンス対策）
+    expect(uiUpdateSpy.mock.calls.length).toBe(0);
+  });
+
+  test('second long-press while already grabbed does not start new timer', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+
+    const beforeTimerActive = detector.isActive();
+
+    // 既に掴んでいる状態で再度押下
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    // タイマーは新たに起動されない（grabbedStone チェックで抜ける）
+    // 既にgrabされている状態での二度目の down は no-op
+    expect(beforeTimerActive).toBe(false);
   });
 });

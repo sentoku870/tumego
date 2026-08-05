@@ -28,6 +28,8 @@ export interface StoneRenderInfo {
   readonly radius: number;
   readonly fill: string;
   readonly strokeWidth: number;
+  /** 長押しで掴まれている石に true を設定（ハイライト表示用） */
+  readonly grabbed?: boolean;
 }
 
 export interface MoveNumberRenderInfo {

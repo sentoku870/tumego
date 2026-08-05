@@ -6,10 +6,11 @@ import { StonesDrawer } from './drawers/stones-drawer.js';
 import { HighlightDrawer } from './drawers/highlight-drawer.js';
 import { MarkersDrawer } from './drawers/markers-drawer.js';
 export class Renderer {
-    constructor(store, elements, getPreferences) {
+    constructor(store, elements, getPreferences, uiState) {
         this.store = store;
         this.elements = elements;
         this.getPreferences = getPreferences;
+        this.uiState = uiState;
         this.viewModelBuilder = new RendererViewModelBuilder(store, getPreferences);
         this.factory = new SvgElementFactory(elements.svg);
         this.boardDrawer = new BoardDrawer(this.factory);
@@ -21,7 +22,12 @@ export class Renderer {
     // 通常は renderer.render() のままでOK
     // 盤面保存時だけ renderer.render({ suppressLastMoveHighlight: true }) を使う
     render(options) {
-        const model = this.viewModelBuilder.buildBoardModel(options);
+        var _a, _b, _c;
+        const grabbedStone = (_c = (_b = (_a = this.uiState) === null || _a === void 0 ? void 0 : _a.drag.grabbedStone) === null || _b === void 0 ? void 0 : _b.pos) !== null && _c !== void 0 ? _c : null;
+        const model = this.viewModelBuilder.buildBoardModel({
+            ...options,
+            grabbedStone,
+        });
         const size = model.geometry.viewBoxSize;
         this.elements.svg.innerHTML = '';
         this.elements.svg.setAttribute('viewBox', `0 0 ${size} ${size}`);

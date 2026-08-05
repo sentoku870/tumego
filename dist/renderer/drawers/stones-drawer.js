@@ -9,11 +9,12 @@ export class StonesDrawer {
     }
     drawStones(stones) {
         stones.forEach(stone => {
+            const className = stone.grabbed ? 'stone grabbed-stone' : 'stone';
             this.factory.append('circle', {
                 cx: stone.cx.toString(),
                 cy: stone.cy.toString(),
                 r: stone.radius.toString(),
-                class: 'stone',
+                class: className,
                 fill: stone.fill,
                 stroke: '#000',
                 'stroke-width': stone.strokeWidth.toString()
