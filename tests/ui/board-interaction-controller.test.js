@@ -223,16 +223,21 @@ describe('BoardInteractionController pointer handling', () => {
     expect(placeSpy.mock.calls.length).toBe(1);
   });
 
-  test('in solve mode, stale markerMode flag is ignored and tryMove is called', () => {
-    // Reset the placeAtEvent spy so the real implementation runs.
+  test('in solve mode, markerMode flag is honored and toggleMarker is called via store', () => {
+    // マーカーモードは解答モード中でも優先される（PR #161 の仕様）
     placeSpy.mockRestore();
     state.numberMode = true;
     state.markerMode = true;
+    state.activeMarkerKind = 'CR';
+    state.markers = [];
+    const toggleMarkerMock = jest.fn(() => true);
+    store.toggleMarker = toggleMarkerMock;
     jest.spyOn(controller, 'isValidPosition').mockReturnValue(true);
 
     controller.placeAtEvent(createPointerEvent());
 
-    expect(store.tryMove.mock.calls.length).toBe(1);
+    expect(toggleMarkerMock.mock.calls.length).toBe(1);
+    expect(store.tryMove.mock.calls.length).toBe(0);
   });
 
   test('in solve mode, stale eraseMode flag is ignored and tryMove is called', () => {
