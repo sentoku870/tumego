@@ -15,8 +15,22 @@ import { getSgfTextarea } from '../../utils/dom-elements.js';
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
 
+interface FileMenuElements {
+  fileBtn: HTMLButtonElement | null;
+  fileDropdown: HTMLElement | null;
+  fileSelectBtn: HTMLElement | null;
+  fileLoadBtn: HTMLElement | null;
+  fileCopyBtn: HTMLElement | null;
+  fileFinalizeBtn: HTMLElement | null;
+  fileSaveBtn: HTMLElement | null;
+  fileQRBtn: HTMLElement | null;
+  fileDiscordBtn: HTMLElement | null;
+  sgfInput: HTMLInputElement | null;
+}
+
 export class FileMenuController {
   private readonly headerEditor: HeaderEditor;
+  private elements: FileMenuElements | null = null;
 
   constructor(
     private readonly dropdownManager: DropdownManager,
@@ -34,46 +48,69 @@ export class FileMenuController {
   }
 
   initialize(): void {
-    const fileBtn = document.getElementById('btn-file') as HTMLButtonElement | null;
-    const fileDropdown = document.getElementById('file-dropdown') as HTMLElement | null;
-    const fileSelectBtn = document.getElementById('btn-file-select');
-    const fileLoadBtn = document.getElementById('btn-file-load');
-    const fileCopyBtn = document.getElementById('btn-file-copy');
-    const fileFinalizeBtn = document.getElementById('btn-file-finalize');
-    const fileSaveBtn = document.getElementById('btn-file-save');
-    const fileQRBtn = document.getElementById('btn-file-qr');
-    const fileDiscordBtn = document.getElementById('btn-file-discord');
-    const sgfInput = document.getElementById('sgf-input') as HTMLInputElement | null;
+    this.elements = this.cacheElements();
+    const els = this.elements;
 
-    fileBtn?.addEventListener('click', (event) => {
+    this.bindDropdownControl(els);
+    this.bindFileSelect(els);
+    this.bindFileLoad(els);
+    this.bindCopy(els);
+    this.bindFinalize(els);
+    this.bindSave(els);
+    this.bindQR(els);
+    this.bindDiscord(els);
+
+    this.headerEditor.bindEvents();
+    this.headerEditor.populateFields();
+  }
+
+  private cacheElements(): FileMenuElements {
+    return {
+      fileBtn: document.getElementById('btn-file') as HTMLButtonElement | null,
+      fileDropdown: document.getElementById('file-dropdown') as HTMLElement | null,
+      fileSelectBtn: document.getElementById('btn-file-select'),
+      fileLoadBtn: document.getElementById('btn-file-load'),
+      fileCopyBtn: document.getElementById('btn-file-copy'),
+      fileFinalizeBtn: document.getElementById('btn-file-finalize'),
+      fileSaveBtn: document.getElementById('btn-file-save'),
+      fileQRBtn: document.getElementById('btn-file-qr'),
+      fileDiscordBtn: document.getElementById('btn-file-discord'),
+      sgfInput: document.getElementById('sgf-input') as HTMLInputElement | null,
+    };
+  }
+
+  private bindDropdownControl(els: FileMenuElements): void {
+    els.fileBtn?.addEventListener('click', (event) => {
       event.stopPropagation();
       const featureDropdown = document.getElementById('feature-dropdown') as HTMLElement | null;
-      const isOpen = fileDropdown?.classList.contains('show');
+      const isOpen = els.fileDropdown?.classList.contains('show');
       this.dropdownManager.hide(featureDropdown);
       this.headerEditor.populateFields();
-      if (fileDropdown && fileBtn) {
+      if (els.fileDropdown && els.fileBtn) {
         if (isOpen) {
-          this.dropdownManager.hide(fileDropdown);
+          this.dropdownManager.hide(els.fileDropdown);
         } else {
-          this.dropdownManager.open(fileBtn, fileDropdown);
+          this.dropdownManager.open(els.fileBtn, els.fileDropdown);
         }
       }
     });
 
     document.addEventListener('click', () => {
-      this.dropdownManager.hide(fileDropdown);
+      this.dropdownManager.hide(els.fileDropdown);
     });
 
-    fileDropdown?.addEventListener('click', (event) => {
+    els.fileDropdown?.addEventListener('click', (event) => {
       event.stopPropagation();
     });
+  }
 
-    fileSelectBtn?.addEventListener('click', () => {
-      sgfInput?.click();
-      this.dropdownManager.hide(fileDropdown);
+  private bindFileSelect(els: FileMenuElements): void {
+    els.fileSelectBtn?.addEventListener('click', () => {
+      els.sgfInput?.click();
+      this.dropdownManager.hide(els.fileDropdown);
     });
 
-    sgfInput?.addEventListener('change', async (event) => {
+    els.sgfInput?.addEventListener('change', async (event) => {
       const target = event.target as HTMLInputElement;
       const file = target.files?.[0];
       if (!file) {
@@ -89,32 +126,41 @@ export class FileMenuController {
         this.renderer.showMessage('SGF読み込みに失敗しました');
       }
     });
+  }
 
-    fileLoadBtn?.addEventListener('click', async () => {
-      this.dropdownManager.hide(fileDropdown);
+  private bindFileLoad(els: FileMenuElements): void {
+    els.fileLoadBtn?.addEventListener('click', async () => {
+      this.dropdownManager.hide(els.fileDropdown);
       try {
         const result = await this.sgfService.loadFromClipboard();
         this.applySgf(result);
         this.renderer.showMessage(`クリップボードからSGF読み込み完了 (${result.moves.length}手)`);
       } catch (error) {
-        const sgfTextarea = getSgfTextarea();
-        if (sgfTextarea?.value.trim()) {
-          try {
-            const parsed = this.sgfService.parse(sgfTextarea.value.trim());
-            this.applySgf(parsed);
-            this.renderer.showMessage('テキストエリアからSGF読み込み完了');
-          } catch (parseError) {
-            console.error('SGF文字列解析失敗', parseError);
-            this.renderer.showMessage('SGF読み込みに失敗しました');
-          }
-        } else {
-          this.renderer.showMessage('クリップボードまたはテキストエリアにSGFがありません');
-        }
+        this.handleClipboardLoadFallback();
       }
     });
+  }
 
-    fileCopyBtn?.addEventListener('click', async () => {
-      this.dropdownManager.hide(fileDropdown);
+  /** クリップボードからの読込に失敗したとき、テキストエリア内容を試す */
+  private handleClipboardLoadFallback(): void {
+    const sgfTextarea = getSgfTextarea();
+    if (sgfTextarea?.value.trim()) {
+      try {
+        const parsed = this.sgfService.parse(sgfTextarea.value.trim());
+        this.applySgf(parsed);
+        this.renderer.showMessage('テキストエリアからSGF読み込み完了');
+      } catch (parseError) {
+        console.error('SGF文字列解析失敗', parseError);
+        this.renderer.showMessage('SGF読み込みに失敗しました');
+      }
+    } else {
+      this.renderer.showMessage('クリップボードまたはテキストエリアにSGFがありません');
+    }
+  }
+
+  private bindCopy(els: FileMenuElements): void {
+    els.fileCopyBtn?.addEventListener('click', async () => {
+      this.dropdownManager.hide(els.fileDropdown);
       const sgfData = this.sgfService.export();
       const sgfTextarea = getSgfTextarea();
       if (sgfTextarea) {
@@ -128,9 +174,11 @@ export class FileMenuController {
         this.renderer.showMessage('SGF をテキストエリアに表示しました');
       }
     });
+  }
 
-    fileFinalizeBtn?.addEventListener('click', () => {
-      this.dropdownManager.hide(fileDropdown);
+  private bindFinalize(els: FileMenuElements): void {
+    els.fileFinalizeBtn?.addEventListener('click', () => {
+      this.dropdownManager.hide(els.fileDropdown);
       if (!this.store.snapshot.numberMode) {
         this.renderer.showMessage('解答モード中のみ確定できます');
         return;
@@ -152,9 +200,11 @@ export class FileMenuController {
         this.renderer.showMessage('SGF確定に失敗しました');
       }
     });
+  }
 
-    fileSaveBtn?.addEventListener('click', async () => {
-      this.dropdownManager.hide(fileDropdown);
+  private bindSave(els: FileMenuElements): void {
+    els.fileSaveBtn?.addEventListener('click', async () => {
+      this.dropdownManager.hide(els.fileDropdown);
       const sgfData = this.sgfService.export();
 
       try {
@@ -165,19 +215,20 @@ export class FileMenuController {
         this.renderer.showMessage('SGFファイルの保存に失敗しました');
       }
     });
+  }
 
-    fileQRBtn?.addEventListener('click', () => {
-      this.dropdownManager.hide(fileDropdown);
+  private bindQR(els: FileMenuElements): void {
+    els.fileQRBtn?.addEventListener('click', () => {
+      this.dropdownManager.hide(els.fileDropdown);
       this.qrManager.createSGFQRCode(this.sgfService.state);
     });
+  }
 
-    fileDiscordBtn?.addEventListener('click', () => {
-      this.dropdownManager.hide(fileDropdown);
+  private bindDiscord(els: FileMenuElements): void {
+    els.fileDiscordBtn?.addEventListener('click', () => {
+      this.dropdownManager.hide(els.fileDropdown);
       this.qrManager.createDiscordShareLink(this.sgfService.state);
     });
-
-    this.headerEditor.bindEvents();
-    this.headerEditor.populateFields();
   }
 
   private applySgf(result: SGFParseResult): void {
