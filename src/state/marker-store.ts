@@ -42,12 +42,19 @@ export class MarkerStore {
   // 公開: マーカーモードとアクティブ種別の制御
   // ============================================================
 
-  /** マーカーモードのオン/オフとアクティブ種別をまとめて切り替える */
-  setMarkerMode(kind: MarkerKind | null, label: string | null = null): void {
+  /**
+   * マーカーモードのオン/オフとアクティブ種別をまとめて切り替える。
+   *
+   * 副作用: \`state.eraseMode\` が true の場合は自動的に false へ戻す
+   * （マーカーモードと消去モードは排他。両方 ON は UI 不整合になるため）。
+   */
+  setMarkerModeDisablingErase(kind: MarkerKind | null, label: string | null = null): void {
     this.state.activeMarkerKind = kind;
     this.state.activeMarkerLabel = kind === 'LB' ? label : null;
     this.state.markerMode = kind !== null;
-    this.dispatchDisableEraseModeIfActive();
+    if (this.state.eraseMode) {
+      this.state.eraseMode = false;
+    }
   }
 
   // ============================================================
@@ -145,6 +152,14 @@ export class MarkerStore {
     );
   }
 
+  /**
+   * 指定種別のマーカーを pos に追加する。
+   *
+   * 副作用:
+   * - 永続スロット (rootMarkers / nodeMarkers) へ書き戻す
+   * - LB 種別のとき \`activeMarkerLabel\` を次の文字へ自動進行
+   *   （同じ文字の連続配置を防ぐ）
+   */
   private addMarkerAt(pos: Position, kind: MarkerKind, label?: string): boolean {
     const exists = this.state.markers.some(
       (m) =>
@@ -158,7 +173,6 @@ export class MarkerStore {
     if (label !== undefined) marker.label = label;
     this.state.markers.push(marker);
     this.persistMarkersToCurrentNode();
-    // LB 種別は配置ごとに次の文字へ自動進行（同じ文字の連続使用を防ぐ）
     if (kind === 'LB' && label) {
       this.state.activeMarkerLabel = nextMarkerLetter(label);
     }
@@ -195,9 +209,7 @@ export class MarkerStore {
     }
   }
 
-  private dispatchDisableEraseModeIfActive(): void {
-    if (this.state.eraseMode) {
-      this.state.eraseMode = false;
-    }
+  private isValidPosition(pos: Position): boolean {
+    return isValidPosition(this.state.boardSize, pos);
   }
 }
