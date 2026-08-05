@@ -53,8 +53,6 @@ export class UIController {
     eventBus.emitUIUpdate();
     eventBus.emitAnswerButtonUpdate();
 
-    controllers.toolbar.updateAnswerButtonDisplay();
-
     store.historyManager.clear();
 
     const urlResult = sgfService.loadFromURL();
