@@ -6,6 +6,7 @@ import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
+import { OutsideClickListener } from '../../services/outside-click-listener.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { AnswerCopy } from './feature-menu/answer-copy.js';
@@ -16,6 +17,7 @@ export class FeatureMenuController {
   private isHorizontal = document.body.classList.contains('horizontal');
   private copyAnswerButton: HTMLButtonElement | null = null;
   private readonly answerCopy: AnswerCopy;
+  private unsubscribeOutsideClick: (() => void) | null = null;
 
   constructor(
     private readonly dropdownManager: DropdownManager,
@@ -53,9 +55,13 @@ export class FeatureMenuController {
       }
     });
 
-    document.addEventListener('click', () => {
-      this.dropdownManager.hide(featureDropdown);
-    });
+    if (featureDropdown) {
+      const listener = new OutsideClickListener();
+      this.unsubscribeOutsideClick = listener.subscribe(
+        [featureDropdown],
+        () => this.dropdownManager.hide(featureDropdown)
+      );
+    }
 
     featureDropdown?.addEventListener('click', (event) => {
       event.stopPropagation();

@@ -7,6 +7,7 @@ import { GameStore } from '../../../state/game-store.js';
 import { UIEventBus } from '../../../app/event-bus.js';
 import { DropdownManager } from '../dropdown-manager.js';
 import { MarkerKind, MARKER_LETTER_SEQUENCE } from '../../../types.js';
+import { OutsideClickListener } from '../../../services/outside-click-listener.js';
 
 const MARKER_KINDS: MarkerKind[] = ['CR', 'TR', 'SQ', 'MA', 'LB'];
 const MARKER_GLYPHS: Record<MarkerKind, string> = {
@@ -73,22 +74,17 @@ export class ToolbarMarkerPalette {
     });
 
     // パレット外クリックで閉じる
-    if (this.__markerBtn && !this.unsubscribeDocument) {
+    if (this.__markerBtn && this.__markerDropdown && !this.unsubscribeDocument) {
       const btn = this.__markerBtn;
       const dropdown = this.__markerDropdown;
-      const documentHandler = (event: MouseEvent) => {
-        if (!dropdown) return;
-        if (!dropdown.classList.contains('show')) return;
-        const target = event.target as Node | null;
-        if (target && (dropdown.contains(target) || btn.contains(target))) {
-          return;
+      const listener = new OutsideClickListener();
+      this.unsubscribeDocument = listener.subscribe(
+        [dropdown, btn],
+        () => {
+          if (!dropdown.classList.contains('show')) return;
+          this.dropdownManager.hide(dropdown);
         }
-        this.dropdownManager.hide(dropdown);
-      };
-      document.addEventListener('click', documentHandler);
-      this.unsubscribeDocument = () => {
-        document.removeEventListener('click', documentHandler);
-      };
+      );
     }
 
     // ○△□× を選んだとき: パレットは閉じず、選択種別だけ切り替える
