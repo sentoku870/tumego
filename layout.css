@@ -170,6 +170,23 @@ body:not(.horizontal) .msg {
   grid-auto-rows: minmax(48px, auto);
 }
 
+/* ===== SGF行1 のボタン位置を固定する =====
+   「黒先」「マーカー」は編集・解答どちらのモードでも常に表示されるので
+   CSS order で位置 3-4 に固定する。編集モードでは「黒配置」「白配置」が
+   位置 1-2 に、解答モードでは「1手戻る」「1手進む」が位置 1-2 に入る。 */
+#btn-black,
+#btn-prev-move {
+  order: 1;
+}
+#btn-white,
+#btn-next-move {
+  order: 2;
+}
+#btn-answer,
+.marker-menu {
+  order: 3;
+}
+
 #sgf-input {
   display: none;
 }

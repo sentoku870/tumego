@@ -1,4 +1,3 @@
-import { HandicapDialog } from './feature-menu/handicap-dialog.js';
 import { AnswerCopy } from './feature-menu/answer-copy.js';
 export class FeatureMenuController {
     constructor(dropdownManager, renderer, elements, store, sgfService, eventBus) {
@@ -9,7 +8,6 @@ export class FeatureMenuController {
         this.eventBus = eventBus;
         this.isHorizontal = document.body.classList.contains('horizontal');
         this.copyAnswerButton = null;
-        this.handicapDialog = new HandicapDialog(store, renderer, eventBus);
         this.answerCopy = new AnswerCopy(store, renderer, sgfService);
     }
     initialize() {
@@ -18,7 +16,6 @@ export class FeatureMenuController {
         const featureDropdown = document.getElementById('feature-dropdown');
         const featureLayoutBtn = document.getElementById('btn-feature-layout');
         const featureRotateBtn = document.getElementById('btn-feature-rotate');
-        const featureHandicapBtn = document.getElementById('btn-feature-handicap');
         this.copyAnswerButton = document.getElementById('feature-copy-answer-sequence');
         if (featureLayoutBtn) {
             featureLayoutBtn.textContent = this.isHorizontal ? '縦レイアウト' : '横レイアウト';
@@ -49,10 +46,6 @@ export class FeatureMenuController {
         featureRotateBtn === null || featureRotateBtn === void 0 ? void 0 : featureRotateBtn.addEventListener('click', () => {
             this.rotateBoard();
             this.dropdownManager.hide(featureDropdown);
-        });
-        featureHandicapBtn === null || featureHandicapBtn === void 0 ? void 0 : featureHandicapBtn.addEventListener('click', () => {
-            this.dropdownManager.hide(featureDropdown);
-            this.handicapDialog.show();
         });
         (_a = this.copyAnswerButton) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
             this.answerCopy.copy();

@@ -19,7 +19,7 @@ export class ToolbarButtons {
     get markerPaletteBtns() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerPaletteBtns) !== null && _b !== void 0 ? _b : {}; }
     get markerLetterBtn() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerLetterBtn) !== null && _b !== void 0 ? _b : null; }
     get markerClearBtn() { var _a, _b; return (_b = (_a = this._markerPalette) === null || _a === void 0 ? void 0 : _a._markerClearBtn) !== null && _b !== void 0 ? _b : null; }
-    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager) {
+    constructor(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog) {
         this.store = store;
         this.renderer = renderer;
         this.boardCapture = boardCapture;
@@ -27,6 +27,7 @@ export class ToolbarButtons {
         this.elements = elements;
         this.eventBus = eventBus;
         this.dropdownManager = dropdownManager;
+        this.handicapDialog = handicapDialog;
         this._clearBtn = null;
         this._problemBtn = null;
         this._answerBtn = null;
@@ -47,6 +48,7 @@ export class ToolbarButtons {
         this.bindBasicButtons();
         this.bindGameButtons();
         this.bindBoardSaveButton();
+        this.bindHandicapButton();
         this._markerPalette.bindEvents();
         this.unsubscribeFromEventBus = this.eventBus.onEraseModeDisable(() => {
             this.dispatchDisableEraseMode();
@@ -289,6 +291,12 @@ export class ToolbarButtons {
                 const message = error instanceof Error ? error.message : String(error);
                 alert(`盤面保存に失敗しました: ${message}`);
             });
+        });
+    }
+    bindHandicapButton() {
+        const handicapBtn = document.getElementById('btn-handicap');
+        handicapBtn === null || handicapBtn === void 0 ? void 0 : handicapBtn.addEventListener('click', () => {
+            this.handicapDialog.show();
         });
     }
     setMode(mode, buttonElement) {

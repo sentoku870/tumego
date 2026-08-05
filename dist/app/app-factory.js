@@ -17,6 +17,7 @@ import { ToolbarController } from '../ui/controllers/toolbar-controller.js';
 import { FeatureMenuController } from '../ui/controllers/feature-menu-controller.js';
 import { FileMenuController } from '../ui/controllers/file-menu-controller.js';
 import { SettingsController } from '../ui/controllers/settings-controller.js';
+import { HandicapDialog } from '../ui/controllers/feature-menu/handicap-dialog.js';
 import { UIEventBus } from './event-bus.js';
 import { UIUpdateCoordinator } from './ui-update-coordinator.js';
 /**
@@ -56,7 +57,8 @@ export class AppFactory {
         const sgfShare = new SGFShare(sgfParser);
         const qrManager = new QRManager(sgfParser, sgfShare);
         const sgfService = new SGFService(sgfParser, store, sgfIO, sgfShare);
-        const toolbar = new ToolbarController(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager);
+        const handicapDialog = new HandicapDialog(store, renderer, eventBus);
+        const toolbar = new ToolbarController(store, renderer, boardCapture, sgfService, elements, eventBus, preferences, dropdownManager, handicapDialog);
         const board = new BoardInteractionController(store, elements, uiState, eventBus, preferences, () => toolbar.closeMarkerPalette());
         const feature = new FeatureMenuController(dropdownManager, renderer, elements, store, sgfService, eventBus);
         const file = new FileMenuController(dropdownManager, sgfService, renderer, qrManager, store, eventBus);
