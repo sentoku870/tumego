@@ -276,6 +276,10 @@ export class ModeOperations {
         this.state.problemDiagramWhite = [];
         this.state.sgfLoadedFromExternal = false;
         this.state.capturedCounts = createInitialCapturedCounts();
+        // 全消去時はページの初期化と同じ扱いにするため、先手も黒番（デフォルト）
+        // に戻す。置石 4 子で白番にしたあとの全消去で手番が白番のままだと
+        // ユーザーの感覚とずれるため。
+        this.state.startColor = 1;
         // 対局情報（タイトル・対局者・コミ・結果・SGF拡張フィールド）を
         // 既定値に戻す。SGF 読込後のタイトル等を残さないため。
         // GameInfoStore.resetToDefault() に委譲し、createDefault() を
