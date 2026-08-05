@@ -164,4 +164,77 @@ describe('BoardInputStateMachine', () => {
       });
     });
   });
+
+  describe('evaluateLongPress', () => {
+    const createState = (overrides = {}) => ({
+      boardSize: 9,
+      board: Array.from({ length: 9 }, () => Array(9).fill(0)),
+      mode: 'black',
+      eraseMode: false,
+      numberMode: false,
+      markerMode: false,
+      ...overrides
+    });
+
+    test('returns grabStone on black stone in edit mode', () => {
+      const state = createState();
+      state.board[3][4] = 1;
+      const decision = machine.evaluateLongPress(state, { col: 4, row: 3 });
+      expect(decision.type).toBe('grabStone');
+      if (decision.type === 'grabStone') {
+        expect(decision.color).toBe(1);
+        expect(decision.pos).toEqual({ col: 4, row: 3 });
+      }
+    });
+
+    test('returns grabStone on white stone in edit mode', () => {
+      const state = createState();
+      state.board[0][0] = 2;
+      const decision = machine.evaluateLongPress(state, { col: 0, row: 0 });
+      expect(decision.type).toBe('grabStone');
+      if (decision.type === 'grabStone') {
+        expect(decision.color).toBe(2);
+      }
+    });
+
+    test('returns ignore on empty position', () => {
+      const state = createState();
+      const decision = machine.evaluateLongPress(state, { col: 4, row: 4 });
+      expect(decision.type).toBe('ignore');
+    });
+
+    test('returns ignore in solve mode', () => {
+      const state = createState({ numberMode: true });
+      state.board[3][4] = 1;
+      const decision = machine.evaluateLongPress(state, { col: 4, row: 3 });
+      expect(decision.type).toBe('ignore');
+    });
+
+    test('returns ignore in erase mode', () => {
+      const state = createState({ eraseMode: true });
+      state.board[3][4] = 1;
+      const decision = machine.evaluateLongPress(state, { col: 4, row: 3 });
+      expect(decision.type).toBe('ignore');
+    });
+
+    test('returns ignore in marker mode', () => {
+      const state = createState({ markerMode: true });
+      state.board[3][4] = 1;
+      const decision = machine.evaluateLongPress(state, { col: 4, row: 3 });
+      expect(decision.type).toBe('ignore');
+    });
+
+    test('returns ignore for out-of-board position', () => {
+      const state = createState();
+      state.board[3][4] = 1;
+      const decision = machine.evaluateLongPress(state, { col: -1, row: -1 });
+      expect(decision.type).toBe('ignore');
+    });
+
+    test('returns ignore for position beyond board size', () => {
+      const state = createState({ boardSize: 9 });
+      const decision = machine.evaluateLongPress(state, { col: 9, row: 9 });
+      expect(decision.type).toBe('ignore');
+    });
+  });
 });

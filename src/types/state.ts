@@ -112,10 +112,19 @@ export interface HistoryItem {
 }
 
 // ============ ドラッグ状態 ============
+export interface GrabbedStoneInfo {
+  /** 掴んだ石の元の位置 */
+  pos: Position;
+  /** 掴んだ石の色（スナップショット）。移動中は色が変動しないため保持 */
+  color: StoneColor;
+}
+
 export interface DragState {
   dragging: boolean;
   dragColor: StoneColor | null;
   lastPos: Position | null;
+  /** 長押しで掴んでいる石の情報。null のときは未掴み状態 */
+  grabbedStone: GrabbedStoneInfo | null;
 }
 
 // ============ グループと呼吸点 ============

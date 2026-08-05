@@ -60,7 +60,8 @@ export class RendererViewModelBuilder {
   constructor(private readonly store: GameStore, private readonly getPreferences: () => Preferences) {}
 
   // suppressLastMoveHighlight: true のときは「直前の手ハイライト」を出さない
-  buildBoardModel(options?: { suppressLastMoveHighlight?: boolean }): BoardRenderModel {
+  // grabbedStone: 長押しで掴まれている石の交点（null なら未掴み）
+  buildBoardModel(options?: { suppressLastMoveHighlight?: boolean; grabbedStone?: Position | null }): BoardRenderModel {
     const state = this.store.snapshot;
     const geometry = new RendererGeometry(state.boardSize);
     const prefs = this.getPreferences();
@@ -79,7 +80,7 @@ export class RendererViewModelBuilder {
       geometry,
       stars: this.getStarPositions(state.boardSize),
       coordinates: this.buildCoordinateLabels(geometry),
-      stones: this.buildStoneModels(state.board, geometry),
+      stones: this.buildStoneModels(state.board, geometry, options?.grabbedStone ?? null),
       moveNumbers: showMoveNumbers
         ? this.buildMoveNumberModels(state, geometry, showCapturedStones)
         : [],
@@ -131,7 +132,7 @@ export class RendererViewModelBuilder {
     };
   }
 
-  private buildStoneModels(board: Board, geometry: RendererGeometry): StoneRenderInfo[] {
+  private buildStoneModels(board: Board, geometry: RendererGeometry, grabbedStone?: Position | null): StoneRenderInfo[] {
     const stones: StoneRenderInfo[] = [];
 
     for (let row = 0; row < geometry.boardSize; row++) {
@@ -139,15 +140,25 @@ export class RendererViewModelBuilder {
         const cellValue = board[row][col];
         if (cellValue === 0) continue;
 
+        const isGrabbed =
+          grabbedStone !== null &&
+          grabbedStone !== undefined &&
+          grabbedStone.col === col &&
+          grabbedStone.row === row;
+
         const { cx, cy } = geometry.toPixel({ col, row });
-        stones.push({
+        const stone: StoneRenderInfo = {
           position: { col, row },
           cx,
           cy,
           radius: DEFAULT_CONFIG.STONE_RADIUS,
           fill: cellValue === 1 ? 'var(--black)' : 'var(--white)',
           strokeWidth: cellValue === 1 ? 0 : 2
-        });
+        };
+        if (isGrabbed) {
+          (stone as { grabbed?: boolean }).grabbed = true;
+        }
+        stones.push(stone);
       }
     }
 

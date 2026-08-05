@@ -13,6 +13,7 @@ import { CoordinatesDrawer } from './drawers/coordinates-drawer.js';
 import { StonesDrawer } from './drawers/stones-drawer.js';
 import { HighlightDrawer } from './drawers/highlight-drawer.js';
 import { MarkersDrawer } from './drawers/markers-drawer.js';
+import { UIInteractionState } from '../ui/state/ui-interaction-state.js';
 
 export class Renderer {
   private readonly viewModelBuilder: RendererViewModelBuilder;
@@ -26,7 +27,8 @@ export class Renderer {
   constructor(
     private readonly store: GameStore,
     private readonly elements: UIElements,
-    private readonly getPreferences: () => Preferences
+    private readonly getPreferences: () => Preferences,
+    private readonly uiState?: UIInteractionState
   ) {
     this.viewModelBuilder = new RendererViewModelBuilder(store, getPreferences);
     this.factory = new SvgElementFactory(elements.svg);
@@ -40,7 +42,11 @@ export class Renderer {
   // 通常は renderer.render() のままでOK
   // 盤面保存時だけ renderer.render({ suppressLastMoveHighlight: true }) を使う
   render(options?: { suppressLastMoveHighlight?: boolean }): void {
-    const model = this.viewModelBuilder.buildBoardModel(options);
+    const grabbedStone = this.uiState?.drag.grabbedStone?.pos ?? null;
+    const model = this.viewModelBuilder.buildBoardModel({
+      ...options,
+      grabbedStone,
+    });
     const size = model.geometry.viewBoxSize;
 
     this.elements.svg.innerHTML = '';

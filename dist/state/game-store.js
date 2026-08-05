@@ -129,6 +129,32 @@ export class GameStore {
         this.cache.invalidate();
         return true;
     }
+    /**
+     * 編集モード専用: 石を別の交点へ移動する。
+     * from に石がなく、to が盤外、from === to のいずれかの場合は false。
+     * 移動先に既存石がある場合は上書き（directPlace と同じ挙動）。
+     * 履歴は記録しない（細かい編集は履歴に積まない既存方針と整合）。
+     * @returns 移動に成功したか
+     */
+    moveStone(from, to) {
+        if (!this.isValidPosition(from))
+            return false;
+        if (!this.isValidPosition(to))
+            return false;
+        if (from.col === to.col && from.row === to.row)
+            return false;
+        const color = this.state.board[from.row][from.col];
+        if (color === 0)
+            return false;
+        // 移動先で同色の石に上書きする場合は実質「無変化」だが、
+        // directPlace に揃えて上書き動作とする（仕様: 上書き）
+        const board = this.cloneBoard();
+        board[from.row][from.col] = 0;
+        board[to.row][to.col] = color;
+        this.state.board = board;
+        this.cache.invalidate();
+        return true;
+    }
     // ============================================================
     // 公開: 盤面初期化・履歴復元・手数移動
     // ============================================================

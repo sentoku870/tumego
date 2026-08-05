@@ -76,7 +76,7 @@ export class AppFactory {
 
     const store = new GameStore(state, engine, historyManager);
 
-    const renderer = new Renderer(store, elements, () => preferences.state);
+    const renderer = new Renderer(store, elements, () => preferences.state, uiState);
     const renderSnapshot = new RendererSnapshotAdapter(renderer);
     const boardCapture = new BoardCaptureService(
       elements.svg,

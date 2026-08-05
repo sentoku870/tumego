@@ -50,7 +50,7 @@ export class AppFactory {
         const preferences = new PreferencesStore();
         const dropdownManager = new DropdownManager(uiState);
         const store = new GameStore(state, engine, historyManager);
-        const renderer = new Renderer(store, elements, () => preferences.state);
+        const renderer = new Renderer(store, elements, () => preferences.state, uiState);
         const renderSnapshot = new RendererSnapshotAdapter(renderer);
         const boardCapture = new BoardCaptureService(elements.svg, renderSnapshot, (msg) => renderer.showMessage(msg));
         const sgfIO = new SGFIO(sgfParser);
