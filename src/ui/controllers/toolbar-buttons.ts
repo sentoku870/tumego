@@ -12,6 +12,7 @@ import { HistoryView } from '../views/history-view.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { ToolbarMarkerPalette } from './toolbar/toolbar-marker-palette.js';
 import { HandicapDialog } from './feature-menu/handicap-dialog.js';
+import { getSgfTextarea } from '../../utils/dom-elements.js';
 
 export class ToolbarButtons {
   private _clearBtn: HTMLButtonElement | null = null;
@@ -163,7 +164,8 @@ export class ToolbarButtons {
       this.store.resetForClearAll();
       this.eventBus.emitUIUpdate();
       this.eventBus.emitAnswerButtonUpdate();
-      (document.getElementById('sgf-text') as HTMLTextAreaElement).value = '';
+      const sgfTextarea = getSgfTextarea();
+      if (sgfTextarea) sgfTextarea.value = '';
     });
 
     this._undoBtn = document.getElementById('btn-undo') as HTMLButtonElement | null;
@@ -356,7 +358,7 @@ export class ToolbarButtons {
   }
 
   private refreshSgfTextarea(): void {
-    const sgfTextarea = document.getElementById('sgf-text') as HTMLTextAreaElement | null;
+    const sgfTextarea = getSgfTextarea();
     if (sgfTextarea) {
       sgfTextarea.value = this.sgfService.export();
     }
