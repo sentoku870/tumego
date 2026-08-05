@@ -11,6 +11,7 @@ import { UIEventBus } from '../../app/event-bus.js';
 import { ToolbarButtons } from './toolbar-buttons.js';
 import { ToolbarState } from './toolbar/toolbar-state.js';
 import { DropdownManager } from './dropdown-manager.js';
+import { HandicapDialog } from './feature-menu/handicap-dialog.js';
 
 export class ToolbarController {
   private readonly buttons: ToolbarButtons;
@@ -24,7 +25,8 @@ export class ToolbarController {
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus,
     private readonly preferences: PreferencesStore,
-    private readonly dropdownManager: DropdownManager
+    private readonly dropdownManager: DropdownManager,
+    handicapDialog: HandicapDialog
   ) {
     this.buttons = new ToolbarButtons(
       store,
@@ -33,7 +35,8 @@ export class ToolbarController {
       sgfService,
       elements,
       eventBus,
-      dropdownManager
+      dropdownManager,
+      handicapDialog
     );
     this.state = new ToolbarState(
       store,

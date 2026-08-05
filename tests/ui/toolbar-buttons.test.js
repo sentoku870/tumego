@@ -11,6 +11,7 @@ import { HistoryManager } from '../../dist/history-manager.js';
 import { UIEventBus } from '../../dist/app/event-bus.js';
 import { DEFAULT_CONFIG } from '../../dist/types.js';
 import { DropdownManager } from '../../dist/ui/controllers/dropdown-manager.js';
+import { HandicapDialog } from '../../dist/ui/controllers/feature-menu/handicap-dialog.js';
 import { UIInteractionState } from '../../dist/ui/state/ui-interaction-state.js';
 
 const createBoard = (size) =>
@@ -80,7 +81,8 @@ describe('ToolbarButtons', () => {
     const sgfService = new SGFService(sgfParser, store, new SGFIO(sgfParser), new SGFShare(sgfParser));
     const uiState = new UIInteractionState();
     const dropdownManager = new DropdownManager(uiState);
-    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager);
+    const handicapDialog = new HandicapDialog(store, renderer, eventBus);
+    buttons = new ToolbarButtons(store, renderer, boardCapture, sgfService, elements, eventBus, dropdownManager, handicapDialog);
   });
 
   afterEach(() => {

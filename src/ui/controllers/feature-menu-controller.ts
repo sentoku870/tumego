@@ -1,14 +1,13 @@
 // ============ FeatureMenuController (Facade) ============
-// 「機能」メニュー (レイアウト切替/盤面回転/置石/解答コピー) の
+// 「機能」メニュー (レイアウト切替/盤面回転/解答コピー) の
 // イベントバインドとフロー制御を担当する。
-// 個別の責務は HandicapDialog / AnswerCopy に分離。
+// 個別の責務は AnswerCopy に分離。
 import { GameStore } from '../../state/game-store.js';
 import { Renderer } from '../../renderer/renderer.js';
 import { SGFService } from '../../services/sgf-service.js';
 import { UIElements } from '../../types.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { UIEventBus } from '../../app/event-bus.js';
-import { HandicapDialog } from './feature-menu/handicap-dialog.js';
 import { AnswerCopy } from './feature-menu/answer-copy.js';
 
 export type UIUpdater = () => void;
@@ -16,7 +15,6 @@ export type UIUpdater = () => void;
 export class FeatureMenuController {
   private isHorizontal = document.body.classList.contains('horizontal');
   private copyAnswerButton: HTMLButtonElement | null = null;
-  private readonly handicapDialog: HandicapDialog;
   private readonly answerCopy: AnswerCopy;
 
   constructor(
@@ -27,7 +25,6 @@ export class FeatureMenuController {
     sgfService: SGFService,
     private readonly eventBus: UIEventBus
   ) {
-    this.handicapDialog = new HandicapDialog(store, renderer, eventBus);
     this.answerCopy = new AnswerCopy(store, renderer, sgfService);
   }
 
@@ -36,7 +33,6 @@ export class FeatureMenuController {
     const featureDropdown = document.getElementById('feature-dropdown') as HTMLElement | null;
     const featureLayoutBtn = document.getElementById('btn-feature-layout');
     const featureRotateBtn = document.getElementById('btn-feature-rotate');
-    const featureHandicapBtn = document.getElementById('btn-feature-handicap');
     this.copyAnswerButton = document.getElementById('feature-copy-answer-sequence') as HTMLButtonElement | null;
 
     if (featureLayoutBtn) {
@@ -72,11 +68,6 @@ export class FeatureMenuController {
     featureRotateBtn?.addEventListener('click', () => {
       this.rotateBoard();
       this.dropdownManager.hide(featureDropdown);
-    });
-
-    featureHandicapBtn?.addEventListener('click', () => {
-      this.dropdownManager.hide(featureDropdown);
-      this.handicapDialog.show();
     });
 
     this.copyAnswerButton?.addEventListener('click', () => {

@@ -71,7 +71,7 @@ const setupAllDOM = () => {
   featureDropdown.id = 'feature-dropdown';
   document.body.appendChild(featureDropdown);
 
-  ['btn-feature-layout', 'btn-feature-rotate', 'btn-feature-handicap', 'feature-copy-answer-sequence'].forEach((id) => {
+  ['btn-feature-layout', 'btn-feature-rotate', 'feature-copy-answer-sequence', 'btn-handicap'].forEach((id) => {
     const btn = document.createElement('button');
     btn.id = id;
     document.body.appendChild(btn);
