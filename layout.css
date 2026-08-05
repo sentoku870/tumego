@@ -39,8 +39,11 @@ body {
 body.horizontal #layout {
   flex-direction: row;
   align-items: stretch;
+  justify-content: center;
   gap: 16px;
   height: 100%;
+  width: 100%;
+  margin-inline: auto;
 }
 
 #ui {
@@ -823,13 +826,14 @@ body:not(.horizontal) .msg {
 
 /* ===== Device specific layout overrides ===== */
 body.device-desktop #layout {
-  max-width: calc(100vw - 16px);
+  max-width: min(1600px, calc(100vw - 16px));
+  margin-inline: auto;
 }
 
 body.device-desktop #board-wrapper {
   max-width: min(calc(100vh - 16px), calc(100vw - 340px));
   max-height: calc(100vh - 16px);
-  align-self: stretch;
+  align-self: center;
 }
 
 body.device-desktop #settings-panel {
@@ -861,12 +865,14 @@ body.device-tablet:not(.horizontal) .msg {
 }
 
 body.device-tablet #board-wrapper {
-  max-width: min(92vmin, calc(100vw - 64px));
+  max-width: min(calc(100vh - 16px), calc(100vw - 340px));
+  max-height: calc(100vh - 16px);
+  align-self: center;
 }
 
 body.device-tablet .toolbar-row,
 body.device-tablet .sgf-row {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 10px;
 }
 
@@ -912,11 +918,9 @@ body.device-phone #board-wrapper {
   margin-inline: auto;
 }
 
-body.device-phone .toolbar-row,
-body.device-phone .sgf-row {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-}
+/* device-phone のボタンレイアウト上書きは撤廃。
+   共通の .toolbar-row { repeat(3, 1fr) } / .sgf-row { repeat(4, 1fr) } を
+   iPhone / Tablet / Desktop で共通利用する。 */
 
 body.device-phone .ctrl-btn {
   min-height: 48px;
