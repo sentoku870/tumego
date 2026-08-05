@@ -112,9 +112,13 @@ export class Renderer {
     const isMobile = window.innerWidth <= 768;
 
     if (isHorizontal) {
-      const availableWidth = window.innerWidth - (isMobile ? 250 : 350);
-      const availableHeight = window.innerHeight * 0.95;
-      const maxSize = Math.min(availableWidth, availableHeight);
+      const panelWidth = isMobile ? 250 : 320;
+      const layoutGap = 16;
+      const bodyPaddingX = 16;
+      const bodyPaddingY = 16;
+      const availableWidth = window.innerWidth - panelWidth - layoutGap - bodyPaddingX;
+      const availableHeight = window.innerHeight - bodyPaddingY;
+      const maxSize = Math.max(0, Math.min(availableWidth, availableHeight));
 
       this.elements.boardWrapper.style.width = maxSize + 'px';
       this.elements.boardWrapper.style.height = maxSize + 'px';
