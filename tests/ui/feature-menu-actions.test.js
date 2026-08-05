@@ -96,6 +96,7 @@ describe('FeatureMenuController facade behavior', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
+    document.body.className = '';
     setupFeatureMenuDOM();
     const result = setupController();
     controller = result.controller;

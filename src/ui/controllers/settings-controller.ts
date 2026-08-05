@@ -103,6 +103,8 @@ export class SettingsController {
     this.panelPositionSelect?.addEventListener("change", (event) => {
       const value = (event.target as HTMLSelectElement).value as PanelPosition;
       this.preferences.setPanelPosition(value);
+      // 即時にレイアウトへ反映（リスナー chain に依存しない直接パス）
+      this.applyPanelPositionNow(value);
     });
 
     this.resetButton?.addEventListener("click", () => {
@@ -154,5 +156,24 @@ export class SettingsController {
       element.hidden = !isActive;
       element.classList.toggle("active", isActive);
     });
+  }
+
+  /**
+   * パネル左右設定を即時にレイアウトへ反映する。
+   * CSSキャッシュや listener chain の遅延を避け、
+   * change イベント発火時点で直接 inline style を書き換える。
+   */
+  private applyPanelPositionNow(position: PanelPosition): void {
+    const body = document.body;
+    body.classList.toggle("panel-right", position === "board-right");
+    const layout = document.getElementById("layout");
+    const isHorizontal = body.classList.contains("horizontal");
+    if (layout) {
+      if (isHorizontal && position === "board-right") {
+        layout.style.flexDirection = "row-reverse";
+      } else {
+        layout.style.flexDirection = "";
+      }
+    }
   }
 }

@@ -235,6 +235,22 @@ describe('SettingsController', () => {
       elements.panelPositionSelect.dispatchEvent(new Event('change'));
       expect(prefs.state.ui.panelPosition).toBe('board-right');
     });
+
+    test('changing panel position to board-right immediately sets layout flex-direction', () => {
+      // 横レイアウトを擬似的に有効化
+      document.body.classList.add('horizontal');
+      const layout = document.createElement('div');
+      layout.id = 'layout';
+      document.body.appendChild(layout);
+
+      elements.panelPositionSelect.value = 'board-right';
+      elements.panelPositionSelect.dispatchEvent(new Event('change'));
+      expect(layout.style.flexDirection).toBe('row-reverse');
+
+      elements.panelPositionSelect.value = 'board-left';
+      elements.panelPositionSelect.dispatchEvent(new Event('change'));
+      expect(layout.style.flexDirection).toBe('');
+    });
   });
 
   describe('reset button', () => {
