@@ -108,7 +108,7 @@
 |------|----------|-----------|
 | 囲碁ルール | `rulesMode` | `standard` |
 | 抜いた石の表示 | `showCapturedStones` | `on` |
-| 解答モードの全消去 | `allowFullResetInSolve` | `off` |
+| 解答モードの全消去 | `enableFullReset` | `off` |
 
 ### 7.2 保存方法
 - `localStorage` でブラウザローカルに保存
@@ -143,6 +143,8 @@
 
 ## 10. 変更履歴
 
+- 2026-08-05: v1.3 リファクタリング計画 PR #1 で同期
+  - §7.1 設定キー名 `allowFullResetInSolve` → `enableFullReset`（コード実装名に整合）
 - 2025-12-30: v1.2 Claude Code 関連ドキュメント整理（`.claude/rules/04-go-domain.md` への参照を `AGENTS.md` §9 へ差し替え）
 - 2025-12-30: v1.1 Claude Code移行対応で整理
 - 2025-12-08: 優先順位変更（PC版優先、ver3一時停止）

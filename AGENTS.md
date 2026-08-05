@@ -57,36 +57,99 @@ npm test       # npm run build && jest
 ```
 tumego/
 ├── src/
-│   ├── main.ts                       ← エントリーポイント
-│   ├── go-engine.ts                  ← 囲碁ロジック
-│   ├── history-manager.ts            ← 履歴管理
-│   ├── renderer.ts                   ← 描画
-│   ├── sgf-parser.ts                 ← SGF パース
-│   ├── qr-manager.ts                 ← QR コード
-│   ├── ui-controller.ts
-│   ├── types.ts
+│   ├── main.ts                       ← エントリーポイント (initializeApp)
+│   ├── ui-controller.ts              ← 上位 UI 制御 (preferences 適用, resize)
+│   ├── go-engine.ts                  ← 囲碁ロジック（着手・捕獲・コウ判定）
+│   ├── history-manager.ts            ← 履歴スナップショット (最大 5 件)
+│   ├── sgf-parser.ts                 ← SGF パース（座標/メタは別モジュールに委譲）
+│   ├── sgf-coordinates.ts            ← 座標 ⇄ 'aa'〜'ss'
+│   ├── sgf-metadata.ts               ← GN/SZ/KM/HA/PB/PW/RE/PL 抽出
+│   ├── qr-manager.ts                 ← QR / Discord 共有
+│   ├── types.ts                      ← 共通型 re-export
+│   │
+│   ├── types/                        ← 型定義
+│   │   ├── domain.ts                 ← GameState / Move / Position など
+│   │   ├── state.ts                  ← Preferences / HistorySnapshot
+│   │   ├── sgf.ts                    ← SGFGameInfo / SGFNode 削除宣言
+│   │   ├── render.ts                 ← 描画モデル型
+│   │   ├── config.ts                 ← DEFAULT_CONFIG (座標オフセット, 閾値)
+│   │   └── index.ts                  ← 集約 re-export
+│   │
 │   ├── app/                          ← アプリケーション基盤
-│   │   ├── composition-root.ts
-│   │   ├── event-bus.ts
-│   │   └── debug-api.ts
+│   │   ├── app-factory.ts            ← DI コンテナ (registerEngine/registerSgfParser)
+│   │   ├── composition-root.ts       ← 後方互換 re-export
+│   │   ├── event-bus.ts              ← pub/sub (UIUpdate / AnswerButtonUpdate / EraseModeDisable / SgfApplied)
+│   │   ├── debug-api.ts              ← DevTools 向け window.tumego
+│   │   └── ui-update-coordinator.ts  ← UIUpdate 購読者集約
+│   │
 │   ├── state/                        ← 状態管理
-│   │   ├── game-store.ts             ← 状態管理の中心
-│   │   ├── board-cache-manager.ts
-│   │   ├── mode-operations.ts
-│   │   ├── handicap-setter.ts
-│   │   └── performance-monitor.ts
+│   │   ├── game-store.ts             ← Facade（公開 API のみ）
+│   │   ├── board-cache-manager.ts    ← 盤面タイムラインのキャッシュと差分適用
+│   │   ├── mode-operations.ts        ← 編集⇄解答遷移, SGF 読込時の状態書込
+│   │   ├── mode-controller.ts        ← モード遷移の共通ヘルパ
+│   │   ├── handicap-setter.ts        ← 置石配置 (even / no-komi / fixed)
+│   │   ├── marker-store.ts           ← ○△□× ラベルの配置・トグル・永続化
+│   │   ├── game-info-store.ts        ← PB/PW/KM/RE/タイトル管理
+│   │   ├── board-utils.ts            ← createEmptyBoard / cloneBoard / isValidPosition / hasGameData
+│   │   └── performance-monitor.ts    ← 盤面再構築のプロファイリング
+│   │
 │   ├── services/                     ← サービス層
-│   │   ├── sgf-io.ts
-│   │   ├── sgf-service.ts
-│   │   ├── sgf-share.ts
-│   │   ├── preferences-store.ts
-│   │   └── board-capture-service.ts
-│   └── ui/controllers/
-│       └── board-input-state-machine.ts
-├── tests/                            ← Jest テスト
+│   │   ├── sgf-service.ts            ← SGF 適用・書き出し（ModeOperations 経由）
+│   │   ├── sgf-io.ts                 ← ファイル・クリップボード I/O
+│   │   ├── sgf-share.ts              ← URL/Base64 共有
+│   │   ├── board-capture-service.ts  ← SVG → PNG → クリップボード/プレビュー
+│   │   ├── preferences-store.ts      ← localStorage 永続化（旧 'on'/'off' マイグレーション）
+│   │   ├── render-snapshot.ts        ← 描画スナップショット interface
+│   │   └── share/
+│   │       └── share-modal.ts        ← 共有方法選択モーダル
+│   │
+│   ├── renderer/                     ← 描画
+│   │   ├── view-model.ts             ← 純粋: GameState/Preferences → 中間描画モデル
+│   │   ├── renderer.ts               ← DOM 描画 (SVG) Facade
+│   │   ├── renderer-snapshot.ts      ← 撮影用 render() ヘルパ
+│   │   └── drawers/
+│   │       ├── svg-helpers.ts        ← SVG 要素生成ユーティリティ
+│   │       ├── board-drawer.ts       ← グリッド + 星
+│   │       ├── coordinates-drawer.ts ← A-T, 1-19 ラベル
+│   │       ├── stones-drawer.ts      ← 黒白石 + 着手番号
+│   │       ├── highlight-drawer.ts   ← 直前手赤枠
+│   │       └── markers-drawer.ts     ← ○△□×/ラベル (CR/TR/SQ/MA/LB)
+│   │
+│   └── ui/                           ← UI 層
+│       ├── state/
+│       │   └── ui-interaction-state.ts  ← ドラッグ状態, ボードフォーカス
+│       ├── utils/
+│       │   └── pointer-utils.ts        ← isPointerActive 判定
+│       ├── views/
+│       │   ├── modal.ts                ← 共通モーダル (a11y: role=dialog, Esc で閉じる)
+│       │   └── history-view.ts         ← 履歴ダイアログ
+│       └── controllers/                ← 各種 UI コントローラ
+│           ├── board-interaction-controller.ts  ← ポインタ入力統合 Facade
+│           ├── board-input-state-machine.ts      ← pointer decision 状態機械
+│           ├── board/
+│           │   ├── board-pointer-handler.ts       ← 盤面ポインタイベント
+│           │   └── board-position.ts              ← 座標変換
+│           ├── long-press-detector.ts             ← 長押し検出
+│           ├── pointer-input.ts                   ← ポインタイベント正規化
+│           ├── dropdown-manager.ts                ← ポップオーバーポジション制御
+│           ├── toolbar-controller.ts              ← ツールバー Facade
+│           ├── toolbar-buttons.ts                 ← ツールバー11ボタンのバインド
+│           ├── toolbar/
+│           │   ├── toolbar-state.ts               ← ボタンの有効/無効・表示制御
+│           │   └── toolbar-marker-palette.ts      ← マーカーパレット
+│           ├── file-menu-controller.ts            ← ファイル/ヘッダメニュー
+│           ├── file-menu/
+│           │   └── header-editor.ts               ← SGF ヘッダ編集
+│           ├── feature-menu-controller.ts         ← 機能メニュー（置石ダイアログ等）
+│           ├── feature-menu/
+│           │   ├── answer-copy.ts                 ← 解答コピー
+│           │   └── handicap-dialog.ts             ← 置石ダイアログ
+│           └── settings-controller.ts             ← 設定パネル
+│
+├── tests/                            ← Jest テスト（約 935 ケース + 311 describe ブロック）
 ├── dist/                             ← ビルド成果物（GitHub Pages 公開用、リリース時のみ更新）
 ├── docs/                             ← 公式ドキュメント
-├── packages/                         ← 関連パッケージ
+├── packages/                         ← 関連パッケージ（ローカル Jest ランナー等）
 ├── index.html
 ├── board.css / layout.css
 └── package.json
@@ -94,12 +157,23 @@ tumego/
 
 ### 主な状態管理
 ```
-GameStore
-├── currentMode    ← edit / solve / view
-├── board          ← 盤面状態
-├── history        ← 操作履歴
-└── sgfData        ← SGF情報
+GameStore (Facade)
+├── snapshot / currentColor           ← 状態参照
+├── historyManager / getGameInfo      ← 履歴・メタ情報
+├── tryMove / removeStone             ← 着手・石操作（編集/解答で分岐）
+├── directPlace / directRemove        ← 編集モード専用（ルール無視）
+├── placeWithRulesInEdit / moveStone  ← 編集モード（ルール適用）
+├── undo / restoreHistorySnapshot     ← 履歴復元
+├── setProblemDiagram / restoreProblemDiagram ← 問題図の固定/解除
+├── enterSolveMode / exitSolveModeForEditing  ← 解答モード遷移
+├── setHandicap                       ← 置石
+├── resetForSgfLoad / applySgfMeta / setSgfMoves ← SGF 適用
+└── setMode / setEraseMode / setStartColor / setAnswerMode / resetInteractionModes
 ```
+
+**編集モード**: `numberMode === false` + `mode: 'black'|'white'|'alt'`（石を直接配置・削除）
+**解答モード**: `numberMode === true`（SGF 的な着手管理）
+※「view モード」は docs/02 §3 との互換のための概念で、コード上は未実装（2026-08 時点）。
 
 ---
 
@@ -294,5 +368,6 @@ GameStore
 
 ## 13. 変更履歴
 
+- 2026-08-05: §4 コード構造を全面更新（state/services/ui サブモジュール、renderer/ drawers、ui/ state/views を反映）。GameStore Facade メソッド名を実コードに同期
 - 2025-12-30: 初版作成（opencode 移行対応、CLAUDE.md への参照を主とする）
 - 2025-12-30: 自己完結化。CLAUDE.md / .claude/ / docs/20-codex-rules.md を削除し、本ファイルに内容を吸収
