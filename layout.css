@@ -425,11 +425,12 @@ body.horizontal #sgf-controls .sgf-row {
 
 /* PC専用の調整 */
 @media (min-width: 769px) {
-  /* 横レイアウト時の最適化 */
+  /* 横レイアウト時の最適化
+     注意: body.horizontal #layout の基本スタイル (justify-content: center 等) は
+     line 39 周辺で定義済み。ここでは上書きせず、追加プロパティのみ設定する。 */
   body.horizontal #layout {
     max-width: 100vw;
     max-height: 100vh;
-    align-items: stretch;
   }
 
   body.horizontal #board-wrapper {
