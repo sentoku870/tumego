@@ -5,6 +5,7 @@
 //
 // 内部クラス:
 //   - BoardCacheManager: 盤面タイムラインキャッシュ
+//   - EditorOps: 編集モード専用 石操作 (直接配置/ルール配置/削除/移動)
 //   - HandicapSetter: 置石の適用
 //   - MarkerStore: マーカー配置
 //   - ModeOperations: 編集⇄解答モード遷移 / SGF 適用
@@ -26,6 +27,7 @@ import {
 import { GoEngine } from '../go-engine.js';
 import { HistoryManager } from '../history-manager.js';
 import { BoardCacheManager } from './board-cache-manager.js';
+import { EditorOps } from './editor-ops.js';
 import { GameInfoStore } from './game-info-store.js';
 import { HandicapSetter } from './handicap-setter.js';
 import { MarkerStore } from './marker-store.js';
@@ -39,6 +41,7 @@ import { cloneBoard, createInitialCapturedCounts, isValidPosition } from './boar
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
+  private readonly editor: EditorOps;
   private readonly modeOps: ModeOperations;
   private readonly handicap: HandicapSetter;
   private readonly monitor: PerformanceMonitor;
@@ -53,6 +56,7 @@ export class GameStore {
   ) {
     this.monitor = new PerformanceMonitor();
     this.cache = new BoardCacheManager(state, engine, this.monitor);
+    this.editor = new EditorOps(state, engine, this.cache);
     this.modeOps = new ModeOperations(state, history, this.cache);
     this.handicap = new HandicapSetter(state, engine, history, this.modeOps, this.cache);
     this.markers = new MarkerStore(state);
@@ -160,40 +164,17 @@ export class GameStore {
 
   /** 編集モード専用: ルール無視で直接配置 */
   directPlace(pos: Position, color: StoneColor): boolean {
-    if (!isValidPosition(this.state.boardSize, pos)) return false;
-
-    const board = this.cloneBoard();
-    board[pos.row][pos.col] = color;
-    this.state.board = board;
-    this.state.turn++;
-    this.cache.invalidate();
-    return true;
+    return this.editor.directPlace(pos, color);
   }
 
   /** 編集モード専用: ルール適用して配置 */
   placeWithRulesInEdit(pos: Position, color: StoneColor): boolean {
-    const result = this.engine.playMove(this.state, pos, color);
-    if (!result) {
-      return false;
-    }
-
-    this.state.board = result.board;
-    this.state.turn++;
-    this.cache.invalidate();
-    return true;
+    return this.editor.placeWithRulesInEdit(pos, color);
   }
 
   /** 編集モード専用: 石を直接削除 */
   directRemove(pos: Position): boolean {
-    if (!isValidPosition(this.state.boardSize, pos)) return false;
-    if (this.state.board[pos.row][pos.col] === 0) return false;
-
-    const board = this.cloneBoard();
-    board[pos.row][pos.col] = 0;
-    this.state.board = board;
-    this.state.turn = Math.max(0, this.state.turn - 1);
-    this.cache.invalidate();
-    return true;
+    return this.editor.directRemove(pos);
   }
 
   /**
@@ -204,21 +185,7 @@ export class GameStore {
    * @returns 移動に成功したか
    */
   moveStone(from: Position, to: Position): boolean {
-    if (!isValidPosition(this.state.boardSize, from)) return false;
-    if (!isValidPosition(this.state.boardSize, to)) return false;
-    if (from.col === to.col && from.row === to.row) return false;
-
-    const color = this.state.board[from.row][from.col];
-    if (color === 0) return false;
-
-    // 移動先で同色の石に上書きする場合は実質「無変化」だが、
-    // directPlace に揃えて上書き動作とする（仕様: 上書き）
-    const board = this.cloneBoard();
-    board[from.row][from.col] = 0;
-    board[to.row][to.col] = color as StoneColor;
-    this.state.board = board;
-    this.cache.invalidate();
-    return true;
+    return this.editor.moveStone(from, to);
   }
 
   // ============================================================
