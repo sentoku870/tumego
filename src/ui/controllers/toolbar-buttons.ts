@@ -12,6 +12,7 @@ import { HistoryView } from '../views/history-view.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { ToolbarMarkerPalette } from './toolbar/toolbar-marker-palette.js';
 import { HandicapDialog } from './feature-menu/handicap-dialog.js';
+import { HeaderEditor } from './file-menu/header-editor.js';
 import { getSgfTextarea } from '../../utils/dom-elements.js';
 
 export class ToolbarButtons {
@@ -57,7 +58,8 @@ export class ToolbarButtons {
     private readonly elements: UIElements,
     private readonly eventBus: UIEventBus,
     private readonly dropdownManager: DropdownManager,
-    private readonly handicapDialog: HandicapDialog
+    private readonly handicapDialog: HandicapDialog,
+    private readonly headerEditor: HeaderEditor
   ) {
     this._markerPalette = new ToolbarMarkerPalette(
       store,
@@ -168,6 +170,9 @@ export class ToolbarButtons {
     this.clearBtn?.addEventListener('click', () => {
       this.dispatchDisableEraseMode();
       this.store.resetForClearAll();
+      // GameStore の gameInfo が resetForClearAll() でリセットされたため、
+      // 対局情報入力欄 (DOM) も即時クリアする。
+      this.headerEditor.populateFields();
       this.eventBus.emitUIUpdate();
       this.eventBus.emitAnswerButtonUpdate();
       const sgfTextarea = getSgfTextarea();

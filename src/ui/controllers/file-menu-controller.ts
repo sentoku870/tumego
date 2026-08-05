@@ -40,9 +40,11 @@ export class FileMenuController {
     private readonly renderer: Renderer,
     private readonly qrManager: QRManager,
     private readonly store: GameStore,
-    private readonly eventBus: UIEventBus
+    private readonly eventBus: UIEventBus,
+    /** 共有 HeaderEditor。null の場合は内部生成にフォールバック */
+    headerEditor?: HeaderEditor
   ) {
-    this.headerEditor = new HeaderEditor(store, renderer, eventBus);
+    this.headerEditor = headerEditor ?? new HeaderEditor(store, renderer, eventBus);
   }
 
   syncHeaderEditor(): void {

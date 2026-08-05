@@ -12,6 +12,7 @@ import { ToolbarButtons } from './toolbar-buttons.js';
 import { ToolbarState } from './toolbar/toolbar-state.js';
 import { DropdownManager } from './dropdown-manager.js';
 import { HandicapDialog } from './feature-menu/handicap-dialog.js';
+import { HeaderEditor } from './file-menu/header-editor.js';
 
 export class ToolbarController {
   private readonly buttons: ToolbarButtons;
@@ -26,7 +27,8 @@ export class ToolbarController {
     private readonly eventBus: UIEventBus,
     private readonly preferences: PreferencesStore,
     private readonly dropdownManager: DropdownManager,
-    handicapDialog: HandicapDialog
+    handicapDialog: HandicapDialog,
+    headerEditor: HeaderEditor
   ) {
     this.buttons = new ToolbarButtons(
       store,
@@ -36,7 +38,8 @@ export class ToolbarController {
       elements,
       eventBus,
       dropdownManager,
-      handicapDialog
+      handicapDialog,
+      headerEditor
     );
     this.state = new ToolbarState(
       store,
