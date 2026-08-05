@@ -123,7 +123,7 @@ export class GameStore {
   }
 
   removeStone(pos: Position): boolean {
-    if (!this.isValidPosition(pos)) {
+    if (!isValidPosition(this.state.boardSize, pos)) {
       return false;
     }
 
@@ -160,7 +160,7 @@ export class GameStore {
 
   /** 編集モード専用: ルール無視で直接配置 */
   directPlace(pos: Position, color: StoneColor): boolean {
-    if (!this.isValidPosition(pos)) return false;
+    if (!isValidPosition(this.state.boardSize, pos)) return false;
 
     const board = this.cloneBoard();
     board[pos.row][pos.col] = color;
@@ -185,7 +185,7 @@ export class GameStore {
 
   /** 編集モード専用: 石を直接削除 */
   directRemove(pos: Position): boolean {
-    if (!this.isValidPosition(pos)) return false;
+    if (!isValidPosition(this.state.boardSize, pos)) return false;
     if (this.state.board[pos.row][pos.col] === 0) return false;
 
     const board = this.cloneBoard();
@@ -204,8 +204,8 @@ export class GameStore {
    * @returns 移動に成功したか
    */
   moveStone(from: Position, to: Position): boolean {
-    if (!this.isValidPosition(from)) return false;
-    if (!this.isValidPosition(to)) return false;
+    if (!isValidPosition(this.state.boardSize, from)) return false;
+    if (!isValidPosition(this.state.boardSize, to)) return false;
     if (from.col === to.col && from.row === to.row) return false;
 
     const color = this.state.board[from.row][from.col];
@@ -438,9 +438,5 @@ export class GameStore {
 
   private cloneBoard(): Board {
     return cloneBoard(this.state.board);
-  }
-
-  private isValidPosition(pos: Position): boolean {
-    return isValidPosition(this.state.boardSize, pos);
   }
 }
