@@ -11,6 +11,7 @@ import { GameStore } from '../../state/game-store.js';
 import { UIEventBus } from '../../app/event-bus.js';
 import { HeaderEditor } from './file-menu/header-editor.js';
 import { getSgfTextarea } from '../../utils/dom-elements.js';
+import { OutsideClickListener } from '../../services/outside-click-listener.js';
 
 export type SgfApplyCallback = (sgfText: string) => void;
 export type AnswerButtonUpdater = () => void;
@@ -31,6 +32,7 @@ interface FileMenuElements {
 export class FileMenuController {
   private readonly headerEditor: HeaderEditor;
   private elements: FileMenuElements | null = null;
+  private unsubscribeOutsideClick: (() => void) | null = null;
 
   constructor(
     private readonly dropdownManager: DropdownManager,
@@ -95,9 +97,14 @@ export class FileMenuController {
       }
     });
 
-    document.addEventListener('click', () => {
-      this.dropdownManager.hide(els.fileDropdown);
-    });
+    if (els.fileDropdown) {
+      const dropdown = els.fileDropdown;
+      const listener = new OutsideClickListener();
+      this.unsubscribeOutsideClick = listener.subscribe(
+        [dropdown],
+        () => this.dropdownManager.hide(dropdown)
+      );
+    }
 
     els.fileDropdown?.addEventListener('click', (event) => {
       event.stopPropagation();
