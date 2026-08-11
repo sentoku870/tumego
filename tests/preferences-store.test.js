@@ -71,4 +71,42 @@ describe("PreferencesStore", () => {
     const store = new PreferencesStore(memoryStorage);
     expect(store.state.solve.showCapturedStones).toBe(true);
   });
+
+  test("default longPressDuration is 'short'", () => {
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.edit.longPressDuration).toBe("short");
+  });
+
+  test("setLongPressDuration persists and updates state", () => {
+    const store = new PreferencesStore(memoryStorage);
+    store.setLongPressDuration("long");
+    expect(store.state.edit.longPressDuration).toBe("long");
+    const stored = JSON.parse(memoryStorage.getItem(STORAGE_KEY));
+    expect(stored.edit.longPressDuration).toBe("long");
+  });
+
+  test("setLongPressDuration ignores invalid values", () => {
+    const store = new PreferencesStore(memoryStorage);
+    store.setLongPressDuration("invalid");
+    expect(store.state.edit.longPressDuration).toBe("short");
+  });
+
+  test("falls back to default longPressDuration when missing in storage", () => {
+    memoryStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ edit: { rulesMode: "free" } })
+    );
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.edit.rulesMode).toBe("free");
+    expect(store.state.edit.longPressDuration).toBe("short");
+  });
+
+  test("falls back to default longPressDuration when value is invalid", () => {
+    memoryStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ edit: { longPressDuration: "medium" } })
+    );
+    const store = new PreferencesStore(memoryStorage);
+    expect(store.state.edit.longPressDuration).toBe("short");
+  });
 });

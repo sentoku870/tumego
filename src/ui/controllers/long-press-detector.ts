@@ -24,7 +24,7 @@ export interface LongPressDetectorOptions {
 }
 
 export class LongPressDetector {
-  private readonly thresholdMs: number;
+  private thresholdMs: number;
   private readonly moveThresholdPx: number;
   private readonly setTimeoutFn: (handler: () => void, ms: number) => unknown;
   private readonly clearTimeoutFn: (handle: unknown) => void;
@@ -87,6 +87,15 @@ export class LongPressDetector {
   /** テスト用: 現在の閾値設定（ms）を取得 */
   getThresholdMs(): number {
     return this.thresholdMs;
+  }
+
+  /**
+   * 閾値を動的に更新する。既にタイマーが走っている場合は次の start() から
+   * 新しい閾値が適用される（実行中タイマーはそのまま）。
+   */
+  setThresholdMs(ms: number): void {
+    if (!Number.isFinite(ms) || ms <= 0) return;
+    this.thresholdMs = ms;
   }
 
   /** テスト用: 現在の移動量しきい値（px）を取得 */

@@ -2,7 +2,7 @@
 // 盤面のポインタイベントとフォーカス管理を統合する。
 // 座標変換は BoardPosition、mode 別処理は BoardPointerHandler に委譲。
 // 長押し検出は LongPressDetector に委譲。
-import { UIElements, DEFAULT_CONFIG, GameState, Position } from "../../types.js";
+import { UIElements, DEFAULT_CONFIG, GameState, Position, LONG_PRESS_THRESHOLD_MS } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
@@ -78,6 +78,15 @@ export class BoardInteractionController {
       eventBus,
       preferences
     );
+    this.applyLongPressDuration(this.preferences.state.edit.longPressDuration);
+    this.preferences.onChange((prefs) => {
+      this.applyLongPressDuration(prefs.edit.longPressDuration);
+    });
+  }
+
+  private applyLongPressDuration(duration: 'short' | 'long'): void {
+    const ms = LONG_PRESS_THRESHOLD_MS[duration];
+    this.longPressDetector.setThresholdMs(ms);
   }
 
   initialize(): void {

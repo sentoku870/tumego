@@ -510,4 +510,49 @@ describe('BoardInteractionController long-press stone move', () => {
     // 既にgrabされている状態での二度目の down は no-op
     expect(beforeTimerActive).toBe(false);
   });
+
+  test('initial long-press threshold reflects default preference (short -> 250ms)', () => {
+    const prefs = new PreferencesStore();
+    const freshController = new BoardInteractionController(
+      store,
+      elements,
+      uiState,
+      eventBus,
+      prefs
+    );
+    expect(freshController.getLongPressDetector().getThresholdMs()).toBe(250);
+  });
+
+  test('setLongPressDuration(long) updates LongPressDetector threshold (400ms)', () => {
+    const prefs = new PreferencesStore();
+    const freshController = new BoardInteractionController(
+      store,
+      elements,
+      uiState,
+      eventBus,
+      prefs
+    );
+    expect(freshController.getLongPressDetector().getThresholdMs()).toBe(250);
+
+    prefs.setLongPressDuration('long');
+
+    expect(freshController.getLongPressDetector().getThresholdMs()).toBe(400);
+  });
+
+  test('setLongPressDuration(short) restores 250ms threshold', () => {
+    const prefs = new PreferencesStore();
+    prefs.setLongPressDuration('long');
+    const freshController = new BoardInteractionController(
+      store,
+      elements,
+      uiState,
+      eventBus,
+      prefs
+    );
+    expect(freshController.getLongPressDetector().getThresholdMs()).toBe(400);
+
+    prefs.setLongPressDuration('short');
+
+    expect(freshController.getLongPressDetector().getThresholdMs()).toBe(250);
+  });
 });

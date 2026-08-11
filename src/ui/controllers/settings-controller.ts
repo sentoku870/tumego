@@ -1,4 +1,4 @@
-import { DeviceProfile, Preferences, RulesMode } from "../../types.js";
+import { DeviceProfile, LongPressDuration, Preferences, RulesMode } from "../../types.js";
 import { PreferencesStore } from "../../services/preferences-store.js";
 
 export class SettingsController {
@@ -7,6 +7,7 @@ export class SettingsController {
   private tabButtons: HTMLButtonElement[] = [];
   private tabContents: Record<string, HTMLElement | null> = {};
   private rulesSelect: HTMLSelectElement | null = null;
+  private longPressDurationSelect: HTMLSelectElement | null = null;
   private deviceProfileSelect: HTMLSelectElement | null = null;
   private showCapturedCheckbox: HTMLInputElement | null = null;
   private fullResetCheckbox: HTMLInputElement | null = null;
@@ -29,6 +30,7 @@ export class SettingsController {
       advanced: document.getElementById("settings-tab-advanced"),
     };
     this.rulesSelect = document.getElementById("setting-edit-rules-mode") as HTMLSelectElement | null;
+    this.longPressDurationSelect = document.getElementById("setting-edit-long-press-duration") as HTMLSelectElement | null;
     this.deviceProfileSelect = document.getElementById("settings-device-profile") as HTMLSelectElement | null;
     this.showCapturedCheckbox = document.getElementById("setting-show-captured") as HTMLInputElement | null;
     this.fullResetCheckbox = document.getElementById("setting-enable-reset") as HTMLInputElement | null;
@@ -63,6 +65,11 @@ export class SettingsController {
     this.rulesSelect?.addEventListener("change", (event) => {
       const value = (event.target as HTMLSelectElement).value as RulesMode;
       this.preferences.setEditRulesMode(value);
+    });
+
+    this.longPressDurationSelect?.addEventListener("change", (event) => {
+      const value = (event.target as HTMLSelectElement).value as LongPressDuration;
+      this.preferences.setLongPressDuration(value);
     });
 
     this.showCapturedCheckbox?.addEventListener("change", (event) => {
@@ -107,6 +114,9 @@ export class SettingsController {
   private syncUI(prefs: Preferences): void {
     if (this.rulesSelect) {
       this.rulesSelect.value = prefs.edit.rulesMode;
+    }
+    if (this.longPressDurationSelect) {
+      this.longPressDurationSelect.value = prefs.edit.longPressDuration;
     }
     if (this.showCapturedCheckbox) {
       this.showCapturedCheckbox.checked = prefs.solve.showCapturedStones;

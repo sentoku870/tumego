@@ -1,5 +1,5 @@
 // ============ 設定定数 ============
-import { Board, BooleanPreference, DeviceProfile, Position, RulesMode } from './domain.js';
+import { Board, BooleanPreference, DeviceProfile, LongPressDuration, Position, RulesMode } from './domain.js';
 
 // ============ エンジン関連 ============
 export interface MoveResult {
@@ -64,7 +64,11 @@ export interface GameConfig {
 
 // ============ 設定 ============
 export interface Preferences {
-  edit: { rulesMode: RulesMode };
+  edit: {
+    rulesMode: RulesMode;
+    /** 編集モードで長押し判定が成立するまでの待ち時間 */
+    longPressDuration: LongPressDuration;
+  };
   solve: {
     showCapturedStones: boolean;
     enableFullReset: boolean;
@@ -79,6 +83,13 @@ export interface Preferences {
 }
 
 // ============ 定数 ============
+
+/** LongPressDuration と LongPressDetector の thresholdMs (ms) の対応表。 */
+export const LONG_PRESS_THRESHOLD_MS: Record<LongPressDuration, number> = {
+  short: 250,
+  long: 400,
+};
+
 export const DEFAULT_CONFIG: GameConfig = {
   CELL_SIZE: 60,
   MARGIN: 30,

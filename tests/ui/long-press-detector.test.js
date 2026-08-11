@@ -163,4 +163,31 @@ describe('LongPressDetector', () => {
 
     expect(called).toBe(1);
   });
+
+  test('setThresholdMs で次回 start() から新しい閾値が使われる', () => {
+    const timers = createVirtualTimers();
+    const detector = new LongPressDetector({
+      thresholdMs: 400,
+      setTimeoutFn: timers.setTimeoutFn,
+      clearTimeoutFn: timers.clearTimeoutFn,
+    });
+
+    detector.setThresholdMs(250);
+    expect(detector.getThresholdMs()).toBe(250);
+
+    detector.start({ clientX: 0, clientY: 0 }, () => {});
+    expect(timers.handles[0].ms).toBe(250);
+  });
+
+  test('setThresholdMs は不正値を無視する', () => {
+    const detector = new LongPressDetector();
+    expect(detector.getThresholdMs()).toBe(400);
+
+    detector.setThresholdMs(0);
+    detector.setThresholdMs(-100);
+    detector.setThresholdMs(Number.NaN);
+    detector.setThresholdMs(Infinity);
+
+    expect(detector.getThresholdMs()).toBe(400);
+  });
 });

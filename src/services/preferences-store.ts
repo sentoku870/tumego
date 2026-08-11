@@ -1,9 +1,9 @@
-import { BooleanPreference, DeviceProfile, Preferences, RulesMode } from "../types.js";
+import { BooleanPreference, DeviceProfile, LongPressDuration, Preferences, RulesMode } from "../types.js";
 
 const STORAGE_KEY = "tumego.preferences";
 
 const DEFAULT_PREFERENCES: Preferences = {
-  edit: { rulesMode: "standard" },
+  edit: { rulesMode: "standard", longPressDuration: "short" },
   solve: {
     showCapturedStones: true,
     enableFullReset: true,
@@ -25,6 +25,10 @@ function isRulesMode(value: unknown): value is RulesMode {
 
 function isDeviceProfile(value: unknown): value is DeviceProfile {
   return value === "auto" || value === "desktop" || value === "phone" || value === "tablet";
+}
+
+function isLongPressDuration(value: unknown): value is LongPressDuration {
+  return value === "short" || value === "long";
 }
 
 function isBooleanPreference(value: unknown): value is BooleanPreference {
@@ -69,6 +73,9 @@ function normalizePreferences(raw: unknown): Preferences {
     const ui = parsed.ui as Record<string, unknown> | undefined;
 
     const rulesMode = readField(edit, 'rulesMode', isRulesMode) ?? DEFAULT_PREFERENCES.edit.rulesMode;
+    const longPressDuration =
+      readField(edit, 'longPressDuration', isLongPressDuration) ??
+      DEFAULT_PREFERENCES.edit.longPressDuration;
     const showCapturedStones =
       readField(solve, 'showCapturedStones', isBooleanPreference) ??
       legacyToggleToBoolean(solve?.showCapturedStones) ??
@@ -94,7 +101,7 @@ function normalizePreferences(raw: unknown): Preferences {
       DEFAULT_PREFERENCES.ui.deviceProfile;
 
     return {
-      edit: { rulesMode },
+      edit: { rulesMode, longPressDuration },
       solve: {
         showCapturedStones,
         enableFullReset,
@@ -133,6 +140,11 @@ export class PreferencesStore {
   setEditRulesMode(mode: RulesMode): void {
     if (!isRulesMode(mode)) return;
     this.updatePrefs({ edit: { rulesMode: mode } });
+  }
+
+  setLongPressDuration(duration: LongPressDuration): void {
+    if (!isLongPressDuration(duration)) return;
+    this.updatePrefs({ edit: { longPressDuration: duration } });
   }
 
   setShowCapturedStones(value: boolean): void {
