@@ -556,3 +556,157 @@ describe('BoardInteractionController long-press stone move', () => {
     expect(freshController.getLongPressDetector().getThresholdMs()).toBe(250);
   });
 });
+
+describe('BoardInteractionController wheel navigation', () => {
+  let state;
+  let store;
+  let uiState;
+  let elements;
+  let eventBus;
+  let uiUpdateSpy;
+  let controller;
+  let setMoveIndexSpy;
+
+  const createWheelEvent = (overrides = {}) => ({
+    deltaY: 0,
+    deltaX: 0,
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    shiftKey: false,
+    cancelable: true,
+    preventDefault: jest.fn(),
+    ...overrides
+  });
+
+  beforeEach(() => {
+    state = createState({
+      numberMode: true,
+      sgfMoves: [
+        { color: 'B', row: 3, col: 3 },
+        { color: 'W', row: 4, col: 4 },
+        { color: 'B', row: 5, col: 5 }
+      ],
+      sgfIndex: 1
+    });
+    store = createStore(state);
+    store.setMoveIndex = jest.fn();
+    uiState = createUIState();
+    elements = createElements();
+    eventBus = new UIEventBus();
+    uiUpdateSpy = jest.fn();
+    eventBus.onUIUpdate(uiUpdateSpy);
+
+    controller = new BoardInteractionController(
+      store,
+      elements,
+      uiState,
+      eventBus,
+      new PreferencesStore()
+    );
+    controller.initialize();
+    setMoveIndexSpy = store.setMoveIndex;
+  });
+
+  test('initialize registers wheel listener on boardWrapper', () => {
+    const calls = elements.boardWrapper.addEventListener.mock.calls;
+    const types = calls.map((c) => c[0]);
+    const wheelCall = calls.find(([type]) => type === 'wheel');
+    expect(Boolean(wheelCall)).toBe(true);
+    expect(typeof wheelCall[1]).toBe('function');
+    expect(wheelCall[2]).toEqual({ passive: false });
+    // Sanity check: other listeners should also be registered
+    expect(types).toContain('pointerenter');
+    expect(types).toContain('wheel');
+  });
+
+  test('solve mode + deltaY>0 advances sgfIndex by 1 and emits UIUpdate', () => {
+    const event = createWheelEvent({ deltaY: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls).toEqual([[state.sgfIndex + 1]]);
+    expect(uiUpdateSpy.mock.calls.length).toBe(1);
+    expect(event.preventDefault.mock.calls.length).toBe(1);
+  });
+
+  test('solve mode + deltaY<0 retreats sgfIndex by 1 and emits UIUpdate', () => {
+    state.sgfIndex = 2;
+    const event = createWheelEvent({ deltaY: -100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls).toEqual([[1]]);
+    expect(uiUpdateSpy.mock.calls.length).toBe(1);
+    expect(event.preventDefault.mock.calls.length).toBe(1);
+  });
+
+  test('edit mode (numberMode=false) ignores wheel and does not preventDefault', () => {
+    state.numberMode = false;
+    const event = createWheelEvent({ deltaY: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+    expect(uiUpdateSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('at first move (sgfIndex=0) ignores deltaY<0', () => {
+    state.sgfIndex = 0;
+    const event = createWheelEvent({ deltaY: -100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+    expect(uiUpdateSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('at last move (sgfIndex=sgfMoves.length) ignores deltaY>0', () => {
+    state.sgfIndex = state.sgfMoves.length;
+    const event = createWheelEvent({ deltaY: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+    expect(uiUpdateSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('horizontal-dominant wheel (|deltaX|>|deltaY|) is ignored', () => {
+    const event = createWheelEvent({ deltaY: 10, deltaX: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('modifier key (Ctrl/Shift/Alt/Meta) bypasses handler to avoid OS conflicts', () => {
+    const variants = [
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { metaKey: true }
+    ];
+    for (const overrides of variants) {
+      setMoveIndexSpy.mockClear();
+      uiUpdateSpy.mockClear();
+      const event = createWheelEvent({ deltaY: 100, ...overrides });
+      controller.handleWheel(event);
+      expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+      expect(event.preventDefault.mock.calls.length).toBe(0);
+    }
+  });
+
+  test('deltaY===0 is a no-op', () => {
+    const event = createWheelEvent({ deltaY: 0 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('uncancelable event still navigates but skips preventDefault', () => {
+    const event = createWheelEvent({ deltaY: 100, cancelable: false });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls).toEqual([[state.sgfIndex + 1]]);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+});

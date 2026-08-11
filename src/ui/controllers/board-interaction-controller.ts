@@ -153,6 +153,52 @@ export class BoardInteractionController {
       },
       { passive: false }
     );
+
+    wrapper.addEventListener(
+      "wheel",
+      (event) => this.handleWheel(event),
+      { passive: false }
+    );
+  }
+
+  /**
+   * 盤面上でのマウスホイール操作を 1手戻る/1手進む に割り当てる。
+   * 解答モード（numberMode=true）中のみ動作。編集モードではページスクロールを妨げない。
+   * - 修飾キー押下時は OS のズーム等と干渉するためパススルー
+   * - 横スクロール優位のジェスチャーは無視
+   * - 端点では no-op（preventDefault もしない）
+   */
+  private handleWheel(event: WheelEvent): void {
+    const state = this.state;
+    if (!state.numberMode) {
+      return;
+    }
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+      return;
+    }
+    if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+      return;
+    }
+
+    const delta = event.deltaY;
+    if (delta === 0) {
+      return;
+    }
+
+    const current = state.sgfIndex;
+    const next = delta > 0 ? current + 1 : current - 1;
+    if (next < 0 || next > state.sgfMoves.length) {
+      return;
+    }
+    if (next === current) {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    this.store.setMoveIndex(next);
+    this.eventBus.emitUIUpdate();
   }
 
   private initPointerEvents(): void {
