@@ -12,6 +12,8 @@ export type PlayMode = 'black' | 'white' | 'alt';
 export type AnswerMode = 'black' | 'white';
 export type RulesMode = 'standard' | 'free';
 export type DeviceProfile = 'auto' | 'desktop' | 'phone' | 'tablet';
+/** 編集モードで長押し判定に使う待ち時間。'short' は高速反応、'long' は誤操作を抑えた従来速度。 */
+export type LongPressDuration = 'short' | 'long';
 export type BooleanPreference = boolean;
 
 /** 盤面マーカーの種類。SGF FF4 の CR/TR/SQ/MA/LB に対応。 */

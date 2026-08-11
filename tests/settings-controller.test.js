@@ -42,6 +42,15 @@ const setupSettingsDOM = () => {
   });
   panel.appendChild(rulesSelect);
 
+  const longPressDurationSelect = document.createElement('select');
+  longPressDurationSelect.id = 'setting-edit-long-press-duration';
+  ['short', 'long'].forEach((value) => {
+    const opt = document.createElement('option');
+    opt.value = value;
+    longPressDurationSelect.appendChild(opt);
+  });
+  panel.appendChild(longPressDurationSelect);
+
   const deviceProfileSelect = document.createElement('select');
   deviceProfileSelect.id = 'settings-device-profile';
   ['auto', 'desktop', 'phone', 'tablet'].forEach((value) => {
@@ -78,7 +87,7 @@ const setupSettingsDOM = () => {
   return {
     panel, toggle, tabBasic, tabAdvanced,
     tabBasicContent, tabAdvancedContent,
-    rulesSelect, deviceProfileSelect,
+    rulesSelect, longPressDurationSelect, deviceProfileSelect,
     showCaptured, enableReset, highlightLast, showSolutionMoveNumbers,
     resetBtn
   };
@@ -191,6 +200,16 @@ describe('SettingsController', () => {
       expect(prefs.state.edit.rulesMode).toBe('free');
     });
 
+    test('changing long press duration updates preferences', () => {
+      elements.longPressDurationSelect.value = 'long';
+      elements.longPressDurationSelect.dispatchEvent(new Event('change'));
+      expect(prefs.state.edit.longPressDuration).toBe('long');
+    });
+
+    test('initial UI value reflects default long press duration', () => {
+      expect(elements.longPressDurationSelect.value).toBe('short');
+    });
+
     test('toggling show captured updates preferences', () => {
       elements.showCaptured.checked = false;
       elements.showCaptured.dispatchEvent(new Event('change'));
@@ -262,6 +281,12 @@ describe('SettingsController', () => {
       controller.initialize();
       prefs.setEditRulesMode('free');
       expect(elements.rulesSelect.value).toBe('free');
+    });
+
+    test('external change to long press duration updates UI', () => {
+      controller.initialize();
+      prefs.setLongPressDuration('long');
+      expect(elements.longPressDurationSelect.value).toBe('long');
     });
   });
 });
