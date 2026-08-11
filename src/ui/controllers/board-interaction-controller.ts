@@ -163,14 +163,16 @@ export class BoardInteractionController {
 
   /**
    * 盤面上でのマウスホイール操作を 1手戻る/1手進む に割り当てる。
-   * 解答モード（numberMode=true）中のみ動作。編集モードではページスクロールを妨げない。
+   * 解答モード（numberMode=true）中、または SGF 読込直後
+   * （sgfLoadedFromExternal=true）に動作する。純粋な編集モードでは
+   * ページスクロールを妨げない。
    * - 修飾キー押下時は OS のズーム等と干渉するためパススルー
    * - 横スクロール優位のジェスチャーは無視
    * - 端点では no-op（preventDefault もしない）
    */
   private handleWheel(event: WheelEvent): void {
     const state = this.state;
-    if (!state.numberMode) {
+    if (!state.numberMode && !state.sgfLoadedFromExternal) {
       return;
     }
     if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {

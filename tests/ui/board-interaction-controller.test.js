@@ -639,13 +639,49 @@ describe('BoardInteractionController wheel navigation', () => {
     expect(event.preventDefault.mock.calls.length).toBe(1);
   });
 
-  test('edit mode (numberMode=false) ignores wheel and does not preventDefault', () => {
+  test('edit mode without SGF (numberMode=false, sgfLoadedFromExternal=false) ignores wheel and does not preventDefault', () => {
     state.numberMode = false;
+    state.sgfLoadedFromExternal = false;
     const event = createWheelEvent({ deltaY: 100 });
     controller.handleWheel(event);
 
     expect(setMoveIndexSpy.mock.calls.length).toBe(0);
     expect(uiUpdateSpy.mock.calls.length).toBe(0);
+    expect(event.preventDefault.mock.calls.length).toBe(0);
+  });
+
+  test('SGF-loaded edit mode (sgfLoadedFromExternal=true) advances sgfIndex', () => {
+    state.numberMode = false;
+    state.sgfLoadedFromExternal = true;
+    state.sgfIndex = 1;
+    const event = createWheelEvent({ deltaY: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls).toEqual([[2]]);
+    expect(uiUpdateSpy.mock.calls.length).toBe(1);
+    expect(event.preventDefault.mock.calls.length).toBe(1);
+  });
+
+  test('SGF-loaded edit mode (sgfLoadedFromExternal=true) retreats sgfIndex', () => {
+    state.numberMode = false;
+    state.sgfLoadedFromExternal = true;
+    state.sgfIndex = 1;
+    const event = createWheelEvent({ deltaY: -100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls).toEqual([[0]]);
+    expect(uiUpdateSpy.mock.calls.length).toBe(1);
+    expect(event.preventDefault.mock.calls.length).toBe(1);
+  });
+
+  test('SGF-loaded edit mode at last move (sgfIndex=sgfMoves.length) ignores deltaY>0', () => {
+    state.numberMode = false;
+    state.sgfLoadedFromExternal = true;
+    state.sgfIndex = state.sgfMoves.length;
+    const event = createWheelEvent({ deltaY: 100 });
+    controller.handleWheel(event);
+
+    expect(setMoveIndexSpy.mock.calls.length).toBe(0);
     expect(event.preventDefault.mock.calls.length).toBe(0);
   });
 
