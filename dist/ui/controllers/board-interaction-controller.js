@@ -2,7 +2,7 @@
 // 盤面のポインタイベントとフォーカス管理を統合する。
 // 座標変換は BoardPosition、mode 別処理は BoardPointerHandler に委譲。
 // 長押し検出は LongPressDetector に委譲。
-import { DEFAULT_CONFIG } from "../../types.js";
+import { DEFAULT_CONFIG, LONG_PRESS_THRESHOLD_MS } from "../../types.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { BoardInputStateMachine, } from "./board-input-state-machine.js";
 import { normalizePointerInput, } from "./pointer-input.js";
@@ -43,6 +43,14 @@ export class BoardInteractionController {
         };
         this.position = new BoardPosition(elements.svg);
         this.pointerHandler = new BoardPointerHandler(store, uiState, eventBus, preferences);
+        this.applyLongPressDuration(this.preferences.state.edit.longPressDuration);
+        this.preferences.onChange((prefs) => {
+            this.applyLongPressDuration(prefs.edit.longPressDuration);
+        });
+    }
+    applyLongPressDuration(duration) {
+        const ms = LONG_PRESS_THRESHOLD_MS[duration];
+        this.longPressDetector.setThresholdMs(ms);
     }
     initialize() {
         this.initBoardFocusEvents();
@@ -90,6 +98,45 @@ export class BoardInteractionController {
                 }
             }
         }, { passive: false });
+        wrapper.addEventListener("wheel", (event) => this.handleWheel(event), { passive: false });
+    }
+    /**
+     * 盤面上でのマウスホイール操作を 1手戻る/1手進む に割り当てる。
+     * 解答モード（numberMode=true）中、または SGF 読込直後
+     * （sgfLoadedFromExternal=true）に動作する。純粋な編集モードでは
+     * ページスクロールを妨げない。
+     * - 修飾キー押下時は OS のズーム等と干渉するためパススルー
+     * - 横スクロール優位のジェスチャーは無視
+     * - 端点では no-op（preventDefault もしない）
+     */
+    handleWheel(event) {
+        const state = this.state;
+        if (!state.numberMode && !state.sgfLoadedFromExternal) {
+            return;
+        }
+        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+            return;
+        }
+        if (Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
+            return;
+        }
+        const delta = event.deltaY;
+        if (delta === 0) {
+            return;
+        }
+        const current = state.sgfIndex;
+        const next = delta > 0 ? current + 1 : current - 1;
+        if (next < 0 || next > state.sgfMoves.length) {
+            return;
+        }
+        if (next === current) {
+            return;
+        }
+        if (event.cancelable) {
+            event.preventDefault();
+        }
+        this.store.setMoveIndex(next);
+        this.eventBus.emitUIUpdate();
     }
     initPointerEvents() {
         const svg = this.elements.svg;

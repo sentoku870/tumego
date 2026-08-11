@@ -1,6 +1,6 @@
 const STORAGE_KEY = "tumego.preferences";
 const DEFAULT_PREFERENCES = {
-    edit: { rulesMode: "standard" },
+    edit: { rulesMode: "standard", longPressDuration: "short" },
     solve: {
         showCapturedStones: true,
         enableFullReset: true,
@@ -19,6 +19,9 @@ function isRulesMode(value) {
 }
 function isDeviceProfile(value) {
     return value === "auto" || value === "desktop" || value === "phone" || value === "tablet";
+}
+function isLongPressDuration(value) {
+    return value === "short" || value === "long";
 }
 function isBooleanPreference(value) {
     return typeof value === "boolean";
@@ -47,7 +50,7 @@ function readField(container, key, guard) {
     return guard(value) ? value : undefined;
 }
 function normalizePreferences(raw) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     if (!raw || typeof raw !== "object") {
         return clonePreferences(DEFAULT_PREFERENCES);
     }
@@ -57,15 +60,16 @@ function normalizePreferences(raw) {
         const solve = parsed.solve;
         const ui = parsed.ui;
         const rulesMode = (_a = readField(edit, 'rulesMode', isRulesMode)) !== null && _a !== void 0 ? _a : DEFAULT_PREFERENCES.edit.rulesMode;
-        const showCapturedStones = (_c = (_b = readField(solve, 'showCapturedStones', isBooleanPreference)) !== null && _b !== void 0 ? _b : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.showCapturedStones)) !== null && _c !== void 0 ? _c : DEFAULT_PREFERENCES.solve.showCapturedStones;
-        const enableFullReset = (_e = (_d = readField(solve, 'enableFullReset', isBooleanPreference)) !== null && _d !== void 0 ? _d : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.enableFullReset)) !== null && _e !== void 0 ? _e : DEFAULT_PREFERENCES.solve.enableFullReset;
-        const highlightLastMove = (_f = readField(solve, 'highlightLastMove', isBooleanPreference)) !== null && _f !== void 0 ? _f : DEFAULT_PREFERENCES.solve.highlightLastMove;
-        const showSolutionMoveNumbers = (_g = readField(solve, 'showSolutionMoveNumbers', isBooleanPreference)) !== null && _g !== void 0 ? _g : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
-        const showMarkers = (_h = readField(solve, 'showMarkers', isBooleanPreference)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.solve.showMarkers;
-        const allowMultiMarker = (_j = readField(solve, 'allowMultiMarker', isBooleanPreference)) !== null && _j !== void 0 ? _j : DEFAULT_PREFERENCES.solve.allowMultiMarker;
-        const deviceProfile = (_k = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _k !== void 0 ? _k : DEFAULT_PREFERENCES.ui.deviceProfile;
+        const longPressDuration = (_b = readField(edit, 'longPressDuration', isLongPressDuration)) !== null && _b !== void 0 ? _b : DEFAULT_PREFERENCES.edit.longPressDuration;
+        const showCapturedStones = (_d = (_c = readField(solve, 'showCapturedStones', isBooleanPreference)) !== null && _c !== void 0 ? _c : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.showCapturedStones)) !== null && _d !== void 0 ? _d : DEFAULT_PREFERENCES.solve.showCapturedStones;
+        const enableFullReset = (_f = (_e = readField(solve, 'enableFullReset', isBooleanPreference)) !== null && _e !== void 0 ? _e : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.enableFullReset)) !== null && _f !== void 0 ? _f : DEFAULT_PREFERENCES.solve.enableFullReset;
+        const highlightLastMove = (_g = readField(solve, 'highlightLastMove', isBooleanPreference)) !== null && _g !== void 0 ? _g : DEFAULT_PREFERENCES.solve.highlightLastMove;
+        const showSolutionMoveNumbers = (_h = readField(solve, 'showSolutionMoveNumbers', isBooleanPreference)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
+        const showMarkers = (_j = readField(solve, 'showMarkers', isBooleanPreference)) !== null && _j !== void 0 ? _j : DEFAULT_PREFERENCES.solve.showMarkers;
+        const allowMultiMarker = (_k = readField(solve, 'allowMultiMarker', isBooleanPreference)) !== null && _k !== void 0 ? _k : DEFAULT_PREFERENCES.solve.allowMultiMarker;
+        const deviceProfile = (_l = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _l !== void 0 ? _l : DEFAULT_PREFERENCES.ui.deviceProfile;
         return {
-            edit: { rulesMode },
+            edit: { rulesMode, longPressDuration },
             solve: {
                 showCapturedStones,
                 enableFullReset,
@@ -102,6 +106,11 @@ export class PreferencesStore {
         if (!isRulesMode(mode))
             return;
         this.updatePrefs({ edit: { rulesMode: mode } });
+    }
+    setLongPressDuration(duration) {
+        if (!isLongPressDuration(duration))
+            return;
+        this.updatePrefs({ edit: { longPressDuration: duration } });
     }
     setShowCapturedStones(value) {
         if (!isBooleanPreference(value))

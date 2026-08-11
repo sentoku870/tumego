@@ -6,6 +6,7 @@ export class SettingsController {
         this.tabButtons = [];
         this.tabContents = {};
         this.rulesSelect = null;
+        this.longPressDurationSelect = null;
         this.deviceProfileSelect = null;
         this.showCapturedCheckbox = null;
         this.fullResetCheckbox = null;
@@ -24,6 +25,7 @@ export class SettingsController {
             advanced: document.getElementById("settings-tab-advanced"),
         };
         this.rulesSelect = document.getElementById("setting-edit-rules-mode");
+        this.longPressDurationSelect = document.getElementById("setting-edit-long-press-duration");
         this.deviceProfileSelect = document.getElementById("settings-device-profile");
         this.showCapturedCheckbox = document.getElementById("setting-show-captured");
         this.fullResetCheckbox = document.getElementById("setting-enable-reset");
@@ -38,7 +40,7 @@ export class SettingsController {
         this.preferences.onChange((prefs) => this.syncUI(prefs));
     }
     bindEvents() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         (_a = this.toggleButton) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => {
             var _a;
             if (!this.panel)
@@ -58,33 +60,37 @@ export class SettingsController {
             const value = event.target.value;
             this.preferences.setEditRulesMode(value);
         });
-        (_c = this.showCapturedCheckbox) === null || _c === void 0 ? void 0 : _c.addEventListener("change", (event) => {
+        (_c = this.longPressDurationSelect) === null || _c === void 0 ? void 0 : _c.addEventListener("change", (event) => {
+            const value = event.target.value;
+            this.preferences.setLongPressDuration(value);
+        });
+        (_d = this.showCapturedCheckbox) === null || _d === void 0 ? void 0 : _d.addEventListener("change", (event) => {
             this.preferences.setShowCapturedStones(event.target.checked);
         });
-        (_d = this.fullResetCheckbox) === null || _d === void 0 ? void 0 : _d.addEventListener("change", (event) => {
+        (_e = this.fullResetCheckbox) === null || _e === void 0 ? void 0 : _e.addEventListener("change", (event) => {
             this.preferences.setEnableFullReset(event.target.checked);
         });
-        (_e = this.highlightLastMoveCheckbox) === null || _e === void 0 ? void 0 : _e.addEventListener("change", (event) => {
+        (_f = this.highlightLastMoveCheckbox) === null || _f === void 0 ? void 0 : _f.addEventListener("change", (event) => {
             const value = event.target.checked;
             this.preferences.setHighlightLastMove(value);
         });
-        (_f = this.showSolutionMoveNumbersCheckbox) === null || _f === void 0 ? void 0 : _f.addEventListener("change", (event) => {
+        (_g = this.showSolutionMoveNumbersCheckbox) === null || _g === void 0 ? void 0 : _g.addEventListener("change", (event) => {
             const value = event.target.checked;
             this.preferences.setShowSolutionMoveNumbers(value);
         });
-        (_g = this.showMarkersCheckbox) === null || _g === void 0 ? void 0 : _g.addEventListener("change", (event) => {
+        (_h = this.showMarkersCheckbox) === null || _h === void 0 ? void 0 : _h.addEventListener("change", (event) => {
             const value = event.target.checked;
             this.preferences.setShowMarkers(value);
         });
-        (_h = this.allowMultiMarkerCheckbox) === null || _h === void 0 ? void 0 : _h.addEventListener("change", (event) => {
+        (_j = this.allowMultiMarkerCheckbox) === null || _j === void 0 ? void 0 : _j.addEventListener("change", (event) => {
             const value = event.target.checked;
             this.preferences.setAllowMultiMarker(value);
         });
-        (_j = this.deviceProfileSelect) === null || _j === void 0 ? void 0 : _j.addEventListener("change", (event) => {
+        (_k = this.deviceProfileSelect) === null || _k === void 0 ? void 0 : _k.addEventListener("change", (event) => {
             const value = event.target.value;
             this.preferences.setDeviceProfile(value);
         });
-        (_k = this.resetButton) === null || _k === void 0 ? void 0 : _k.addEventListener("click", () => {
+        (_l = this.resetButton) === null || _l === void 0 ? void 0 : _l.addEventListener("click", () => {
             this.preferences.reset();
             this.syncUI(this.preferences.state);
         });
@@ -92,6 +98,9 @@ export class SettingsController {
     syncUI(prefs) {
         if (this.rulesSelect) {
             this.rulesSelect.value = prefs.edit.rulesMode;
+        }
+        if (this.longPressDurationSelect) {
+            this.longPressDurationSelect.value = prefs.edit.longPressDuration;
         }
         if (this.showCapturedCheckbox) {
             this.showCapturedCheckbox.checked = prefs.solve.showCapturedStones;

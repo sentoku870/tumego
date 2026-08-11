@@ -68,6 +68,15 @@ export class LongPressDetector {
     getThresholdMs() {
         return this.thresholdMs;
     }
+    /**
+     * 閾値を動的に更新する。既にタイマーが走っている場合は次の start() から
+     * 新しい閾値が適用される（実行中タイマーはそのまま）。
+     */
+    setThresholdMs(ms) {
+        if (!Number.isFinite(ms) || ms <= 0)
+            return;
+        this.thresholdMs = ms;
+    }
     /** テスト用: 現在の移動量しきい値（px）を取得 */
     getMoveThresholdPx() {
         return this.moveThresholdPx;

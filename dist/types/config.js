@@ -1,4 +1,9 @@
 // ============ 定数 ============
+/** LongPressDuration と LongPressDetector の thresholdMs (ms) の対応表。 */
+export const LONG_PRESS_THRESHOLD_MS = {
+    short: 250,
+    long: 400,
+};
 export const DEFAULT_CONFIG = {
     CELL_SIZE: 60,
     MARGIN: 30,
