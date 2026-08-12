@@ -47,7 +47,8 @@ const createState = (overrides = {}) => {
       playerBlack: overrides.playerBlack ?? null,
       playerWhite: overrides.playerWhite ?? null,
       result: overrides.result ?? null
-    }
+    },
+    koPoint: overrides.koPoint ?? null,
   };
 
   return state;
