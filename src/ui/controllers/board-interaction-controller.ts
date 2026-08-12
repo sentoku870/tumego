@@ -2,7 +2,7 @@
 // 盤面のポインタイベントとフォーカス管理を統合する。
 // 座標変換は BoardPosition、mode 別処理は BoardPointerHandler に委譲。
 // 長押し検出は LongPressDetector に委譲。
-import { UIElements, DEFAULT_CONFIG, GameState, Position, LONG_PRESS_THRESHOLD_MS } from "../../types.js";
+import { UIElements, GameState, Position, LONG_PRESS_THRESHOLD_MS } from "../../types.js";
 import { GameStore } from "../../state/game-store.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { UIInteractionState } from "../state/ui-interaction-state.js";
@@ -461,6 +461,3 @@ interface PointerMoveContext {
 }
 
 type PointerMoveHandler = (context: PointerMoveContext) => PointerMoveDecision;
-
-// DEFAULT_CONFIG import は参照を保持するため
-void DEFAULT_CONFIG;
