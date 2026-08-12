@@ -81,6 +81,27 @@ export class FeatureMenuController {
     });
   }
 
+  /**
+   * 登録した document-level リスナーを解放する。
+   * HMR やテストで initialize() を再呼び出しする際に呼び出す
+   * （2026-08-12 修正: B-10 リスナーリーク）。
+   */
+  dispose(): void {
+    this.unsubscribeOutsideClick?.();
+    this.unsubscribeOutsideClick = null;
+  }
+
+  /**
+   * body.horizontal クラスから現在のレイアウト状態を再読込する。
+   * 外部要因（CSS リロード、DevTools）でクラスが変わった場合に
+   * 内部状態を同期する（2026-08-12 修正: B-12 isHorizontal 不整合）。
+   * @returns 再読込後のレイアウト状態（true: 横レイアウト）
+   */
+  syncLayoutState(): boolean {
+    this.isHorizontal = document.body.classList.contains('horizontal');
+    return this.isHorizontal;
+  }
+
   updateMenuState(): void {
     const state = this.store.snapshot;
     const enabled = this.answerCopy.shouldEnable(state);
