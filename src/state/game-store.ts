@@ -118,9 +118,6 @@ export class GameStore {
       return false;
     }
 
-    this.state.board = result.board;
-    this.state.turn++;
-
     if (record) {
       this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
       this.state.sgfMoves.push({ col: pos.col, row: pos.row, color: moveColor });
@@ -130,6 +127,9 @@ export class GameStore {
       this.markers.syncToCurrentNode();
     }
 
+    // rebuildBoardFromMoves が state.board / state.history / state.turn /
+    // state.capturedCounts を再計算するため、ここでの直接代入は冗長。
+    // （2026-08-12 修正: 二重更新による state.turn の乖離を防止）
     this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
     return true;
   }
@@ -152,6 +152,7 @@ export class GameStore {
 
       if (removeIndex === -1) {
         this.state.board[pos.row][pos.col] = 0;
+        this.state.capturedCounts = createInitialCapturedCounts();
         this.cache.invalidate();
         return true;
       }
@@ -165,7 +166,11 @@ export class GameStore {
       return true;
     }
 
+    // 編集モードでの手動削除は sgfMoves と無関係なので、捕獲数も
+    // ゼロにリセットする（古い捕獲数が残ると UI 表示が不整合になる）。
+    // （2026-08-12 修正: B-8 capturedCounts リーク）
     this.state.board[pos.row][pos.col] = 0;
+    this.state.capturedCounts = createInitialCapturedCounts();
     this.cache.invalidate();
     return true;
   }

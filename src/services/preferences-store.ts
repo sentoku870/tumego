@@ -62,7 +62,7 @@ function readField<T>(
 }
 
 function normalizePreferences(raw: unknown): Preferences {
-  if (!raw || typeof raw !== "object") {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     return clonePreferences(DEFAULT_PREFERENCES);
   }
 

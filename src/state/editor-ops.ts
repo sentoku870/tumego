@@ -61,6 +61,7 @@ export class EditorOps {
    * from に石がなく、to が盤外、from === to のいずれかの場合は false。
    * 移動先に既存石がある場合は上書き（directPlace と同じ挙動）。
    * 履歴は記録しない（細かい編集は履歴に積まない既存方針と整合）。
+   * turn は directPlace と揃えてインクリメントする（2026-08-12 修正）。
    * @returns 移動に成功したか
    */
   moveStone(from: Position, to: Position): boolean {
@@ -77,6 +78,7 @@ export class EditorOps {
     board[from.row][from.col] = 0;
     board[to.row][to.col] = color as StoneColor;
     this.state.board = board;
+    this.state.turn++;
     this.cache.invalidate();
     return true;
   }
