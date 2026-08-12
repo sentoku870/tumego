@@ -66,6 +66,7 @@ export function createDefaultState(overrides = {}) {
     markerMode: false,
     activeMarkerKind: null,
     activeMarkerLabel: null,
+    koPoint: null,
     ...overrides
   };
 }

@@ -1,7 +1,7 @@
 import { GoEngine } from '../dist/go-engine.js';
 import { DEFAULT_CONFIG } from '../dist/types.js';
 
-const createState = (board) => ({
+const createState = (board, overrides = {}) => ({
   boardSize: board.length,
   board: board.map(row => row.slice()),
   mode: 'alt',
@@ -20,6 +20,8 @@ const createState = (board) => ({
   problemDiagramSet: false,
   problemDiagramBlack: [],
   problemDiagramWhite: [],
+  koPoint: null,
+  ...overrides,
 });
 
 const emptyBoard = (size) => Array.from({ length: size }, () => Array(size).fill(0));
@@ -264,10 +266,12 @@ describe('GoEngine', () => {
     });
 
     test('K2: immediate recapture at ko point should be illegal (intended)', () => {
-      const afterCapture = engine.playMove(createState(buildKoBase()), { col: 2, row: 3 }, 1);
+      const firstState = createState(buildKoBase());
+      const afterCapture = engine.playMove(firstState, { col: 2, row: 3 }, 1);
       const koBoard = afterCapture?.board ?? [];
 
-      const recaptureState = createState(koBoard);
+      // koPoint は state に保持される。次の state にも引き継ぐ。
+      const recaptureState = createState(koBoard, { koPoint: firstState.koPoint });
       const recapture = engine.playMove(recaptureState, { col: 2, row: 2 }, 2);
 
       expect(recapture).toBeNull();
@@ -275,14 +279,15 @@ describe('GoEngine', () => {
     });
 
     test('K3: recapture becomes legal after a move elsewhere (intended)', () => {
-      const afterCapture = engine.playMove(createState(buildKoBase()), { col: 2, row: 3 }, 1);
+      const firstState = createState(buildKoBase());
+      const afterCapture = engine.playMove(firstState, { col: 2, row: 3 }, 1);
       const koBoard = afterCapture?.board ?? [];
 
-      const moveElsewhereState = createState(koBoard);
+      const moveElsewhereState = createState(koBoard, { koPoint: firstState.koPoint });
       const elsewhere = engine.playMove(moveElsewhereState, { col: 0, row: 0 }, 2);
       expect(elsewhere).not.toBeNull();
 
-      const recaptureState = createState(elsewhere.board);
+      const recaptureState = createState(elsewhere.board, { koPoint: moveElsewhereState.koPoint });
       const recapture = engine.playMove(recaptureState, { col: 2, row: 2 }, 2);
 
       expect(recapture).not.toBeNull();

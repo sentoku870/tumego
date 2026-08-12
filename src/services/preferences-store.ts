@@ -86,15 +86,19 @@ function normalizePreferences(raw: unknown): Preferences {
       DEFAULT_PREFERENCES.solve.enableFullReset;
     const highlightLastMove =
       readField(solve, 'highlightLastMove', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.highlightLastMove) ??
       DEFAULT_PREFERENCES.solve.highlightLastMove;
     const showSolutionMoveNumbers =
       readField(solve, 'showSolutionMoveNumbers', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.showSolutionMoveNumbers) ??
       DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
     const showMarkers =
       readField(solve, 'showMarkers', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.showMarkers) ??
       DEFAULT_PREFERENCES.solve.showMarkers;
     const allowMultiMarker =
       readField(solve, 'allowMultiMarker', isBooleanPreference) ??
+      legacyToggleToBoolean(solve?.allowMultiMarker) ??
       DEFAULT_PREFERENCES.solve.allowMultiMarker;
     const deviceProfile =
       readField(ui, 'deviceProfile', isDeviceProfile) ??

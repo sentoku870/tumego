@@ -68,6 +68,8 @@ export class ToolbarState {
   updateToolbarState(): void {
     this.buttons.ensureButtonRefs();
     this.updateFullResetVisibility();
+    this.syncSizeButton(this.store.snapshot.boardSize);
+    this.syncPlayModeButton(this.store.snapshot.mode);
 
     const state = this.store.snapshot;
     const isSolve = state.numberMode;
@@ -168,5 +170,41 @@ export class ToolbarState {
       ? '解答をすべて消して問題図の初期状態に戻します'
       : '現在の盤面を問題図として保存します';
     this.buttons.problemBtn.disabled = false;
+  }
+
+  /**
+   * 盤サイズ選択ボタン（`.size-btn[data-size="9|13|19"]`）の active 表示を
+   * state.boardSize と同期する。SGF 読込や履歴復元でサイズが変わったときにも
+   * 正しいボタンがハイライトされるようにする（2026-08-12 修正）。
+   */
+  syncSizeButton(boardSize: number): void {
+    const buttons = document.querySelectorAll<HTMLElement>('.size-btn');
+    buttons.forEach((btn) => {
+      const sizeRaw = btn.dataset.size;
+      const size = sizeRaw === undefined ? NaN : parseInt(sizeRaw, 10);
+      if (size === boardSize) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  /**
+   * 配置モード（黒配置・白配置・交互）の active 表示を state.mode と同期する。
+   * 初期化時はハードコードせず、SGF 読込等で mode が変わったときにも
+   * 正しいボタンがハイライトされるようにする（2026-08-12 修正）。
+   */
+  syncPlayModeButton(mode: 'black' | 'white' | 'alt'): void {
+    const map: Record<typeof mode, string> = {
+      black: 'btn-black',
+      white: 'btn-white',
+      alt: 'btn-alt',
+    };
+    const activeId = map[mode];
+    document
+      .querySelectorAll<HTMLElement>('.play-btn')
+      .forEach((btn) => btn.classList.remove('active'));
+    document.getElementById(activeId)?.classList.add('active');
   }
 }

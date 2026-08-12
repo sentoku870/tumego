@@ -50,6 +50,12 @@ export interface GameState {
   rootMarkers: BoardMarker[];
   /** 各着手ノードに紐づくマーカー（SGF往復用、sgfMoves と並行配列） */
   nodeMarkers: BoardMarker[][];
+  /**
+   * 簡易コウの禁手位置。最後に着手で 1 石捕獲 + 着手石グループが 1 石・1 呼吸点
+   * となった場合に設定される。null なら禁手なし。
+   * 同一ゲーム内でコウ判定を保つために state に保持する（インスタンス状態にしない）。
+   */
+  koPoint: Position | null;
 }
 
 // ============ UI要素 ============
@@ -88,6 +94,7 @@ export type HistorySnapshotState = Pick<
   | "markers"
   | "rootMarkers"
   | "nodeMarkers"
+  | "gameInfo"
 >;
 
 export interface HistorySnapshot {

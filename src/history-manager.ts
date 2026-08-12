@@ -91,6 +91,7 @@ export class HistoryManager implements OperationHistory {
       markers: cloneMarkers(state.markers ?? []),
       rootMarkers: cloneMarkers(state.rootMarkers ?? []),
       nodeMarkers: this.cloneNodeMarkers(state.nodeMarkers ?? []),
+      gameInfo: this.cloneGameInfo(state.gameInfo),
     };
   }
 
@@ -137,5 +138,21 @@ export class HistoryManager implements OperationHistory {
     currentState.markers = cloneMarkers(saved.markers ?? []);
     currentState.rootMarkers = cloneMarkers(saved.rootMarkers ?? []);
     currentState.nodeMarkers = this.cloneNodeMarkers(saved.nodeMarkers ?? []);
+    if (saved.gameInfo) {
+      currentState.gameInfo = this.cloneGameInfo(saved.gameInfo);
+      currentState.komi = saved.gameInfo.komi ?? currentState.komi;
+    }
+  }
+
+  private cloneGameInfo(info: GameState['gameInfo']): GameState['gameInfo'] {
+    if (!info) {
+      return info;
+    }
+    return {
+      ...info,
+      handicapPositions: (info.handicapPositions ?? []).map((pos) => ({ ...pos })),
+      problemDiagramBlack: (info.problemDiagramBlack ?? []).map((pos) => ({ ...pos })),
+      problemDiagramWhite: (info.problemDiagramWhite ?? []).map((pos) => ({ ...pos })),
+    };
   }
 }

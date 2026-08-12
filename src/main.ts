@@ -41,7 +41,8 @@ function createInitialState(): GameState {
     activeMarkerKind: null,
     activeMarkerLabel: null,
     rootMarkers: [],
-    nodeMarkers: []
+    nodeMarkers: [],
+    koPoint: null
   };
 }
 

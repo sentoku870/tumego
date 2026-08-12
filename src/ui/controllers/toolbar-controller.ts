@@ -82,4 +82,12 @@ export class ToolbarController {
   closeMarkerPalette(): void {
     this.buttons.closeMarkerPalette();
   }
+
+  syncSizeButton(boardSize: number): void {
+    this.state.syncSizeButton(boardSize);
+  }
+
+  syncPlayModeButton(mode: 'black' | 'white' | 'alt'): void {
+    this.state.syncPlayModeButton(mode);
+  }
 }
