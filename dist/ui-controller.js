@@ -50,10 +50,11 @@ export class UIController {
             controllers.file.syncHeaderEditor();
             renderer.showMessage(`URL からSGF読み込み完了 (${urlResult.moves.length}手)`);
         }
-        const sizeBtn = document.querySelector('.size-btn[data-size="9"]');
-        const altBtn = document.getElementById('btn-alt');
-        sizeBtn === null || sizeBtn === void 0 ? void 0 : sizeBtn.classList.add('active');
-        altBtn === null || altBtn === void 0 ? void 0 : altBtn.classList.add('active');
+        // サイズ選択ボタン・配置モードボタンの active クラスは state と
+        // 同期させる。初期化時はハードコードせず、ToolbarState に委譲することで
+        // SGF 読込・履歴復元時のサイズ/モード変更にも追従できる（2026-08-12 修正）。
+        controllers.toolbar.syncSizeButton(store.snapshot.boardSize);
+        controllers.toolbar.syncPlayModeButton(store.snapshot.mode);
     }
     initResizeEvents() {
         const { renderer, dropdownManager, preferences } = this.app;

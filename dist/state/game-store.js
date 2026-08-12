@@ -6,7 +6,7 @@ import { MarkerStore } from './marker-store.js';
 import { ModeController } from './mode-controller.js';
 import { ModeOperations } from './mode-operations.js';
 import { PerformanceMonitor } from './performance-monitor.js';
-import { cloneBoard, createInitialCapturedCounts, isValidPosition } from './board-utils.js';
+import { createInitialCapturedCounts, isValidPosition } from './board-utils.js';
 export class GameStore {
     constructor(state, engine, history) {
         this.state = state;
@@ -48,7 +48,7 @@ export class GameStore {
         this.gameInfoStore.updateGameInfo(patch);
     }
     /**
-     * 対局情報（タイトル・対局者・コミ・結果・SGFSGF 拡張フィールド）を
+     * 対局情報（タイトル・対局者・コミ・結果・SGF 拡張フィールド）を
      * 既定値にリセットする。「全消去」「対局情報リセット」ボタンから呼ばれる。
      */
     resetGameInfo() {
@@ -63,8 +63,6 @@ export class GameStore {
         if (!result) {
             return false;
         }
-        this.state.board = result.board;
-        this.state.turn++;
         if (record) {
             this.state.sgfMoves = this.state.sgfMoves.slice(0, this.state.sgfIndex);
             this.state.sgfMoves.push({ col: pos.col, row: pos.row, color: moveColor });
@@ -73,6 +71,9 @@ export class GameStore {
             this.state.sgfIndex = this.state.sgfMoves.length;
             this.markers.syncToCurrentNode();
         }
+        // rebuildBoardFromMoves が state.board / state.history / state.turn /
+        // state.capturedCounts を再計算するため、ここでの直接代入は冗長。
+        // （2026-08-12 修正: 二重更新による state.turn の乖離を防止）
         this.applyRebuildResult(this.cache.rebuildBoardFromMoves(this.state.sgfIndex));
         return true;
     }
@@ -88,6 +89,7 @@ export class GameStore {
             const removeIndex = this.cache.findLastMoveIndex(pos, currentStone);
             if (removeIndex === -1) {
                 this.state.board[pos.row][pos.col] = 0;
+                this.state.capturedCounts = createInitialCapturedCounts();
                 this.cache.invalidate();
                 return true;
             }
@@ -99,7 +101,11 @@ export class GameStore {
             this.cache.invalidate();
             return true;
         }
+        // 編集モードでの手動削除は sgfMoves と無関係なので、捕獲数も
+        // ゼロにリセットする（古い捕獲数が残ると UI 表示が不整合になる）。
+        // （2026-08-12 修正: B-8 capturedCounts リーク）
         this.state.board[pos.row][pos.col] = 0;
+        this.state.capturedCounts = createInitialCapturedCounts();
         this.cache.invalidate();
         return true;
     }
@@ -281,9 +287,6 @@ export class GameStore {
         this.state.capturedCounts = result.counts;
         this.markers.syncToCurrentNode();
         this.gameInfoStore.syncKomiToGameInfo();
-    }
-    cloneBoard() {
-        return cloneBoard(this.state.board);
     }
 }
 //# sourceMappingURL=game-store.js.map

@@ -38,5 +38,11 @@ export class ToolbarController {
     closeMarkerPalette() {
         this.buttons.closeMarkerPalette();
     }
+    syncSizeButton(boardSize) {
+        this.state.syncSizeButton(boardSize);
+    }
+    syncPlayModeButton(mode) {
+        this.state.syncPlayModeButton(mode);
+    }
 }
 //# sourceMappingURL=toolbar-controller.js.map

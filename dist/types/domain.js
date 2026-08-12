@@ -1,5 +1,5 @@
 // ============ 基本型定義 ============
-/** LB（ラベル）マーカーで自動進転する文字のシーケンス。配置ごとに次へ進む。 */
+/** LB（ラベル）マーカーで自動進行する文字のシーケンス。配置ごとに次へ進む。 */
 export const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'];
 /** 次のラベル文字を返す（シーケンス末尾で先頭に戻る） */
 export function nextMarkerLetter(current) {

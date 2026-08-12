@@ -1,24 +1,20 @@
 import { cloneBoard, isValidPosition } from './state/board-utils.js';
 /**
  * Pure go board logic. All state mutations are delegated to {@link GameStore}.
+ *
+ * コウ (simple ko) 判定の状態は {@link GameState.koPoint} で管理する。
+ * エンジンのインスタンス状態にはしないことで、同一エンジンを複数のゲームで
+ * 共有しても禁手判定が漏れない（2026-08-12 修正）。
  */
 export class GoEngine {
-    constructor() {
-        /**
-         * Tracks the current ko point (if any) between consecutive moves. This keeps
-         * the engine behavior aligned with the simple ko tests even when callers do
-         * not persist ko metadata on their own state objects.
-         */
-        this.koPoint = null;
-    }
     playMove(state, pos, color, boardOverride) {
         const board = boardOverride !== null && boardOverride !== void 0 ? boardOverride : cloneBoard(state.board);
-        const applied = this.tryApplyMove(board, state.boardSize, pos, color);
+        const applied = this.tryApplyMove(board, state.boardSize, pos, color, state.koPoint);
         if (!applied) {
             return null;
         }
-        this.koPoint = applied.koPoint;
-        return { board, koPoint: this.koPoint, captured: applied.captured };
+        state.koPoint = applied.koPoint;
+        return { board, koPoint: applied.koPoint, captured: applied.captured };
     }
     generateHandicapPositions(boardSize, stones) {
         const patterns = this.getHandicapPatterns(boardSize);
@@ -31,12 +27,12 @@ export class GoEngine {
         }
         return positions.map(pos => ({ ...pos }));
     }
-    tryApplyMove(board, boardSize, pos, color) {
+    tryApplyMove(board, boardSize, pos, color, koPoint) {
         if (!isValidPosition(boardSize, pos) || board[pos.row][pos.col] !== 0) {
             return null;
         }
         // Simple ko: if the position matches the current ko point, the move is illegal.
-        if (this.koPoint && this.positionsEqual(this.koPoint, pos)) {
+        if (koPoint && this.positionsEqual(koPoint, pos)) {
             return null;
         }
         board[pos.row][pos.col] = color;
@@ -67,12 +63,12 @@ export class GoEngine {
         // has multiple stones (e.g. the new stone merges into an existing
         // friendly group), a 1-stone / 1-liberty capture is a legitimate
         // snapback-style recapture scenario and must not be marked as ko.
-        const koPoint = captured.length === 1 &&
+        const newKoPoint = captured.length === 1 &&
             selfGroup.libs === 1 &&
             selfGroup.stones.length === 1
             ? captured[0]
             : null;
-        return { board, koPoint, captured };
+        return { board, koPoint: newKoPoint, captured };
     }
     removeStones(board, stones) {
         stones.forEach(stone => {

@@ -181,8 +181,5 @@ export class MarkerStore {
             this.state.nodeMarkers[slot] = clone;
         }
     }
-    isValidPosition(pos) {
-        return isValidPosition(this.state.boardSize, pos);
-    }
 }
 //# sourceMappingURL=marker-store.js.map

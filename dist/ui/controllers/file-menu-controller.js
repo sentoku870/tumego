@@ -32,6 +32,16 @@ export class FileMenuController {
         this.headerEditor.bindEvents();
         this.headerEditor.populateFields();
     }
+    /**
+     * 登録した document-level リスナーを解放する。
+     * HMR やテストで initialize() を再呼び出しする際に呼び出す
+     * （2026-08-12 修正: B-10 リスナーリーク）。
+     */
+    dispose() {
+        var _a;
+        (_a = this.unsubscribeOutsideClick) === null || _a === void 0 ? void 0 : _a.call(this);
+        this.unsubscribeOutsideClick = null;
+    }
     cacheElements() {
         return {
             fileBtn: document.getElementById('btn-file'),
@@ -54,12 +64,15 @@ export class FileMenuController {
             const featureDropdown = document.getElementById('feature-dropdown');
             const isOpen = (_a = els.fileDropdown) === null || _a === void 0 ? void 0 : _a.classList.contains('show');
             this.dropdownManager.hide(featureDropdown);
-            this.headerEditor.populateFields();
             if (els.fileDropdown && els.fileBtn) {
                 if (isOpen) {
+                    // 閉じるときは編集中のヘッダを上書きしない
+                    // （2026-08-12 修正: B-9 編集中ヘッダ破棄）
                     this.dropdownManager.hide(els.fileDropdown);
                 }
                 else {
+                    // 開くときだけ最新状態を反映
+                    this.headerEditor.populateFields();
                     this.dropdownManager.open(els.fileBtn, els.fileDropdown);
                 }
             }

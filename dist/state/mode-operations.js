@@ -81,7 +81,9 @@ export class ModeOperations {
     }
     /** 解答モードへ入る（問題図をベースにしたクリーンな盤面から開始） */
     enterSolveMode() {
-        this.saveToHistory(`解答開始前（${this.state.sgfMoves.length}手）`);
+        if (hasGameData(this.state)) {
+            this.saveToHistory(`解答開始前（${this.state.sgfMoves.length}手）`);
+        }
         if (!this.state.problemDiagramSet) {
             this.captureBoardAsProblemDiagram();
         }
@@ -173,6 +175,7 @@ export class ModeOperations {
         this.state.markers = [];
         this.state.rootMarkers = [];
         this.state.nodeMarkers = [];
+        this.state.koPoint = null;
         this.state.gameInfo = {
             ...this.state.gameInfo,
             title: '',
@@ -260,6 +263,7 @@ export class ModeOperations {
         this.state.numberMode = false;
         this.state.mode = "alt";
         this.state.eraseMode = false;
+        this.state.koPoint = null;
         this.state.markers = [];
         this.state.rootMarkers = [];
         this.state.nodeMarkers = [];

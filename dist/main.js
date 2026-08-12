@@ -40,7 +40,8 @@ function createInitialState() {
         activeMarkerKind: null,
         activeMarkerLabel: null,
         rootMarkers: [],
-        nodeMarkers: []
+        nodeMarkers: [],
+        koPoint: null
     };
 }
 // ============ Acquire required DOM elements ============

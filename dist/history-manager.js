@@ -67,6 +67,7 @@ export class HistoryManager {
             markers: cloneMarkers((_a = state.markers) !== null && _a !== void 0 ? _a : []),
             rootMarkers: cloneMarkers((_b = state.rootMarkers) !== null && _b !== void 0 ? _b : []),
             nodeMarkers: this.cloneNodeMarkers((_c = state.nodeMarkers) !== null && _c !== void 0 ? _c : []),
+            gameInfo: this.cloneGameInfo(state.gameInfo),
         };
     }
     cloneMoves(moves) {
@@ -79,7 +80,7 @@ export class HistoryManager {
         return nodeMarkers.map((group) => cloneMarkers(group));
     }
     applySnapshot(saved, currentState) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         currentState.boardSize = saved.boardSize;
         currentState.board = cloneBoard(saved.board);
         currentState.mode = saved.mode;
@@ -104,6 +105,22 @@ export class HistoryManager {
         currentState.markers = cloneMarkers((_h = saved.markers) !== null && _h !== void 0 ? _h : []);
         currentState.rootMarkers = cloneMarkers((_j = saved.rootMarkers) !== null && _j !== void 0 ? _j : []);
         currentState.nodeMarkers = this.cloneNodeMarkers((_k = saved.nodeMarkers) !== null && _k !== void 0 ? _k : []);
+        if (saved.gameInfo) {
+            currentState.gameInfo = this.cloneGameInfo(saved.gameInfo);
+            currentState.komi = (_l = saved.gameInfo.komi) !== null && _l !== void 0 ? _l : currentState.komi;
+        }
+    }
+    cloneGameInfo(info) {
+        var _a, _b, _c;
+        if (!info) {
+            return info;
+        }
+        return {
+            ...info,
+            handicapPositions: ((_a = info.handicapPositions) !== null && _a !== void 0 ? _a : []).map((pos) => ({ ...pos })),
+            problemDiagramBlack: ((_b = info.problemDiagramBlack) !== null && _b !== void 0 ? _b : []).map((pos) => ({ ...pos })),
+            problemDiagramWhite: ((_c = info.problemDiagramWhite) !== null && _c !== void 0 ? _c : []).map((pos) => ({ ...pos })),
+        };
     }
 }
 //# sourceMappingURL=history-manager.js.map

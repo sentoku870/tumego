@@ -2,7 +2,7 @@
 // 盤面のポインタイベントとフォーカス管理を統合する。
 // 座標変換は BoardPosition、mode 別処理は BoardPointerHandler に委譲。
 // 長押し検出は LongPressDetector に委譲。
-import { DEFAULT_CONFIG, LONG_PRESS_THRESHOLD_MS } from "../../types.js";
+import { LONG_PRESS_THRESHOLD_MS } from "../../types.js";
 import { isValidPosition } from "../../state/board-utils.js";
 import { BoardInputStateMachine, } from "./board-input-state-machine.js";
 import { normalizePointerInput, } from "./pointer-input.js";
@@ -340,6 +340,4 @@ export class BoardInteractionController {
         return true;
     }
 }
-// DEFAULT_CONFIG import は参照を保持するため
-void DEFAULT_CONFIG;
 //# sourceMappingURL=board-interaction-controller.js.map

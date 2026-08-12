@@ -50,8 +50,8 @@ function readField(container, key, guard) {
     return guard(value) ? value : undefined;
 }
 function normalizePreferences(raw) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    if (!raw || typeof raw !== "object") {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
         return clonePreferences(DEFAULT_PREFERENCES);
     }
     try {
@@ -63,11 +63,11 @@ function normalizePreferences(raw) {
         const longPressDuration = (_b = readField(edit, 'longPressDuration', isLongPressDuration)) !== null && _b !== void 0 ? _b : DEFAULT_PREFERENCES.edit.longPressDuration;
         const showCapturedStones = (_d = (_c = readField(solve, 'showCapturedStones', isBooleanPreference)) !== null && _c !== void 0 ? _c : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.showCapturedStones)) !== null && _d !== void 0 ? _d : DEFAULT_PREFERENCES.solve.showCapturedStones;
         const enableFullReset = (_f = (_e = readField(solve, 'enableFullReset', isBooleanPreference)) !== null && _e !== void 0 ? _e : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.enableFullReset)) !== null && _f !== void 0 ? _f : DEFAULT_PREFERENCES.solve.enableFullReset;
-        const highlightLastMove = (_g = readField(solve, 'highlightLastMove', isBooleanPreference)) !== null && _g !== void 0 ? _g : DEFAULT_PREFERENCES.solve.highlightLastMove;
-        const showSolutionMoveNumbers = (_h = readField(solve, 'showSolutionMoveNumbers', isBooleanPreference)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
-        const showMarkers = (_j = readField(solve, 'showMarkers', isBooleanPreference)) !== null && _j !== void 0 ? _j : DEFAULT_PREFERENCES.solve.showMarkers;
-        const allowMultiMarker = (_k = readField(solve, 'allowMultiMarker', isBooleanPreference)) !== null && _k !== void 0 ? _k : DEFAULT_PREFERENCES.solve.allowMultiMarker;
-        const deviceProfile = (_l = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _l !== void 0 ? _l : DEFAULT_PREFERENCES.ui.deviceProfile;
+        const highlightLastMove = (_h = (_g = readField(solve, 'highlightLastMove', isBooleanPreference)) !== null && _g !== void 0 ? _g : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.highlightLastMove)) !== null && _h !== void 0 ? _h : DEFAULT_PREFERENCES.solve.highlightLastMove;
+        const showSolutionMoveNumbers = (_k = (_j = readField(solve, 'showSolutionMoveNumbers', isBooleanPreference)) !== null && _j !== void 0 ? _j : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.showSolutionMoveNumbers)) !== null && _k !== void 0 ? _k : DEFAULT_PREFERENCES.solve.showSolutionMoveNumbers;
+        const showMarkers = (_m = (_l = readField(solve, 'showMarkers', isBooleanPreference)) !== null && _l !== void 0 ? _l : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.showMarkers)) !== null && _m !== void 0 ? _m : DEFAULT_PREFERENCES.solve.showMarkers;
+        const allowMultiMarker = (_p = (_o = readField(solve, 'allowMultiMarker', isBooleanPreference)) !== null && _o !== void 0 ? _o : legacyToggleToBoolean(solve === null || solve === void 0 ? void 0 : solve.allowMultiMarker)) !== null && _p !== void 0 ? _p : DEFAULT_PREFERENCES.solve.allowMultiMarker;
+        const deviceProfile = (_q = readField(ui, 'deviceProfile', isDeviceProfile)) !== null && _q !== void 0 ? _q : DEFAULT_PREFERENCES.ui.deviceProfile;
         return {
             edit: { rulesMode, longPressDuration },
             solve: {
