@@ -37,7 +37,7 @@ import {
   PerformanceMetrics,
   PerformanceMonitor
 } from './performance-monitor.js';
-import { cloneBoard, createInitialCapturedCounts, isValidPosition } from './board-utils.js';
+import { createInitialCapturedCounts, isValidPosition } from './board-utils.js';
 
 export class GameStore {
   private readonly cache: BoardCacheManager;
@@ -100,7 +100,7 @@ export class GameStore {
   }
 
   /**
-   * 対局情報（タイトル・対局者・コミ・結果・SGFSGF 拡張フィールド）を
+   * 対局情報（タイトル・対局者・コミ・結果・SGF 拡張フィールド）を
    * 既定値にリセットする。「全消去」「対局情報リセット」ボタンから呼ばれる。
    */
   resetGameInfo(): void {
@@ -409,9 +409,5 @@ export class GameStore {
 
     this.markers.syncToCurrentNode();
     this.gameInfoStore.syncKomiToGameInfo();
-  }
-
-  private cloneBoard(): Board {
-    return cloneBoard(this.state.board);
   }
 }

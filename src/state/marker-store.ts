@@ -208,8 +208,4 @@ export class MarkerStore {
       this.state.nodeMarkers[slot] = clone;
     }
   }
-
-  private isValidPosition(pos: Position): boolean {
-    return isValidPosition(this.state.boardSize, pos);
-  }
 }

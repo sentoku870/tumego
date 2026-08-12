@@ -26,7 +26,7 @@ export interface BoardMarker {
   label?: string;
 }
 
-/** LB（ラベル）マーカーで自動進転する文字のシーケンス。配置ごとに次へ進む。 */
+/** LB（ラベル）マーカーで自動進行する文字のシーケンス。配置ごとに次へ進む。 */
 export const MARKER_LETTER_SEQUENCE = ['A', 'B', 'C', 'D', 'E'] as const;
 export type MarkerLetter = (typeof MARKER_LETTER_SEQUENCE)[number];
 
