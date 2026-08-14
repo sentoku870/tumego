@@ -275,6 +275,7 @@ describe('BoardInteractionController long-press stone move', () => {
   let uiUpdateSpy;
   let controller;
   let detector;
+  let placeSpy;
   /** LongPressDetector に注入する仮想タイマー */
   let virtualTimers;
 
@@ -335,7 +336,7 @@ describe('BoardInteractionController long-press stone move', () => {
     jest.spyOn(controller, 'getPositionFromEvent').mockReturnValue({ col: 3, row: 3 });
     jest.spyOn(controller, 'isValidPosition').mockReturnValue(true);
     // 通常配置の placeAtEvent を抑止（moveStone などのテスト対象に集中）
-    jest.spyOn(controller, 'placeAtEvent').mockImplementation(() => {});
+    placeSpy = jest.spyOn(controller, 'placeAtEvent').mockImplementation(() => {});
   });
 
   test('pointerdown on a stone starts long-press timer', () => {
@@ -414,6 +415,43 @@ describe('BoardInteractionController long-press stone move', () => {
       { col: 7, row: 7 }
     ]);
     expect(uiState.drag.grabbedStone).toBeNull();
+    // 掴み状態を解除したら dragging / dragColor も完全リセットする
+    // （残ったままだとリリース後のマウスオーバーで play モードが石を連続配置してしまう）
+    expect(uiState.drag.dragging).toBe(false);
+    expect(uiState.drag.dragColor).toBeNull();
+  });
+
+  test('pointerend after long-press grab without move still resets dragging state', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+
+    // ドロップ位置を同じ交点のままリリース（移動は発生しない）
+    controller.handlePointerEnd(createPointerEvent({ clientX: 100, clientY: 100 }));
+
+    expect(store.moveStone.mock.calls.length).toBe(0);
+    expect(uiState.drag.grabbedStone).toBeNull();
+    // 掴み状態が解除された以上、dragging / dragColor も完全リセットされている
+    expect(uiState.drag.dragging).toBe(false);
+    expect(uiState.drag.dragColor).toBeNull();
+  });
+
+  test('pointermove after long-press grab release does not place stones', () => {
+    controller.handlePointerDown(createPointerEvent({ clientX: 100, clientY: 100 }));
+    virtualTimers.fireAll();
+
+    expect(uiState.drag.grabbedStone).not.toBeNull();
+
+    // 掴み状態をリリース
+    controller.handlePointerEnd(createPointerEvent({ clientX: 100, clientY: 100 }));
+    expect(uiState.drag.grabbedStone).toBeNull();
+
+    // リリース後にマウス移動 → 石が配置されないことを確認
+    placeSpy.mockClear();
+    controller.handlePointerMove(createPointerEvent({ clientX: 200, clientY: 200 }));
+
+    expect(placeSpy.mock.calls.length).toBe(0);
   });
 
   test('pointerend without grab does not call store.moveStone', () => {
