@@ -232,9 +232,11 @@ export class BoardInteractionController {
                     this.eventBus.emitUIUpdate();
                 }
             }
-            this.uiState.releaseGrabbedStone();
-            // ドラッグ状態自体は触らない（drag.dragging はそのまま、次の通常配置を継続可能）
-            // ただし lastPos は維持（最後に置いた位置を記憶）
+            // 掴み状態を解除すると同時に dragging / dragColor / lastPos も全てリセットする。
+            // これを怠ると、リリース後のマウスオーバーで play モードの move handler が
+            // dragging=true を検知して石を連続配置してしまう（ボタン押下なしで石が置かれる）。
+            // 再度石を配置するには明示的なクリックが必要、という直感的な UX に戻す。
+            this.uiState.resetDrag();
             return;
         }
         if (!this.uiState.drag.dragging) {
